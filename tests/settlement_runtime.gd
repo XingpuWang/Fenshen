@@ -1,6 +1,8 @@
 extends "res://tests/runtime_check.gd"
 
 func ui(game: Node,id: String) -> void:
+	if id.begins_with("settlement:") and not game.interior.settlement_menu:
+		await ui(game,"settlements")
 	await settle(game,2)
 	for hit in game.interior.hits:
 		if hit.id==id:
@@ -102,7 +104,49 @@ func run(game: Node,dir: String) -> void:
 			frames+=1
 		check(u.cell==target and int(u.ap)==int(u.max_ap)-2,"army movement and economy coexist")
 	await shot(game,dir,"08-return-to-campaign")
-	var report: Dictionary={"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_video_adapter_name(),"checks":checks,"failures":failures,"captures":8}
+	# Reference-style presentation checks, using actual completed construction.
+	for kind in ["city","village","pass","ferry"]:
+		var chosen: String=""
+		for p in w.pois:
+			if p.type==kind and p.region=="guanzhong":
+				chosen=p.id
+				break
+		game.open_settlement(chosen)
+		await ui(game,"layout")
+		await settle(game)
+		check(game.interior.plot_views.size()==econ.settlements[chosen].plots.size(),"all stable plot IDs exposed by layout: "+kind)
+		await ui(game,"layout")
+		await ui(game,"back")
+	var village: Dictionary=w.by_poi.guanzhong_village_0
+	var pass_poi: Dictionary=w.by_poi.guanzhong_pass_1
+	pass_poi.owner="player"
+	for key in econ.KEYS: econ.treasury[key]=20000
+	for fixture in [[village,[[2,"homes"],[3,"market"],[5,"granary"],[6,"jade"],[7,"farm"]]],[pass_poi,[[2,"forge"],[4,"mine"],[6,"granary"],[7,"market"],[8,"homes"],[9,"lumber"]]]]:
+		var p: Dictionary=fixture[0]
+		for placement in fixture[1]:
+			var idx: int=int(placement[0])
+			while not econ.settlements[p.id].jobs.is_empty(): w.next_turn()
+			if econ.settlements[p.id].plots[idx].building.is_empty():
+				check(econ.build(p,idx,placement[1],w.by_poi).is_empty(),"gallery construction succeeds: "+placement[1])
+				w.next_turn()
+		game.open_settlement(p.id)
+		game.interior.selected_plot=5 if p.type=="village" else 0
+		game.toast=""
+		game.refresh()
+		await shot(game,dir,"09-developed-village" if p.type=="village" else "10-developed-pass")
+		await ui(game,"back")
+	game.open_settlement(capital.id)
+	game.interior.selected_plot=4
+	game.toast=""
+	await shot(game,dir,"11-city-overview")
+	await ui(game,"links")
+	check(game.interior.show_links,"collaboration overlay toggles through toolbar")
+	await ui(game,"zoom_in")
+	check(game.interior.view_zoom>1.0,"interior zoom control works")
+	await ui(game,"reset_view")
+	check(game.interior.view_zoom==1.0 and game.interior.view_pan==Vector2.ZERO,"interior view resets")
+	await ui(game,"back")
+	var report: Dictionary={"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_video_adapter_name(),"checks":checks,"failures":failures,"captures":11}
 	FileAccess.open(dir.path_join("settlement-runtime-tests.json"),FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("SETTLEMENT_RUNTIME "+JSON.stringify(report))
 	game.get_tree().quit(0 if failures.is_empty() else 1)
