@@ -12,3 +12,5 @@ node_modules/
 previews/author-*.jpg
 previews/**/*.import
 previews/*.import
+# Offline terrain-authoring reference does not need runtime import settings.
+data/terrain_reference.jpg.import

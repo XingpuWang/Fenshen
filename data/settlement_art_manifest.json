@@ -1,0 +1,352 @@
+{
+  "version": 2,
+  "created": "2026-11-15",
+  "provenance": "Generated for this project with image_gen using the user-provided visual direction; source atlases preserved. Sprite atlas slicing, UI alpha trimming and resizing are mechanical sharp operations.",
+  "background_templates": [
+    "city",
+    "village",
+    "pass",
+    "ferry"
+  ],
+  "building_atlas": {
+    "columns": 4,
+    "rows": 3,
+    "items": [
+      "farm",
+      "lumber",
+      "mine",
+      "market",
+      "jade",
+      "granary",
+      "homes",
+      "forge",
+      "barracks",
+      "drill",
+      "alchemy",
+      "altar"
+    ]
+  },
+  "landmark_atlas": {
+    "columns": 3,
+    "rows": 2,
+    "used_items": [
+      "lingtai",
+      "fengshentai",
+      "lutai",
+      "zhaixing",
+      "jinguang"
+    ]
+  },
+  "upgrade_art": "One base sprite per building; tiers are identified by the building nameplate and live inspector.",
+  "files": [
+    {
+      "file": "assets/buildings/alchemy.png",
+      "sha256": "48aca95acb0a7b216b2f394b5b7d23605107a792014b0a5a406671e06ae15f4d"
+    },
+    {
+      "file": "assets/buildings/altar.png",
+      "sha256": "30f6882eefe704743484b4eb1a0b8144c7f65e3c547b2b7ba5b0657c2bc5341b"
+    },
+    {
+      "file": "assets/buildings/atlas.png",
+      "sha256": "ae674980610e0e7601896ee50f655728ba5aa043be00bcf5ed8e86ea58394194"
+    },
+    {
+      "file": "assets/buildings/barracks.png",
+      "sha256": "ac5516cb65ebbc1e72c863ef68eb6e390b8f6ac36b04bbfb88bc4412d9e93593"
+    },
+    {
+      "file": "assets/buildings/drill.png",
+      "sha256": "cbe3fe269114f1952f26ece90af28b9ccdcc97af6a613c4b55d5b5d9c18a9a7e"
+    },
+    {
+      "file": "assets/buildings/farm.png",
+      "sha256": "370bbf38be8a6c00f340df0273faf2236696f3d12488008a56d4656f4011a98c"
+    },
+    {
+      "file": "assets/buildings/forge.png",
+      "sha256": "16b78436ae9e1d09611dc758822a165f5aa9008387909db94889d20cce937d48"
+    },
+    {
+      "file": "assets/buildings/granary.png",
+      "sha256": "05f1bf14a6ed33d5889a500192ad75b51f8d22ba1f06b8796dd1f1747ee5d95e"
+    },
+    {
+      "file": "assets/buildings/homes.png",
+      "sha256": "7e138576fe4f16e258eb60a902251c56643c1f06430199295c29999a421df883"
+    },
+    {
+      "file": "assets/buildings/jade.png",
+      "sha256": "593051ea3e4721d2caaf1a3657471512e15560f3741c1a1d5573ec710a3d1f4c"
+    },
+    {
+      "file": "assets/buildings/landmark_0.png",
+      "sha256": "8d76911b0ed0a2cf85f4da4ac2efe7eba9fad007935f35eadb79ac30107f7b7c"
+    },
+    {
+      "file": "assets/buildings/landmark_1.png",
+      "sha256": "e36480a3f349f596e3b2e41c0cce18a0234cd7ded3230dcc6d2092672a42d45a"
+    },
+    {
+      "file": "assets/buildings/landmark_2.png",
+      "sha256": "b356713a9ee2d62a8369c83d0d94666f79dfab223a4fafee28ee12ef76d3aa65"
+    },
+    {
+      "file": "assets/buildings/landmark_3.png",
+      "sha256": "fb129e485563479b8d6697dfe66acb4fe9e7b80b4142f579c70cb1482e3d0eaa"
+    },
+    {
+      "file": "assets/buildings/landmark_4.png",
+      "sha256": "6a8f221edd9a3227b6aeec8ccc49fa4fb8e07b3e41beaba01f7a0bbe7a397716"
+    },
+    {
+      "file": "assets/buildings/landmarks.png",
+      "sha256": "e955d1db28e84f86260965f4b281255635b49e113a4bf843d6a4ddb105e53e23"
+    },
+    {
+      "file": "assets/buildings/lumber.png",
+      "sha256": "757900245bb425299127112efa25cb72ed53fd4dbd414095d1d400af6fbfbd0c"
+    },
+    {
+      "file": "assets/buildings/market.png",
+      "sha256": "e672d7b2c77cee35352ebed226590011a6c2025df4e8685c3b56c5fac31e528b"
+    },
+    {
+      "file": "assets/buildings/mine.png",
+      "sha256": "e819a6d582ab5437b51f15eeb92d25374e8de37f49b04369bd26a8064e4f4d78"
+    },
+    {
+      "file": "assets/buildings/painted/alchemy.png",
+      "sha256": "2088734a31bb804b7397d0d294b471dce49d2213e36b1792d82b984247273e56"
+    },
+    {
+      "file": "assets/buildings/painted/altar.png",
+      "sha256": "c3fb80825b755f45e8da08003c7d775a7d545e761f3bfa2c17059d8faa7c23d3"
+    },
+    {
+      "file": "assets/buildings/painted/atlas.png",
+      "sha256": "e2547882b88954d90203eaf7402fd6017e43290deb7deb0e36875ec6909ab2ca"
+    },
+    {
+      "file": "assets/buildings/painted/barracks.png",
+      "sha256": "7a87438c4bb696dc3f53996b0259775a8e60c3d51b112c7b9032c2830f721ff3"
+    },
+    {
+      "file": "assets/buildings/painted/drill.png",
+      "sha256": "6656bcb6f985f8baacfe86910be6882dabc20673e4b48d805bd5fa718990b9e7"
+    },
+    {
+      "file": "assets/buildings/painted/farm.png",
+      "sha256": "8daa5e9411af2798106e7a163d3750b9861cadf2c8da8f77f587134d33c26a63"
+    },
+    {
+      "file": "assets/buildings/painted/forge.png",
+      "sha256": "ec49f9fe0b6edbde2baa68087e49d00d0c56a81b7b9154373cb9e70b1b11f8cc"
+    },
+    {
+      "file": "assets/buildings/painted/granary.png",
+      "sha256": "7cb70c0d04da67ee5bdbdff9f27d9730e406f8bd17f9e166b1bf31da16ee78f5"
+    },
+    {
+      "file": "assets/buildings/painted/homes.png",
+      "sha256": "5d1e27e751118d4d452d4584d2a3ae081ac229690cca3d898c28a2c1f5bb5fe2"
+    },
+    {
+      "file": "assets/buildings/painted/jade.png",
+      "sha256": "e6bb42ad326717502371ec07629a4e7588053d7d67c90be12b72fa48d3204f9b"
+    },
+    {
+      "file": "assets/buildings/painted/landmark_0.png",
+      "sha256": "8edcea98e5e9f0bcbf315660dfeb6e1ab995d881577559fb6511f9655ebe8060"
+    },
+    {
+      "file": "assets/buildings/painted/landmark_1.png",
+      "sha256": "41bf480ad7851d5b882a72f4fdcd26063c52bb96576b45c8220253fa19bda8c7"
+    },
+    {
+      "file": "assets/buildings/painted/landmark_2.png",
+      "sha256": "9fb09f98e970ab88f3f0e3c41ae35c50465a33d1e6bffe27a8068afb25a906ce"
+    },
+    {
+      "file": "assets/buildings/painted/landmark_3.png",
+      "sha256": "cac12e1bd651248de4e462bfc0835a27daeec563763d6e557496ecac63b001da"
+    },
+    {
+      "file": "assets/buildings/painted/landmark_4.png",
+      "sha256": "09d0ea95731a57b2ef3eaf19692eeb436af29ac156a74152cad2c313a05e9c10"
+    },
+    {
+      "file": "assets/buildings/painted/landmarks_atlas.png",
+      "sha256": "01bc7d4fef34bdd2fe037acb790076422fe23e1420f80537b8757a53361dd73b"
+    },
+    {
+      "file": "assets/buildings/painted/lumber.png",
+      "sha256": "663b4a8a628f2b95f3736da4d3dec1058255ca73858ab840e488eb3b332ebeb1"
+    },
+    {
+      "file": "assets/buildings/painted/market.png",
+      "sha256": "28e4d299063c5ae349581ae251b0274274425a8564ac504ac1f485b037d28529"
+    },
+    {
+      "file": "assets/buildings/painted/mine.png",
+      "sha256": "192e6baa784c9877de15f17d5134b15c590f06d0fd041477e69936abfb11636a"
+    },
+    {
+      "file": "assets/interiors/city.png",
+      "sha256": "5d50253a50e25cde40e08e6d377d2e773d114c6855fc529a03eefbeb00ed9cc4"
+    },
+    {
+      "file": "assets/interiors/city_painted.png",
+      "sha256": "ad056ff867550e1b04b4ee1bc4a7a8056e01b7fd67a2eba44a39f3114ee99f5b"
+    },
+    {
+      "file": "assets/interiors/ferry.png",
+      "sha256": "e9559387555ecaf421d7295f245517f55e4040c443cd6c4ea84fda50f2b2a77e"
+    },
+    {
+      "file": "assets/interiors/ferry_painted.png",
+      "sha256": "e7ab6c1f14b17e731f9dd023d61219f6049a53de21cacbbad5814b2f15f47f0c"
+    },
+    {
+      "file": "assets/interiors/pass.png",
+      "sha256": "9088c46cef893104bd046c489fcd78f3e8e970cb8049d2fb760ea24d09a19c9d"
+    },
+    {
+      "file": "assets/interiors/pass_painted.png",
+      "sha256": "083f0e08aea987f4f9fbcf005dd9965cb24d8b8e03af0d9677e123d61894e7ea"
+    },
+    {
+      "file": "assets/interiors/village.png",
+      "sha256": "d70f6e3d21eb96f9c957e7e2bb10195e25b7e6bf23d8d3c9f9d083f68e8c841a"
+    },
+    {
+      "file": "assets/interiors/village_painted.png",
+      "sha256": "58ab26cbdfc4680b7422f890990a11c43f922dbb4a086d4248e6198fbeb2471e"
+    },
+    {
+      "file": "assets/ui/painted/control_atlas.png",
+      "sha256": "8bc1d25b33abf2c7849f849c41acedd90a85a3c92552381484916e5c9c81a41f"
+    },
+    {
+      "file": "assets/ui/painted/jifa_portrait.png",
+      "sha256": "94452df0e7363bba5d93f9b850c8e541499e1a298a8d637b9effedb5df6c62f3"
+    },
+    {
+      "file": "assets/ui/painted/nameplate.png",
+      "sha256": "6d483bd429eeff3e52bc4e94ee87b1fed0249941d7e6726dcfeffffe8b126bb5"
+    },
+    {
+      "file": "assets/ui/painted/panel.png",
+      "sha256": "006c52eb174218381971d3659b00c8d8444e3b326f940f021a8c135ec31d33eb"
+    },
+    {
+      "file": "assets/ui/painted/panel_source.png",
+      "sha256": "f2cfd86ddce0797994c6ada8652f6f928143d0e6d79039b8e5dad77ad7b9c3ae"
+    },
+    {
+      "file": "assets/ui/painted/primary_button.png",
+      "sha256": "8453ea70c887480ea46beec9f07d1491b4eb96c01f1fa721a2676ea85f1506d4"
+    },
+    {
+      "file": "assets/ui/painted/synergy.png",
+      "sha256": "f0d74d62163955a1d3a6c3f198d4a68fe5a5098217d1ec86642c663541a082db"
+    },
+    {
+      "file": "assets/ui/painted_icons/build.png",
+      "sha256": "66dde2d11b37c216bf37c111385c18dcc70325e3b52b1e6f7cc9fc405e2d95a4"
+    },
+    {
+      "file": "assets/ui/painted_icons/demolish.png",
+      "sha256": "aaa3a19e75d3411fefa782e81faf395e1f537bc5ec186d91e6f67518dfc156fb"
+    },
+    {
+      "file": "assets/ui/painted_icons/flag.png",
+      "sha256": "18a023fefd71526d2f7453b42cab47cfbe9461fade1898a73c402ee2e90876bd"
+    },
+    {
+      "file": "assets/ui/painted_icons/gold.png",
+      "sha256": "7f4c875b08c7032ffb1ee115c656bd66d6819883f79a99be85b4c747666d2e99"
+    },
+    {
+      "file": "assets/ui/painted_icons/grain.png",
+      "sha256": "ad14ae15239cb9afc7cbd73631657c7e147bef8ac41dbc1cd5ee48f94b7d0713"
+    },
+    {
+      "file": "assets/ui/painted_icons/iron.png",
+      "sha256": "17825da210aa9c5a1f3906ae53d338e1dfb62cd7c4c946b3c5484b9f0fc2333a"
+    },
+    {
+      "file": "assets/ui/painted_icons/jade.png",
+      "sha256": "a5e873cc3eaa14ea87ee07da49eb9f62edcccaacde31f470beca2ba3b9c78c58"
+    },
+    {
+      "file": "assets/ui/painted_icons/map.png",
+      "sha256": "ecebd507f1000b5c5b38473ebb6c0d15461e272df2742940812b7205135b1712"
+    },
+    {
+      "file": "assets/ui/painted_icons/reserve.png",
+      "sha256": "f97484f22ecb65151ca35c4a88d11692825c3970f00c6a90f8297a5ea6047ac5"
+    },
+    {
+      "file": "assets/ui/painted_icons/turn.png",
+      "sha256": "542e79c1d01ec1a317081f2806c4a95bef0ba0ffa6364031929abc4e185f5061"
+    },
+    {
+      "file": "assets/ui/painted_icons/upgrade.png",
+      "sha256": "1517d88fad1819498e87e29e6706254149ff0eca812747e866fe8c79e4903acd"
+    },
+    {
+      "file": "assets/ui/painted_icons/wood.png",
+      "sha256": "6ee2bfe2156a91883098ba65586ffe58587d312cc736b6f9ef2df5d000ae07e6"
+    },
+    {
+      "file": "assets/ui/painted_icons_atlas.png",
+      "sha256": "43e64022ace987a82359c9879fca0cc879a1fc3b94223ef3081cae209ca4932e"
+    }
+  ],
+  "active_style_revision": "painted-courtyards-v1",
+  "layout": "data/interior_layouts.json: independent terraces with stable saved plot IDs. Layout/build mode exposes all plots; ordinary view distributes occupied sites within each terrace. Economic adjacency remains unchanged.",
+  "active_backgrounds": {
+    "city": "assets/interiors/city_painted.png",
+    "village": "assets/interiors/village_painted.png",
+    "pass": "assets/interiors/pass_painted.png",
+    "ferry": "assets/interiors/ferry_painted.png"
+  },
+  "active_building_atlas": "assets/buildings/painted/atlas.png",
+  "active_landmark_atlas": "assets/buildings/painted/landmarks_atlas.png",
+  "ui_art": {
+    "portrait": "assets/ui/painted/jifa_portrait.png",
+    "panel": "assets/ui/painted/panel.png",
+    "panel_source": "assets/ui/painted/panel_source.png",
+    "control_atlas": "assets/ui/painted/control_atlas.png",
+    "icons_atlas": "assets/ui/painted_icons_atlas.png",
+    "primary_button": "assets/ui/painted/primary_button.png",
+    "nameplate": "assets/ui/painted/nameplate.png",
+    "synergy": "assets/ui/painted/synergy.png"
+  },
+  "retained_legacy_files": [
+    "assets/interiors/city.png",
+    "assets/interiors/ferry.png",
+    "assets/interiors/pass.png",
+    "assets/interiors/village.png",
+    "assets/buildings/alchemy.png",
+    "assets/buildings/altar.png",
+    "assets/buildings/atlas.png",
+    "assets/buildings/barracks.png",
+    "assets/buildings/drill.png",
+    "assets/buildings/farm.png",
+    "assets/buildings/forge.png",
+    "assets/buildings/granary.png",
+    "assets/buildings/homes.png",
+    "assets/buildings/jade.png",
+    "assets/buildings/landmark_0.png",
+    "assets/buildings/landmark_1.png",
+    "assets/buildings/landmark_2.png",
+    "assets/buildings/landmark_3.png",
+    "assets/buildings/landmark_4.png",
+    "assets/buildings/landmarks.png",
+    "assets/buildings/lumber.png",
+    "assets/buildings/market.png",
+    "assets/buildings/mine.png"
+  ]
+}

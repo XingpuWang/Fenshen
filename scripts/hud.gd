@@ -120,30 +120,7 @@ func _draw() -> void:
 	hits.clear()
 	var w: ShanheWorld=game.world
 	var u: Dictionary=w.units[game.selected_unit]
-	# Top status strip.
-	draw_rect(Rect2(0,0,1920,78),Color(0.13,.10,.08,.97))
-	draw_line(Vector2(0,77),Vector2(1920,77),GOLD,2,true)
-	draw_line(Vector2(0,73),Vector2(1920,73),Color("665134"),1,true)
-	for i in 7: draw_arc(Vector2(37+i*11,14),15,0,TAU,24,Color(.66,.48,.22,.10),1,true)
-	draw_circle(Vector2(60,48),47,Color("2d241d"))
-	draw_arc(Vector2(60,48),44,0,TAU,64,GOLD,2,true)
-	draw_arc(Vector2(60,48),39,0,TAU,64,Color("806946"),1,true)
-	center_text("西岐",Vector2(60,60),29,LIGHT)
-	text("姬发",Vector2(124,31),24)
-	text("西岐王 · 奉天伐商",Vector2(196,30),16,MUTED)
-	text("乙丑年  春    第 %02d 回合" % w.turn,Vector2(124,59),17,GOLD)
-	var resources=[["grain","粮草","14,236","+1280",Color("d9ba67")],["wood","木材","6,312","+420",Color("ba8b57")],["iron","铁矿","3,987","+340",Color("b2b8ba")],["jade","玉石","1,264","+90",Color("8cbfa4")],["gold","金钱","5,820","+520",Color("e8c168")]]
-	for i in resources.size():
-		var x: float=425+i*235
-		var r: Array=resources[i]
-		icon(r[0],Vector2(x,34),r[4],.85)
-		text(r[1],Vector2(x+22,29),16,MUTED)
-		text(r[2],Vector2(x+22,55),23,LIGHT,sans)
-		text(r[3],Vector2(x+103,54),15,Color("9ebd76"),sans)
-	icon("sun",Vector2(1620,36),GOLD,.8)
-	text("声望  2,380",Vector2(1645,43),18)
-	button("save",Rect2(1780,17,53,40),"存")
-	button("load",Rect2(1839,17,53,40),"读")
+	draw_topbar()
 	# Left commander panel.
 	panel(Rect2(18,108,310,620))
 	if game.selected_unit==0: draw_texture_rect_region(portrait,Rect2(27,117,292,236),Rect2(0,0,640,518))
@@ -166,9 +143,9 @@ func _draw() -> void:
 	text("部队",Vector2(43,511),20,GOLD)
 	text("精锐步卒",Vector2(178,511),18,LIGHT)
 	text("兵力",Vector2(43,550),18,MUTED)
-	text("%s / %s" %[str(int(u.soldiers)),str(int(u.soldiers))],Vector2(158,550),20,LIGHT,sans)
+	text("%s / %s" %[str(int(u.soldiers)),str(int(u.max_soldiers))],Vector2(158,550),20,LIGHT,sans)
 	draw_rect(Rect2(44,565,260,6),Color("574b38"))
-	draw_rect(Rect2(44,565,260,6),Color("bba16b"))
+	draw_rect(Rect2(44,565,260*clampf(float(u.soldiers)/float(u.max_soldiers),0.0,1.0),6),Color("bba16b"))
 	text("行动力",Vector2(43,611),18,MUTED)
 	text("%d / %d" %[int(u.ap),int(u.max_ap)],Vector2(236,611),23,GOLD,sans)
 	for i in int(u.max_ap):
@@ -187,13 +164,13 @@ func _draw() -> void:
 	# Objectives.
 	panel(Rect2(1574,109,328,216),"行 军 纪 要")
 	text("一统山河",Vector2(1596,185),20,LIGHT)
-	text("先据关津，再通九州。",Vector2(1596,215),17,MUTED)
+	text("点击城村关津，进入内景建设。",Vector2(1596,215),16,MUTED)
 	var owned: int=0
 	for p in w.pois:
 		if p.owner=="player": owned+=1
 	text("我方据点",Vector2(1596,255),17,MUTED)
 	text("%d / 125" %owned,Vector2(1795,255),18,GOLD,sans)
-	text("占领渡口后，可乘舟过河",Vector2(1596,293),16,GOLD)
+	button("capital",Rect2(1596,272,280,36),"西岐内政 · 建设与地标",not game.moving)
 	# Context-sensitive orders.
 	panel(Rect2(1574,343,328,245),"地 势 与 军 令")
 	if not game.selected_poi.is_empty():
@@ -203,7 +180,7 @@ func _draw() -> void:
 		text(type_names[p.type],Vector2(1815,424),18,GOLD)
 		text("归属 · "+{"player":"西岐","shang":"商","neutral":"未占领"}[p.owner],Vector2(1596,462),18,MUTED)
 		text("占领后开放两岸航线" if p.type=="ferry" else "占领后允许我方通行",Vector2(1596,495),17,MUTED)
-		button("capture",Rect2(1596,521,134,44),"占领 · 1 点",w.can_capture(u,p) and not game.moving)
+		button("interior",Rect2(1596,521,134,44),"进入据点",not game.moving)
 		button("approach",Rect2(1742,521,138,44),"前往附近",not game.moving and p.owner!="player")
 	else:
 		text("山河有界，关津为钥",Vector2(1596,425),22,LIGHT)
@@ -277,3 +254,30 @@ func hit_test(p: Vector2) -> Dictionary:
 	for rect in [Rect2(0,0,1920,78),Rect2(18,108,310,620),Rect2(1574,109,328,216),Rect2(1574,343,328,245),Rect2(18,778,310,289),Rect2(363,943,570,121),Rect2(562,96,796,44)]:
 		if rect.has_point(p): return {"id":"panel","enabled":false}
 	return {}
+
+func draw_topbar() -> void:
+	var w: ShanheWorld = game.world
+	# Top status strip.
+	draw_rect(Rect2(0,0,1920,78),Color(0.13,.10,.08,.97))
+	draw_line(Vector2(0,77),Vector2(1920,77),GOLD,2,true)
+	draw_line(Vector2(0,73),Vector2(1920,73),Color("665134"),1,true)
+	for i in 7: draw_arc(Vector2(37+i*11,14),15,0,TAU,24,Color(.66,.48,.22,.10),1,true)
+	draw_circle(Vector2(60,48),47,Color("2d241d"))
+	draw_arc(Vector2(60,48),44,0,TAU,64,GOLD,2,true)
+	draw_arc(Vector2(60,48),39,0,TAU,64,Color("806946"),1,true)
+	center_text("西岐",Vector2(60,60),29,LIGHT)
+	text("姬发",Vector2(124,31),24)
+	text("西岐王 · 奉天伐商",Vector2(196,30),16,MUTED)
+	text("武王兴周    第 %02d 回合" % w.turn,Vector2(124,59),17,GOLD)
+	var resources=[["grain","粮草",Color("d9ba67")],["wood","木材",Color("ba8b57")],["iron","金铁",Color("b2b8ba")],["jade","玉石",Color("8cbfa4")],["gold","钱帛",Color("e8c168")]]
+	for i in resources.size():
+		var x: float=425+i*235
+		var r: Array=resources[i]
+		icon(r[0],Vector2(x,34),r[2],.85)
+		text(r[1],Vector2(x+22,29),16,MUTED)
+		text(str(int(w.economy.treasury[r[0]])),Vector2(x+22,55),23,LIGHT,sans)
+		text("+%d" % int(game.economy_income.get(r[0],0)),Vector2(x+118,54),15,Color("9ebd76"),sans)
+	icon("sun",Vector2(1620,36),GOLD,.8)
+	text("声望  %d" % w.economy.prestige,Vector2(1645,43),18)
+	button("save",Rect2(1780,17,53,40),"存")
+	button("load",Rect2(1839,17,53,40),"读")

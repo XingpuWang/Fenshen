@@ -71,7 +71,7 @@ func run(game: Node,dir: String) -> void:
 	game.action("end_turn")
 	check(game.world.can_capture(north_unit,ferry),"army reached land adjacency")
 	await shot(game,dir,"03-ferry-before-capture")
-	await click(game,Vector2(1665,543))
+	await click(game,Vector2(1197,983))
 	check(ferry.owner=="player","Capture button changes ferry ownership")
 	var start_bank=int(ferry.banks[1])
 	var opposite=int(ferry.banks[0])

@@ -2,6 +2,9 @@ class_name ShanheWorld
 extends RefCounted
 
 const DIRECTIONS = [Vector2i(1,0),Vector2i(1,-1),Vector2i(0,-1),Vector2i(-1,0),Vector2i(-1,1),Vector2i(0,1)]
+const Economy = preload("res://scripts/settlement_economy.gd")
+var economy: SettlementEconomy
+var theme: Dictionary
 var data: Dictionary
 var cells: Array
 var pois: Array
@@ -16,8 +19,9 @@ var revision: int = 0
 var captured: int = 0
 var crossed: int = 0
 
-func _init() -> void:
+func _init(setup_campaign: bool = true) -> void:
 	data = JSON.parse_string(FileAccess.get_file_as_string("res://data/world.json"))
+	theme = JSON.parse_string(FileAccess.get_file_as_string("res://data/fengshen.json"))
 	cells = data.cells
 	pois = data.pois
 	units = data.units
@@ -27,10 +31,30 @@ func _init() -> void:
 		by_hex[Vector2i(int(c.q),int(c.r))] = i
 	for p in pois:
 		by_poi[p.id] = p
+		p.name = theme.names[p.id].name
+		if setup_campaign: p.owner = "player" if p.id in theme.owned else ("shang" if p.type in ["city","pass"] else "neutral")
 	for u in units:
 		u.cell = int(u.cell)
 		u.ap = int(u.max_ap)
 		u.guarding = false
+		u.max_soldiers = int(u.soldiers)+800
+	if setup_campaign:
+		var targets: Array = [Vector2(-1500,2010), Vector2(-1050,2460), Vector2(-2675,1440)]
+		for i in units.size():
+			var best: int = -1
+			var distance: float = INF
+			for ci in cells.size():
+				if not walkable(ci) or occupied(ci,units[i].id): continue
+				var d: float = center(ci).distance_squared_to(targets[i])
+				if d < distance:
+					distance = d
+					best = ci
+			units[i].cell = best
+		units[1].name = "南宫适"
+		units[1].title = "西岐先锋 · 镇守渭滨"
+		units[2].name = "黄天化"
+		units[2].title = "西岐先锋 · 北巡关津"
+	economy = Economy.new(pois,theme)
 
 func center(id: int) -> Vector2:
 	var c: Dictionary = cells[id]
@@ -155,39 +179,83 @@ func capture(unit: Dictionary, poi: Dictionary) -> bool:
 	return true
 
 func next_turn() -> void:
+	economy.next_turn(by_poi)
 	turn+=1
 	for u in units:
 		u.ap=int(u.max_ap)
 		u.guarding=false
+	revision+=1
+
+func recruit_reason(unit: Dictionary, poi: Dictionary) -> String:
+	if poi.owner != "player": return "占领后可补充兵员"
+	var has_camp: bool = false
+	for plot in economy.settlements[poi.id].plots:
+		if plot.building == "barracks": has_camp=true
+	if not has_camp: return "此地需要建成军营"
+	var nearby: bool = false
+	var supply_route: Dictionary = search(int(unit.cell),2,unit.id)
+	for ci in poi.cells:
+		if supply_route.dist.has(int(ci)): nearby=true
+	if not nearby: return "部队须在本地两步可通行范围内"
+	if int(unit.ap) < 1: return "补兵需要 1 点行动力"
+	if int(unit.soldiers) >= int(unit.max_soldiers): return "兵力已满"
+	if int(economy.treasury.reserve) < 1 or int(economy.treasury.grain) < 2: return "共享兵员或粮草不足"
+	return ""
+
+func recruit(unit: Dictionary, poi: Dictionary) -> int:
+	if not recruit_reason(unit,poi).is_empty(): return 0
+	var count: int = mini(500,mini(int(unit.max_soldiers)-int(unit.soldiers),mini(int(economy.treasury.reserve),int(economy.treasury.grain)/2)))
+	economy.treasury.reserve -= count
+	economy.treasury.grain -= count*2
+	unit.soldiers = int(unit.soldiers)+count
+	unit.ap = int(unit.ap)-1
+	return count
 
 func save_game(file_path: String = "user://campaign.json") -> Error:
 	var owners: Dictionary={}
 	for p in pois: owners[p.id]=p.owner
-	var save={"schema":1,"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units}
-	var f=FileAccess.open(file_path,FileAccess.WRITE)
+	var save={"schema":2,"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units,"economy":economy.serialize()}
+	var temp_path: String=file_path+".tmp"
+	var f=FileAccess.open(temp_path,FileAccess.WRITE)
 	if f==null: return FileAccess.get_open_error()
 	f.store_string(JSON.stringify(save,"\t"))
-	return OK
+	f.flush()
+	var error: Error=f.get_error()
+	f.close()
+	if error!=OK: return error
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path),ProjectSettings.globalize_path(file_path))
 
 func load_game(file_path: String = "user://campaign.json") -> bool:
 	if not FileAccess.file_exists(file_path): return false
 	var saved = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-	if not saved is Dictionary or saved.get("schema",0)!=1 or saved.get("art_revision","")!=data.art_revision: return false
+	if not saved is Dictionary or (saved.get("schema",0)!=1 and saved.get("schema",0)!=2) or saved.get("art_revision","")!=data.art_revision: return false
 	# Validate the complete state before mutating the live campaign.
 	if not saved.get("owners",{}) is Dictionary or not saved.get("units",[]) is Array or saved.units.size()!=units.size(): return false
 	for p in pois:
 		if not saved.owners.get(p.id,"") in ["player","shang","neutral"]: return false
+	for key in ["turn","captured","crossed"]:
+		if not Economy.integer(saved.get(key),1 if key=="turn" else 0,1000000000): return false
+	var used_cells: Array = []
 	for i in units.size():
 		var u=saved.units[i]
 		if not u is Dictionary or u.get("id","")!=units[i].id: return false
-		var ci=int(u.get("cell",-1))
+		if not Economy.integer(u.get("cell"),0,cells.size()-1): return false
+		var ci=int(u.cell)
+		if ci in used_cells: return false
+		used_cells.append(ci)
 		if ci<0 or ci>=cells.size() or cells[ci].t!=0: return false
 		if not str(cells[ci].p).is_empty() and saved.owners[cells[ci].p]!="player": return false
-		if int(u.get("ap",-1))<0 or int(u.ap)>int(units[i].max_ap): return false
+		if not Economy.integer(u.get("ap"),0,int(units[i].max_ap)): return false
+		if not Economy.integer(u.get("soldiers"),0,int(units[i].max_soldiers)): return false
+		if u.has("guarding") and not u.guarding is bool: return false
+	var loaded_economy: Variant = saved.get("economy",{}) if saved.schema==2 else Economy.new(pois,theme).serialize()
+	if not economy.validate(loaded_economy,by_poi): return false
+	economy.restore(loaded_economy)
 	for p in pois: p.owner=saved.owners[p.id]
 	for i in units.size():
 		units[i].cell=int(saved.units[i].cell)
 		units[i].ap=int(saved.units[i].ap)
+		units[i].soldiers=int(saved.units[i].soldiers)
 		units[i].guarding=bool(saved.units[i].get("guarding",false))
 	turn=maxi(1,int(saved.get("turn",1)))
 	captured=int(saved.get("captured",0))

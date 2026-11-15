@@ -1,5 +1,5 @@
 {
-  "project": "山河 · 九州行军",
+  "project": "封神 · 九州经营",
   "godot": "4.7.2.stable.official",
   "map_revision": "outpaint-v5-nine-regions",
   "hex_cells": 11875,
@@ -14,5 +14,31 @@
   "runtime_validation": "passed",
   "original_map_images_unchanged": true,
   "entry_point": "project.godot",
-  "readme": "README.txt"
+  "readme": "README.txt",
+  "version": "0.3",
+  "git_branch": "codex/fengshen-settlement-economy",
+  "economy_validation": "passed",
+  "economy_model_checks": 77,
+  "settlement_input_checks": 77,
+  "navigation_checks": 59999,
+  "settlement_count": 125,
+  "building_types": 12,
+  "building_max_level": 3,
+  "unique_landmarks": 5,
+  "interior_backgrounds": 4,
+  "save_schema": 2,
+  "compatible_save_schemas": [
+    1,
+    2
+  ],
+  "real_mac_validation": false,
+  "interior_style_revision": "painted-courtyards-v1",
+  "settlement_runtime_report": "previews/painted/settlement-runtime-tests.json",
+  "design_qa": "design-qa.md",
+  "settlement_previews": [
+    "previews/painted/11-city-overview.png",
+    "previews/painted/09-developed-village.png",
+    "previews/painted/10-developed-pass.png",
+    "previews/painted/06-ferry-interior.png"
+  ]
 }
