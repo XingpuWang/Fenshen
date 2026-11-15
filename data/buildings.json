@@ -1,0 +1,258 @@
+[
+  {
+    "id": "farm",
+    "name": "井田",
+    "resource": "grain",
+    "base": 140,
+    "cost": {
+      "wood": 100,
+      "gold": 120
+    },
+    "description": "供给军民粮草。沃土额外 +15%；邻接仓廪提高产出。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 0
+  },
+  {
+    "id": "lumber",
+    "name": "采木场",
+    "resource": "wood",
+    "base": 85,
+    "cost": {
+      "wood": 70,
+      "gold": 140
+    },
+    "description": "生产木材。林地额外 +15%；邻接工坊提高产出。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 1
+  },
+  {
+    "id": "mine",
+    "name": "金铁矿场",
+    "resource": "iron",
+    "base": 65,
+    "cost": {
+      "wood": 130,
+      "gold": 180
+    },
+    "description": "开采金铁。矿脉额外 +15%；邻接铸兵坊提高产出。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 2
+  },
+  {
+    "id": "market",
+    "name": "市肆",
+    "resource": "gold",
+    "base": 110,
+    "cost": {
+      "wood": 140,
+      "gold": 200
+    },
+    "description": "汇集钱帛。邻接民居与阵坛可提高产出。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 3
+  },
+  {
+    "id": "jade",
+    "name": "琢玉坊",
+    "resource": "jade",
+    "base": 30,
+    "cost": {
+      "wood": 160,
+      "iron": 80,
+      "gold": 260
+    },
+    "description": "琢治礼玉。灵地额外 +15%；邻接丹房提高产出。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 4
+  },
+  {
+    "id": "granary",
+    "name": "仓廪",
+    "resource": "grain",
+    "base": 35,
+    "cost": {
+      "wood": 180,
+      "gold": 180
+    },
+    "description": "邻接井田产出 +25% / +35% / +45%。",
+    "buffs": {
+      "farm": 0.25
+    },
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 5
+  },
+  {
+    "id": "homes",
+    "name": "民居",
+    "resource": "gold",
+    "base": 45,
+    "cost": {
+      "wood": 120,
+      "gold": 140
+    },
+    "description": "邻接市肆产出 +20% / +30% / +40%。",
+    "buffs": {
+      "market": 0.2
+    },
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 6
+  },
+  {
+    "id": "forge",
+    "name": "铸兵坊",
+    "resource": "iron",
+    "base": 25,
+    "cost": {
+      "wood": 180,
+      "iron": 120,
+      "gold": 240
+    },
+    "description": "邻接采木场、矿场产出 +20% / +30% / +40%。",
+    "buffs": {
+      "lumber": 0.2,
+      "mine": 0.2
+    },
+    "unlock": "",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 7
+  },
+  {
+    "id": "barracks",
+    "name": "军营",
+    "resource": "reserve",
+    "base": 50,
+    "cost": {
+      "wood": 200,
+      "iron": 100,
+      "gold": 280
+    },
+    "description": "每回合征募共享兵员。部队须在本地附近才能补兵。",
+    "buffs": {},
+    "unlock": "",
+    "types": [
+      "city",
+      "pass"
+    ],
+    "sprite": 8
+  },
+  {
+    "id": "drill",
+    "name": "演武场",
+    "resource": "reserve",
+    "base": 15,
+    "cost": {
+      "wood": 150,
+      "iron": 80,
+      "gold": 220
+    },
+    "description": "邻接军营产出 +25% / +35% / +45%。",
+    "buffs": {
+      "barracks": 0.25
+    },
+    "unlock": "",
+    "types": [
+      "city",
+      "pass"
+    ],
+    "sprite": 9
+  },
+  {
+    "id": "alchemy",
+    "name": "丹房",
+    "resource": "jade",
+    "base": 40,
+    "cost": {
+      "wood": 180,
+      "jade": 60,
+      "gold": 350
+    },
+    "description": "仙道设施。邻接琢玉坊产出 +25% / +35% / +45%。",
+    "buffs": {
+      "jade": 0.25
+    },
+    "unlock": "immortal",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 10
+  },
+  {
+    "id": "altar",
+    "name": "阵坛",
+    "resource": "gold",
+    "base": 25,
+    "cost": {
+      "wood": 200,
+      "iron": 100,
+      "jade": 80,
+      "gold": 400
+    },
+    "description": "仙道设施。邻接所有生产建筑产出 +10% / +20% / +30%。",
+    "buffs": {
+      "*": 0.1
+    },
+    "unlock": "immortal",
+    "types": [
+      "city",
+      "village",
+      "pass",
+      "ferry"
+    ],
+    "sprite": 11
+  }
+]

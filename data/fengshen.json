@@ -1,0 +1,592 @@
+{
+  "version": 1,
+  "capital": "guanzhong_city_0",
+  "owned": [
+    "guanzhong_city_0",
+    "guanzhong_village_0",
+    "guanzhong_village_2",
+    "guanzhong_ferry_1"
+  ],
+  "names": {
+    "wanluo_city_0": {
+      "name": "朝歌",
+      "source": "原著地名"
+    },
+    "wanluo_city_1": {
+      "name": "渑池",
+      "source": "原著地名"
+    },
+    "wanluo_city_2": {
+      "name": "商邑",
+      "source": "游戏扩写"
+    },
+    "wanluo_city_3": {
+      "name": "南都",
+      "source": "游戏扩写"
+    },
+    "wanluo_city_4": {
+      "name": "邓城",
+      "source": "游戏扩写"
+    },
+    "wanluo_city_5": {
+      "name": "陈都",
+      "source": "游戏扩写"
+    },
+    "wanluo_pass_0": {
+      "name": "界牌关",
+      "source": "原著地名"
+    },
+    "wanluo_pass_1": {
+      "name": "临潼关",
+      "source": "原著地名"
+    },
+    "wanluo_pass_2": {
+      "name": "穿云关",
+      "source": "原著地名"
+    },
+    "wanluo_pass_3": {
+      "name": "潼关",
+      "source": "原著地名"
+    },
+    "wanluo_village_0": {
+      "name": "商下村",
+      "source": "游戏扩写"
+    },
+    "wanluo_village_1": {
+      "name": "宋家庄",
+      "source": "原著地名"
+    },
+    "wanluo_village_2": {
+      "name": "商林村",
+      "source": "游戏扩写"
+    },
+    "wanluo_village_3": {
+      "name": "商南村",
+      "source": "游戏扩写"
+    },
+    "wanluo_village_4": {
+      "name": "商野村",
+      "source": "游戏扩写"
+    },
+    "wanluo_ferry_0": {
+      "name": "孟津渡",
+      "source": "原著地名"
+    },
+    "wanluo_ferry_1": {
+      "name": "商中津",
+      "source": "游戏扩写"
+    },
+    "wanluo_ferry_2": {
+      "name": "商东津",
+      "source": "游戏扩写"
+    },
+    "wanluo_ferry_3": {
+      "name": "商南津",
+      "source": "游戏扩写"
+    },
+    "wanluo_ferry_4": {
+      "name": "商西津",
+      "source": "游戏扩写"
+    },
+    "wanluo_ferry_5": {
+      "name": "商林津",
+      "source": "游戏扩写"
+    },
+    "guanzhong_city_0": {
+      "name": "西岐",
+      "source": "原著地名"
+    },
+    "guanzhong_city_1": {
+      "name": "岐山",
+      "source": "原著地名"
+    },
+    "guanzhong_city_2": {
+      "name": "周原",
+      "source": "游戏扩写"
+    },
+    "guanzhong_city_3": {
+      "name": "丰邑",
+      "source": "游戏扩写"
+    },
+    "guanzhong_city_4": {
+      "name": "终南",
+      "source": "游戏扩写"
+    },
+    "guanzhong_pass_0": {
+      "name": "岐北关",
+      "source": "游戏扩写"
+    },
+    "guanzhong_pass_1": {
+      "name": "汜水关",
+      "source": "原著地名"
+    },
+    "guanzhong_pass_2": {
+      "name": "岐南关",
+      "source": "游戏扩写"
+    },
+    "guanzhong_pass_3": {
+      "name": "岐西关",
+      "source": "游戏扩写"
+    },
+    "guanzhong_village_0": {
+      "name": "岐下村",
+      "source": "游戏扩写"
+    },
+    "guanzhong_village_1": {
+      "name": "岐水村",
+      "source": "游戏扩写"
+    },
+    "guanzhong_village_2": {
+      "name": "渭滨村",
+      "source": "游戏扩写"
+    },
+    "guanzhong_ferry_0": {
+      "name": "岐北津",
+      "source": "游戏扩写"
+    },
+    "guanzhong_ferry_1": {
+      "name": "岐中津",
+      "source": "游戏扩写"
+    },
+    "guanzhong_ferry_2": {
+      "name": "岐东津",
+      "source": "游戏扩写"
+    },
+    "guanzhong_ferry_3": {
+      "name": "岐南津",
+      "source": "游戏扩写"
+    },
+    "jin_city_0": {
+      "name": "冀州",
+      "source": "原著地名"
+    },
+    "jin_city_1": {
+      "name": "崇城",
+      "source": "原著地名"
+    },
+    "jin_city_2": {
+      "name": "北原",
+      "source": "游戏扩写"
+    },
+    "jin_city_3": {
+      "name": "上党",
+      "source": "游戏扩写"
+    },
+    "jin_pass_0": {
+      "name": "冀北关",
+      "source": "游戏扩写"
+    },
+    "jin_pass_1": {
+      "name": "冀东关",
+      "source": "游戏扩写"
+    },
+    "jin_pass_2": {
+      "name": "冀南关",
+      "source": "游戏扩写"
+    },
+    "jin_village_0": {
+      "name": "冀下村",
+      "source": "游戏扩写"
+    },
+    "jin_village_1": {
+      "name": "冀水村",
+      "source": "游戏扩写"
+    },
+    "jin_village_2": {
+      "name": "冀林村",
+      "source": "游戏扩写"
+    },
+    "jin_ferry_0": {
+      "name": "冀北津",
+      "source": "游戏扩写"
+    },
+    "youyan_city_0": {
+      "name": "燕山",
+      "source": "原著地名"
+    },
+    "youyan_city_1": {
+      "name": "北海",
+      "source": "原著地名"
+    },
+    "youyan_city_2": {
+      "name": "蓟北",
+      "source": "游戏扩写"
+    },
+    "youyan_pass_0": {
+      "name": "燕北关",
+      "source": "游戏扩写"
+    },
+    "youyan_pass_1": {
+      "name": "燕东关",
+      "source": "游戏扩写"
+    },
+    "youyan_pass_2": {
+      "name": "燕南关",
+      "source": "游戏扩写"
+    },
+    "youyan_village_0": {
+      "name": "燕下村",
+      "source": "游戏扩写"
+    },
+    "youyan_village_1": {
+      "name": "燕水村",
+      "source": "游戏扩写"
+    },
+    "youyan_village_2": {
+      "name": "燕林村",
+      "source": "游戏扩写"
+    },
+    "youyan_ferry_0": {
+      "name": "燕北津",
+      "source": "游戏扩写"
+    },
+    "youyan_ferry_1": {
+      "name": "燕中津",
+      "source": "游戏扩写"
+    },
+    "qilu_city_0": {
+      "name": "东鲁",
+      "source": "原著地名"
+    },
+    "qilu_city_1": {
+      "name": "临淄",
+      "source": "游戏扩写"
+    },
+    "qilu_city_2": {
+      "name": "胶东",
+      "source": "游戏扩写"
+    },
+    "qilu_city_3": {
+      "name": "泰岳",
+      "source": "游戏扩写"
+    },
+    "qilu_city_4": {
+      "name": "海隅",
+      "source": "游戏扩写"
+    },
+    "qilu_pass_0": {
+      "name": "鲁北关",
+      "source": "游戏扩写"
+    },
+    "qilu_pass_1": {
+      "name": "鲁东关",
+      "source": "游戏扩写"
+    },
+    "qilu_village_0": {
+      "name": "鲁下村",
+      "source": "游戏扩写"
+    },
+    "qilu_village_1": {
+      "name": "鲁水村",
+      "source": "游戏扩写"
+    },
+    "qilu_village_2": {
+      "name": "鲁林村",
+      "source": "游戏扩写"
+    },
+    "qilu_village_3": {
+      "name": "鲁南村",
+      "source": "游戏扩写"
+    },
+    "qilu_village_4": {
+      "name": "鲁野村",
+      "source": "游戏扩写"
+    },
+    "qilu_ferry_0": {
+      "name": "鲁北津",
+      "source": "游戏扩写"
+    },
+    "qilu_ferry_1": {
+      "name": "鲁中津",
+      "source": "游戏扩写"
+    },
+    "jingxiang_city_0": {
+      "name": "南伯府",
+      "source": "游戏扩写"
+    },
+    "jingxiang_city_1": {
+      "name": "荆山",
+      "source": "游戏扩写"
+    },
+    "jingxiang_city_2": {
+      "name": "汉阳",
+      "source": "游戏扩写"
+    },
+    "jingxiang_city_3": {
+      "name": "云梦",
+      "source": "游戏扩写"
+    },
+    "jingxiang_city_4": {
+      "name": "江陵",
+      "source": "游戏扩写"
+    },
+    "jingxiang_pass_0": {
+      "name": "楚北关",
+      "source": "游戏扩写"
+    },
+    "jingxiang_pass_1": {
+      "name": "楚东关",
+      "source": "游戏扩写"
+    },
+    "jingxiang_pass_2": {
+      "name": "楚南关",
+      "source": "游戏扩写"
+    },
+    "jingxiang_village_0": {
+      "name": "楚下村",
+      "source": "游戏扩写"
+    },
+    "jingxiang_village_1": {
+      "name": "楚水村",
+      "source": "游戏扩写"
+    },
+    "jingxiang_village_2": {
+      "name": "楚林村",
+      "source": "游戏扩写"
+    },
+    "jingxiang_village_3": {
+      "name": "楚南村",
+      "source": "游戏扩写"
+    },
+    "jingxiang_ferry_0": {
+      "name": "楚北津",
+      "source": "游戏扩写"
+    },
+    "jingxiang_ferry_1": {
+      "name": "楚中津",
+      "source": "游戏扩写"
+    },
+    "jingxiang_ferry_2": {
+      "name": "楚东津",
+      "source": "游戏扩写"
+    },
+    "jingxiang_ferry_3": {
+      "name": "楚南津",
+      "source": "游戏扩写"
+    },
+    "xiliang_city_0": {
+      "name": "西凉",
+      "source": "游戏扩写"
+    },
+    "xiliang_city_1": {
+      "name": "西戎",
+      "source": "游戏扩写"
+    },
+    "xiliang_city_2": {
+      "name": "雪原",
+      "source": "游戏扩写"
+    },
+    "xiliang_pass_0": {
+      "name": "陇北关",
+      "source": "游戏扩写"
+    },
+    "xiliang_pass_1": {
+      "name": "陇东关",
+      "source": "游戏扩写"
+    },
+    "xiliang_pass_2": {
+      "name": "陇南关",
+      "source": "游戏扩写"
+    },
+    "xiliang_village_0": {
+      "name": "陇下村",
+      "source": "游戏扩写"
+    },
+    "xiliang_village_1": {
+      "name": "陇水村",
+      "source": "游戏扩写"
+    },
+    "xiliang_ferry_0": {
+      "name": "陇北津",
+      "source": "游戏扩写"
+    },
+    "xiliang_ferry_1": {
+      "name": "陇中津",
+      "source": "游戏扩写"
+    },
+    "bashu_city_0": {
+      "name": "蜀都",
+      "source": "游戏扩写"
+    },
+    "bashu_city_1": {
+      "name": "乾元山",
+      "source": "原著地名"
+    },
+    "bashu_city_2": {
+      "name": "白龙城",
+      "source": "游戏扩写"
+    },
+    "bashu_city_3": {
+      "name": "剑阁",
+      "source": "游戏扩写"
+    },
+    "bashu_city_4": {
+      "name": "南疆",
+      "source": "游戏扩写"
+    },
+    "bashu_pass_0": {
+      "name": "蜀北关",
+      "source": "游戏扩写"
+    },
+    "bashu_pass_1": {
+      "name": "蜀东关",
+      "source": "游戏扩写"
+    },
+    "bashu_pass_2": {
+      "name": "蜀南关",
+      "source": "游戏扩写"
+    },
+    "bashu_village_0": {
+      "name": "蜀下村",
+      "source": "游戏扩写"
+    },
+    "bashu_village_1": {
+      "name": "蜀水村",
+      "source": "游戏扩写"
+    },
+    "bashu_village_2": {
+      "name": "蜀林村",
+      "source": "游戏扩写"
+    },
+    "bashu_village_3": {
+      "name": "蜀南村",
+      "source": "游戏扩写"
+    },
+    "bashu_ferry_0": {
+      "name": "蜀北津",
+      "source": "游戏扩写"
+    },
+    "bashu_ferry_1": {
+      "name": "蜀中津",
+      "source": "游戏扩写"
+    },
+    "bashu_ferry_2": {
+      "name": "蜀东津",
+      "source": "游戏扩写"
+    },
+    "wuyue_city_0": {
+      "name": "陈塘关",
+      "source": "原著地名"
+    },
+    "wuyue_city_1": {
+      "name": "东海",
+      "source": "原著地名"
+    },
+    "wuyue_city_2": {
+      "name": "钱塘",
+      "source": "游戏扩写"
+    },
+    "wuyue_city_3": {
+      "name": "会稽",
+      "source": "游戏扩写"
+    },
+    "wuyue_pass_0": {
+      "name": "海北关",
+      "source": "游戏扩写"
+    },
+    "wuyue_pass_1": {
+      "name": "海东关",
+      "source": "游戏扩写"
+    },
+    "wuyue_village_0": {
+      "name": "海下村",
+      "source": "游戏扩写"
+    },
+    "wuyue_village_1": {
+      "name": "海水村",
+      "source": "游戏扩写"
+    },
+    "wuyue_village_2": {
+      "name": "海林村",
+      "source": "游戏扩写"
+    },
+    "wuyue_village_3": {
+      "name": "海南村",
+      "source": "游戏扩写"
+    },
+    "wuyue_ferry_0": {
+      "name": "海北津",
+      "source": "游戏扩写"
+    }
+  },
+  "landmarks": {
+    "lingtai": {
+      "name": "灵台",
+      "poi": "guanzhong_city_0",
+      "description": "文王观天察民之所。修复后，全势力钱帛产出增加 10%。",
+      "cost": {
+        "wood": 650,
+        "iron": 200,
+        "gold": 1000
+      },
+      "turns": 2,
+      "resource": "gold",
+      "bonus": 0.1,
+      "unlock": "",
+      "source": "《封神演义》第二十三回"
+    },
+    "fengshentai": {
+      "name": "封神台",
+      "poi": "guanzhong_city_1",
+      "description": "岐山敕建神台。全势力玉石产出增加 15%，解锁丹房与阵坛。",
+      "cost": {
+        "wood": 900,
+        "iron": 450,
+        "jade": 250,
+        "gold": 1800
+      },
+      "turns": 3,
+      "resource": "jade",
+      "bonus": 0.15,
+      "unlock": "immortal",
+      "source": "《封神演义》第三十七回"
+    },
+    "lutai": {
+      "name": "鹿台",
+      "poi": "wanluo_city_0",
+      "description": "朝歌王室巨构。整饬府库后，全势力钱帛产出增加 20%。",
+      "cost": {
+        "wood": 1200,
+        "iron": 600,
+        "jade": 300,
+        "gold": 2000
+      },
+      "turns": 3,
+      "resource": "gold",
+      "bonus": 0.2,
+      "unlock": "",
+      "source": "《封神演义》第十七回"
+    },
+    "zhaixing": {
+      "name": "摘星楼",
+      "poi": "wanluo_city_0",
+      "description": "朝歌高台。修复后，每回合增加 5 点势力声望。",
+      "cost": {
+        "wood": 800,
+        "iron": 400,
+        "gold": 1400
+      },
+      "turns": 2,
+      "resource": "prestige",
+      "bonus": 5,
+      "unlock": "",
+      "source": "《封神演义》第十七回"
+    },
+    "jinguang": {
+      "name": "金光洞",
+      "poi": "bashu_city_1",
+      "description": "太乙真人洞府。全势力玉石产出增加 20%，解锁丹房与阵坛。",
+      "cost": {
+        "wood": 650,
+        "jade": 300,
+        "gold": 1200
+      },
+      "turns": 3,
+      "resource": "jade",
+      "bonus": 0.2,
+      "unlock": "immortal",
+      "source": "《封神演义》第十二回"
+    }
+  },
+  "note": "采用原著人物、地名与地标，并以九州地形进行游戏化布局；无名据点为游戏扩写。地标数值效果为原创玩法。"
+}

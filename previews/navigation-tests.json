@@ -1,5 +1,5 @@
 {
-	"checks": 59827,
+	"checks": 59999,
 	"counts": {
 		"city": 40,
 		"ferry": 25,
@@ -8,5 +8,5 @@
 	},
 	"engine": "4.7.2-stable (official)",
 	"failures": [],
-	"initial_reachable_cells": 98
+	"initial_reachable_cells": 122
 }

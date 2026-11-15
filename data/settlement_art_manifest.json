@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "created": "2026-11-15",
+  "provenance": "Generated for this project with image_gen; original atlas preserved, sprites mechanically sliced with sharp.",
+  "background_templates": [
+    "city",
+    "village",
+    "pass",
+    "ferry"
+  ],
+  "building_atlas": {
+    "columns": 4,
+    "rows": 3,
+    "items": [
+      "farm",
+      "lumber",
+      "mine",
+      "market",
+      "jade",
+      "granary",
+      "homes",
+      "forge",
+      "barracks",
+      "drill",
+      "alchemy",
+      "altar"
+    ]
+  },
+  "landmark_atlas": {
+    "columns": 3,
+    "rows": 2,
+    "used_items": [
+      "lingtai",
+      "fengshentai",
+      "lutai",
+      "zhaixing",
+      "jinguang"
+    ]
+  },
+  "upgrade_art": "One base sprite per building; tiers differ in scale and numeral.",
+  "files": [
+    {
+      "file": "assets/interiors/city.png",
+      "sha256": "5d50253a50e25cde40e08e6d377d2e773d114c6855fc529a03eefbeb00ed9cc4"
+    },
+    {
+      "file": "assets/interiors/ferry.png",
+      "sha256": "e9559387555ecaf421d7295f245517f55e4040c443cd6c4ea84fda50f2b2a77e"
+    },
+    {
+      "file": "assets/interiors/pass.png",
+      "sha256": "9088c46cef893104bd046c489fcd78f3e8e970cb8049d2fb760ea24d09a19c9d"
+    },
+    {
+      "file": "assets/interiors/village.png",
+      "sha256": "d70f6e3d21eb96f9c957e7e2bb10195e25b7e6bf23d8d3c9f9d083f68e8c841a"
+    },
+    {
+      "file": "assets/buildings/alchemy.png",
+      "sha256": "48aca95acb0a7b216b2f394b5b7d23605107a792014b0a5a406671e06ae15f4d"
+    },
+    {
+      "file": "assets/buildings/altar.png",
+      "sha256": "30f6882eefe704743484b4eb1a0b8144c7f65e3c547b2b7ba5b0657c2bc5341b"
+    },
+    {
+      "file": "assets/buildings/atlas.png",
+      "sha256": "ae674980610e0e7601896ee50f655728ba5aa043be00bcf5ed8e86ea58394194"
+    },
+    {
+      "file": "assets/buildings/barracks.png",
+      "sha256": "ac5516cb65ebbc1e72c863ef68eb6e390b8f6ac36b04bbfb88bc4412d9e93593"
+    },
+    {
+      "file": "assets/buildings/drill.png",
+      "sha256": "cbe3fe269114f1952f26ece90af28b9ccdcc97af6a613c4b55d5b5d9c18a9a7e"
+    },
+    {
+      "file": "assets/buildings/farm.png",
+      "sha256": "370bbf38be8a6c00f340df0273faf2236696f3d12488008a56d4656f4011a98c"
+    },
+    {
+      "file": "assets/buildings/forge.png",
+      "sha256": "16b78436ae9e1d09611dc758822a165f5aa9008387909db94889d20cce937d48"
+    },
+    {
+      "file": "assets/buildings/granary.png",
+      "sha256": "05f1bf14a6ed33d5889a500192ad75b51f8d22ba1f06b8796dd1f1747ee5d95e"
+    },
+    {
+      "file": "assets/buildings/homes.png",
+      "sha256": "7e138576fe4f16e258eb60a902251c56643c1f06430199295c29999a421df883"
+    },
+    {
+      "file": "assets/buildings/jade.png",
+      "sha256": "593051ea3e4721d2caaf1a3657471512e15560f3741c1a1d5573ec710a3d1f4c"
+    },
+    {
+      "file": "assets/buildings/landmark_0.png",
+      "sha256": "8d76911b0ed0a2cf85f4da4ac2efe7eba9fad007935f35eadb79ac30107f7b7c"
+    },
+    {
+      "file": "assets/buildings/landmark_1.png",
+      "sha256": "e36480a3f349f596e3b2e41c0cce18a0234cd7ded3230dcc6d2092672a42d45a"
+    },
+    {
+      "file": "assets/buildings/landmark_2.png",
+      "sha256": "b356713a9ee2d62a8369c83d0d94666f79dfab223a4fafee28ee12ef76d3aa65"
+    },
+    {
+      "file": "assets/buildings/landmark_3.png",
+      "sha256": "fb129e485563479b8d6697dfe66acb4fe9e7b80b4142f579c70cb1482e3d0eaa"
+    },
+    {
+      "file": "assets/buildings/landmark_4.png",
+      "sha256": "6a8f221edd9a3227b6aeec8ccc49fa4fb8e07b3e41beaba01f7a0bbe7a397716"
+    },
+    {
+      "file": "assets/buildings/landmarks.png",
+      "sha256": "e955d1db28e84f86260965f4b281255635b49e113a4bf843d6a4ddb105e53e23"
+    },
+    {
+      "file": "assets/buildings/lumber.png",
+      "sha256": "757900245bb425299127112efa25cb72ed53fd4dbd414095d1d400af6fbfbd0c"
+    },
+    {
+      "file": "assets/buildings/market.png",
+      "sha256": "e672d7b2c77cee35352ebed226590011a6c2025df4e8685c3b56c5fac31e528b"
+    },
+    {
+      "file": "assets/buildings/mine.png",
+      "sha256": "e819a6d582ab5437b51f15eeb92d25374e8de37f49b04369bd26a8064e4f4d78"
+    }
+  ]
+}

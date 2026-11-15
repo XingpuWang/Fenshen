@@ -3,6 +3,9 @@ extends Node2D
 const World=preload("res://scripts/world_model.gd")
 const MapLayer=preload("res://scripts/map_layer.gd")
 const HUD=preload("res://scripts/hud.gd")
+const Interior=preload("res://scripts/settlement_view.gd")
+var interior: Control
+var economy_income: Dictionary = {}
 var world: ShanheWorld
 var camera: Camera2D
 var layer: Node2D
@@ -30,7 +33,7 @@ var capture_mode: bool=false
 var travel_speed: float=1.0
 
 func _ready() -> void:
-	world=World.new()
+	world=World.new(not "--legacy-fixture" in OS.get_cmdline_user_args())
 	texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	load_map()
 	camera=Camera2D.new()
@@ -95,9 +98,18 @@ func _ready() -> void:
 	hud.game=self
 	canvas.add_child(hud)
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	interior=Interior.new()
+	interior.game=self
+	interior.visible=false
+	canvas.add_child(interior)
+	interior.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	refresh()
-	say("先锋已就位 · 选择青色地块，预览行军路线")
+	say("西岐开局 · 点击城池经营，选择青色地块行军")
 	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--settlement-capture="):
+			var test_runner=load("res://tests/settlement_runtime.gd").new()
+			add_child(test_runner)
+			test_runner.call_deferred("run",self,arg.trim_prefix("--settlement-capture="))
 		if arg.begins_with("--capture="):
 			capture_mode=true
 			var runner=load("res://tests/runtime_check.gd").new()
@@ -123,6 +135,8 @@ func make_style(fill: Color,border: Color,width: float=1.0,roundness: float=4.0)
 	return style
 
 func refresh() -> void:
+	economy_income=world.economy.income(world.by_poi)
+	if interior!=null: interior.queue_redraw()
 	var u: Dictionary=world.units[selected_unit]
 	reachable=world.search(int(u.cell),int(u.ap),u.id)
 	path.clear()
@@ -139,7 +153,7 @@ func _process(delta: float) -> void:
 	if toast_time>0:
 		toast_time-=delta
 		if toast_time<=0: toast=""
-	if not moving:
+	if not moving and not interior.visible:
 		var pan=Vector2.ZERO
 		if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): pan.y-=1
 		if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN): pan.y+=1
@@ -153,8 +167,12 @@ func _process(delta: float) -> void:
 	for i in unit_nodes.size(): unit_nodes[i].z_index=5 if i!=selected_unit else 6
 	layer.queue_redraw()
 	hud.queue_redraw()
+	if interior.visible: interior.queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if interior.visible:
+		interior.handle_input(event)
+		return
 	if event is InputEventMouseMotion:
 		last_mouse=event.position
 		var hit: Dictionary=hud.hit_test(event.position)
@@ -200,7 +218,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				path.clear()
 				var p: Dictionary=world.by_poi[poi]
 				say(p.name+" · "+("已属我方，可以通行" if p.owner=="player" else "先行军至相邻地块，再占领"))
-				if p.owner=="player": choose_cell(world.cell_at(wp))
+				open_settlement(poi)
 			else:
 				selected_poi=""
 				choose_cell(world.cell_at(wp))
@@ -270,6 +288,8 @@ func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
 		select_unit(int(id.trim_prefix("unit:")))
 		return
 	match id:
+		"capital": open_settlement(world.theme.capital)
+		"interior": open_settlement(selected_poi)
 		"minimap":
 			camera.position=world.bounds.position+(mouse-hud.MINI.position)/hud.MINI.size*world.bounds.size
 			if camera.zoom.x<.2: camera.zoom=Vector2.ONE*.5
@@ -302,7 +322,7 @@ func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
 			if moving: return
 			world.next_turn()
 			refresh()
-			say("第 %d 回合 · 全军行动力已恢复" % world.turn)
+			say("第 %d 回合 · 资源已入库，%d 项工程竣工" % [world.turn,world.economy.last_report.completed.size()])
 		"save":
 			if moving: say("行军结束后即可存档")
 			else: say("战局已保存" if world.save_game()==OK else "存档失败，请检查用户目录")
@@ -438,3 +458,17 @@ func current_region() -> String:
 			dist=d
 			best=r.id
 	return best
+
+func open_settlement(pid: String) -> void:
+	if moving or not world.by_poi.has(pid): return
+	selected_poi=pid
+	dragging=false
+	hover_cell=-1
+	path.clear()
+	hud.hide()
+	interior.open(pid)
+
+func close_settlement() -> void:
+	interior.hide()
+	hud.show()
+	refresh()
