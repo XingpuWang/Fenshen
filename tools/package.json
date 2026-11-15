@@ -1,0 +1,7 @@
+{
+  "name": "shanhe-terrain-authoring",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Optional offline compiler; not required to run Godot",
+  "dependencies": { "sharp": "^0.34.0" }
+}

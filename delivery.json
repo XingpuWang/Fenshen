@@ -1,0 +1,18 @@
+{
+  "project": "山河 · 九州行军",
+  "godot": "4.7.2.stable.official",
+  "map_revision": "outpaint-v5-nine-regions",
+  "hex_cells": 11875,
+  "poi_counts": {
+    "city": 40,
+    "ferry": 25,
+    "pass": 27,
+    "village": 33
+  },
+  "navigation_validation": "passed",
+  "runtime_input_checks": 20,
+  "runtime_validation": "passed",
+  "original_map_images_unchanged": true,
+  "entry_point": "project.godot",
+  "readme": "README.txt"
+}

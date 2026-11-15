@@ -1,0 +1,14 @@
+# Generated Godot cache; keep the small *.import settings beside source assets.
+.godot/
+node_modules/
+*.tmp
+*.log
+*.zip
+.DS_Store
+.env
+.env.*
+
+# Authoring previews and import records are generated locally.
+previews/author-*.jpg
+previews/**/*.import
+previews/*.import

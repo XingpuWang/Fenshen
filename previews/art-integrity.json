@@ -1,0 +1,51 @@
+{
+  "revision": "outpaint-v5-nine-regions",
+  "all_original_maps_unchanged": true,
+  "files": [
+    {
+      "file": "images/chunk_-1_-1_bg.png",
+      "sha256": "64b5b0f88cc9352a3a84b6a28f01bc4a7e4ff5fb10351bcf554b27a22fbba90b",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_-1_0_bg.png",
+      "sha256": "1266bf9eef1db08e5a0946b426bbb577adcf1d2aef5abafcbc15457cce76b777",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_-1_1_bg.png",
+      "sha256": "2e55e9a47cc1f59c6f9cd4d7f47cee0e8c530b113d6d20988370659aa1e9a47b",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_0_-1_bg.png",
+      "sha256": "a29c3e577934c67f668ef360eb47b50d191f600be84d246fc009560467bd5e71",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_0_0_bg.png",
+      "sha256": "00c3aed1bc21e14a4dd2393095836ae2a9c5938dc31ed80b8bfc7f23bacf8c22",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_0_1_bg.png",
+      "sha256": "4f6fdfdb77d5fdb253aa5ce587f5baceed42a61188fd955479be1c73c03837b1",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_1_-1_bg.png",
+      "sha256": "d8355d11e057ad1c2484c9c7f3decfd4a487d2cc292f6eefabbf848ac27650b7",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_1_0_bg.png",
+      "sha256": "9b31d3d9d3a9864d98262f93d47b9821d6f601af5a457b52608a0459ab6e65b4",
+      "matches_v5_export": true
+    },
+    {
+      "file": "images/chunk_1_1_bg.png",
+      "sha256": "a55cffed93283013092f9f21bd6f93c3442ab7ca7cd7f29afd23f519964714a0",
+      "matches_v5_export": true
+    }
+  ]
+}

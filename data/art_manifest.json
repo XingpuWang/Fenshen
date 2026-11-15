@@ -1,0 +1,318 @@
+{
+  "revision": "outpaint-v5-nine-regions",
+  "base_revision": "outpaint-v4-review",
+  "chunk_size": 4096,
+  "overlap": 512,
+  "stride": 3584,
+  "import_order": [
+    "wanluo",
+    "jin",
+    "guanzhong",
+    "youyan",
+    "qilu",
+    "jingxiang",
+    "xiliang",
+    "bashu",
+    "wuyue"
+  ],
+  "tiles": [
+    {
+      "name": "wanluo",
+      "label": "宛洛",
+      "id": "0_0",
+      "gx": 0,
+      "gy": 0,
+      "input": "wanluo-fixed-4096.png",
+      "crop": {
+        "l": 0,
+        "t": 0,
+        "r": 0,
+        "b": 0
+      },
+      "cities": 6,
+      "passes": 4,
+      "villages": 5,
+      "fixed": true,
+      "width": 4096,
+      "height": 4096,
+      "drawX": 0,
+      "drawY": 0,
+      "visible": "wanluo-visible.png"
+    },
+    {
+      "name": "jin",
+      "label": "晋",
+      "id": "0_-1",
+      "gx": 0,
+      "gy": -1,
+      "input": "jin-4096-overlap.png",
+      "crop": {
+        "l": 0,
+        "t": 0,
+        "r": 0,
+        "b": 512
+      },
+      "cities": 4,
+      "passes": 3,
+      "villages": 3,
+      "fixed": true,
+      "width": 4096,
+      "height": 3584,
+      "drawX": 0,
+      "drawY": -3584,
+      "visible": "jin-visible.png"
+    },
+    {
+      "name": "guanzhong",
+      "label": "关中",
+      "id": "-1_0",
+      "gx": -1,
+      "gy": 0,
+      "input": "guanzhong-4096-overlap.png",
+      "crop": {
+        "l": 0,
+        "t": 0,
+        "r": 512,
+        "b": 0
+      },
+      "neighbors": {
+        "r": "wanluo"
+      },
+      "cities": 5,
+      "passes": 4,
+      "villages": 3,
+      "fixed": true,
+      "width": 3584,
+      "height": 4096,
+      "drawX": -3584,
+      "drawY": 0,
+      "visible": "guanzhong-visible.png"
+    },
+    {
+      "name": "youyan",
+      "label": "幽燕",
+      "id": "1_-1",
+      "gx": 1,
+      "gy": -1,
+      "input": "youyan-4096-overlap.png",
+      "crop": {
+        "l": 512,
+        "t": 0,
+        "r": 0,
+        "b": 0
+      },
+      "neighbors": {
+        "l": "jin",
+        "b": "qilu"
+      },
+      "cities": 3,
+      "passes": 3,
+      "villages": 3,
+      "fixed": true,
+      "width": 3584,
+      "height": 4096,
+      "drawX": 4096,
+      "drawY": -3584,
+      "visible": "youyan-visible.png",
+      "reference_note": "Initial two-neighbor MapStitch template, then south extension drawn against the actual visible Qilu edge. Original Qilu crop and world position are preserved.",
+      "extra_outpaint_reference": "youyan-south-outpaint-guide-4096.png"
+    },
+    {
+      "name": "qilu",
+      "label": "齐鲁",
+      "id": "1_0",
+      "gx": 1,
+      "gy": 0,
+      "input": "qilu-4096-overlap.png",
+      "crop": {
+        "l": 512,
+        "t": 512,
+        "r": 0,
+        "b": 0
+      },
+      "cities": 5,
+      "passes": 2,
+      "villages": 5,
+      "fixed": true,
+      "width": 3584,
+      "height": 3584,
+      "drawX": 4096,
+      "drawY": 512,
+      "visible": "qilu-visible.png"
+    },
+    {
+      "name": "jingxiang",
+      "label": "荆襄",
+      "id": "0_1",
+      "gx": 0,
+      "gy": 1,
+      "input": "jingxiang-4096-overlap.png",
+      "crop": {
+        "l": 0,
+        "t": 512,
+        "r": 0,
+        "b": 0
+      },
+      "neighbors": {
+        "t": "wanluo"
+      },
+      "cities": 5,
+      "passes": 3,
+      "villages": 4,
+      "fixed": true,
+      "width": 4096,
+      "height": 3584,
+      "drawX": 0,
+      "drawY": 4096,
+      "visible": "jingxiang-visible.png"
+    },
+    {
+      "name": "xiliang",
+      "label": "西凉",
+      "id": "-1_-1",
+      "gx": -1,
+      "gy": -1,
+      "input": "xiliang-4096-overlap.png",
+      "crop": {
+        "l": 0,
+        "t": 0,
+        "r": 512,
+        "b": 512
+      },
+      "neighbors": {
+        "r": "jin",
+        "b": "guanzhong"
+      },
+      "cities": 3,
+      "passes": 3,
+      "villages": 2,
+      "fixed": false,
+      "width": 3584,
+      "height": 3584,
+      "drawX": -3584,
+      "drawY": -3584,
+      "visible": "xiliang-visible.png"
+    },
+    {
+      "name": "bashu",
+      "label": "巴蜀",
+      "id": "-1_1",
+      "gx": -1,
+      "gy": 1,
+      "input": "bashu-4096-overlap.png",
+      "crop": {
+        "l": 0,
+        "t": 512,
+        "r": 512,
+        "b": 0
+      },
+      "neighbors": {
+        "t": "guanzhong",
+        "r": "jingxiang"
+      },
+      "cities": 5,
+      "passes": 3,
+      "villages": 4,
+      "fixed": false,
+      "width": 3584,
+      "height": 3584,
+      "drawX": -3584,
+      "drawY": 4096,
+      "visible": "bashu-visible.png"
+    },
+    {
+      "name": "wuyue",
+      "label": "吴越",
+      "id": "1_1",
+      "gx": 1,
+      "gy": 1,
+      "input": "wuyue-4096-overlap.png",
+      "crop": {
+        "l": 512,
+        "t": 512,
+        "r": 0,
+        "b": 0
+      },
+      "neighbors": {
+        "t": "qilu",
+        "l": "jingxiang"
+      },
+      "cities": 4,
+      "passes": 2,
+      "villages": 4,
+      "fixed": false,
+      "width": 3584,
+      "height": 3584,
+      "drawX": 4096,
+      "drawY": 4096,
+      "visible": "wuyue-visible.png"
+    }
+  ],
+  "locked": [
+    {
+      "region": "wanluo",
+      "input": "wanluo-fixed-4096.png",
+      "sha256": "f8cf44e9490fd9b11c3ff28c841145b876e53133fb211fc2b9ab7922fc5c1f3e",
+      "visible_sha256": "00c3aed1bc21e14a4dd2393095836ae2a9c5938dc31ed80b8bfc7f23bacf8c22"
+    },
+    {
+      "region": "jin",
+      "input": "jin-4096-overlap.png",
+      "sha256": "0842f944285bf5defd2b646c914f3284d31e657960e0eafc20c78ee2c0878ecb",
+      "visible_sha256": "a29c3e577934c67f668ef360eb47b50d191f600be84d246fc009560467bd5e71"
+    },
+    {
+      "region": "guanzhong",
+      "input": "guanzhong-4096-overlap.png",
+      "sha256": "6d56608424bfee8c7dd5aa83f57ae1739cd7ac7f212d5b53d60decc17417593f",
+      "visible_sha256": "1266bf9eef1db08e5a0946b426bbb577adcf1d2aef5abafcbc15457cce76b777"
+    },
+    {
+      "region": "youyan",
+      "input": "youyan-4096-overlap.png",
+      "sha256": "735764beb097770b813b2b9ff7e6a312dbc50796bc5f93d18bbac7d9b76ecf4c",
+      "visible_sha256": "d8355d11e057ad1c2484c9c7f3decfd4a487d2cc292f6eefabbf848ac27650b7"
+    },
+    {
+      "region": "qilu",
+      "input": "qilu-4096-overlap.png",
+      "sha256": "84ec6b7b3f3f8213b3a158005929882ec21a071cedd7042c6caa88bd29071b55",
+      "visible_sha256": "9b31d3d9d3a9864d98262f93d47b9821d6f601af5a457b52608a0459ab6e65b4"
+    },
+    {
+      "region": "jingxiang",
+      "input": "jingxiang-4096-overlap.png",
+      "sha256": "a6ac717580ea452474d8da5250c672f86ce6ea8a1cbcc5ea51302f762ddd0c82",
+      "visible_sha256": "4f6fdfdb77d5fdb253aa5ce587f5baceed42a61188fd955479be1c73c03837b1"
+    }
+  ],
+  "guides": [
+    {
+      "region": "xiliang",
+      "neighbors": {
+        "r": "jin",
+        "b": "guanzhong"
+      },
+      "protected_pixels": 3932160,
+      "source": "Actual MapStitch downloadEdgeForAI in Chromium"
+    },
+    {
+      "region": "bashu",
+      "neighbors": {
+        "t": "guanzhong",
+        "r": "jingxiang"
+      },
+      "protected_pixels": 3932160,
+      "source": "Actual MapStitch downloadEdgeForAI in Chromium"
+    },
+    {
+      "region": "wuyue",
+      "neighbors": {
+        "t": "qilu",
+        "l": "jingxiang"
+      },
+      "protected_pixels": 3932160,
+      "source": "Actual MapStitch downloadEdgeForAI in Chromium"
+    }
+  ]
+}

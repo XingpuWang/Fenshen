@@ -1,0 +1,109 @@
+{
+  "map_version": "FINAL_PERFECT",
+  "chunks": [
+    {
+      "chunk_id": "0_0",
+      "grid_x": 0,
+      "grid_y": 0,
+      "background_path": "images/chunk_0_0_bg.png",
+      "global_position": {
+        "x": 0,
+        "y": 0
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "0_-1",
+      "grid_x": 0,
+      "grid_y": -1,
+      "background_path": "images/chunk_0_-1_bg.png",
+      "global_position": {
+        "x": 0,
+        "y": -3584
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "-1_0",
+      "grid_x": -1,
+      "grid_y": 0,
+      "background_path": "images/chunk_-1_0_bg.png",
+      "global_position": {
+        "x": -3584,
+        "y": 0
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "1_-1",
+      "grid_x": 1,
+      "grid_y": -1,
+      "background_path": "images/chunk_1_-1_bg.png",
+      "global_position": {
+        "x": 4096,
+        "y": -3584
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "1_0",
+      "grid_x": 1,
+      "grid_y": 0,
+      "background_path": "images/chunk_1_0_bg.png",
+      "global_position": {
+        "x": 4096,
+        "y": 512
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "0_1",
+      "grid_x": 0,
+      "grid_y": 1,
+      "background_path": "images/chunk_0_1_bg.png",
+      "global_position": {
+        "x": 0,
+        "y": 4096
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "-1_-1",
+      "grid_x": -1,
+      "grid_y": -1,
+      "background_path": "images/chunk_-1_-1_bg.png",
+      "global_position": {
+        "x": -3584,
+        "y": -3584
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "-1_1",
+      "grid_x": -1,
+      "grid_y": 1,
+      "background_path": "images/chunk_-1_1_bg.png",
+      "global_position": {
+        "x": -3584,
+        "y": 4096
+      },
+      "buildings": []
+    },
+    {
+      "chunk_id": "1_1",
+      "grid_x": 1,
+      "grid_y": 1,
+      "background_path": "images/chunk_1_1_bg.png",
+      "global_position": {
+        "x": 4096,
+        "y": 4096
+      },
+      "buildings": []
+    }
+  ],
+  "global_polygons": {
+    "col": [],
+    "occ": [],
+    "fg": []
+  }
+}

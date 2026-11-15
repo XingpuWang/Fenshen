@@ -1,0 +1,12 @@
+{
+	"checks": 59827,
+	"counts": {
+		"city": 40,
+		"ferry": 25,
+		"pass": 27,
+		"village": 33
+	},
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"initial_reachable_cells": 98
+}
