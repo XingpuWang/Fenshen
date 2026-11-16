@@ -3,6 +3,10 @@ extends RefCounted
 
 const DIRECTIONS = [Vector2i(1,0),Vector2i(1,-1),Vector2i(0,-1),Vector2i(-1,0),Vector2i(-1,1),Vector2i(0,1)]
 const Economy = preload("res://scripts/settlement_economy.gd")
+const BattleRules = preload("res://scripts/battle_rules.gd")
+const Catalog=preload("res://scripts/unit_catalog.gd")
+var pending_battle: Dictionary = {}
+var garrisons: Dictionary = {}
 var economy: SettlementEconomy
 var theme: Dictionary
 var data: Dictionary
@@ -35,9 +39,16 @@ func _init(setup_campaign: bool = true) -> void:
 		if setup_campaign: p.owner = "player" if p.id in theme.owned else ("shang" if p.type in ["city","pass"] else "neutral")
 	for u in units:
 		u.cell = int(u.cell)
+		u.hero_id=Catalog.hero_id(u)
+		u.stats=Catalog.canonical_stats(Catalog.profile(u).stats)
+		u.effects=[]
+		u.action_done=false
+		u.max_ap=Catalog.movement(u)
 		u.ap = int(u.max_ap)
 		u.guarding = false
 		u.max_soldiers = int(u.soldiers)+800
+		u.morale = 50
+		u.troops = BattleRules.roster(int(u.soldiers))
 	if setup_campaign:
 		var targets: Array = [Vector2(-1500,2010), Vector2(-1050,2460), Vector2(-2675,1440)]
 		for i in units.size():
@@ -159,7 +170,7 @@ func route(result: Dictionary, target: int) -> Array[int]:
 	return path
 
 func can_capture(unit: Dictionary, poi: Dictionary) -> bool:
-	if poi.owner=="player" or int(unit.ap)<1: return false
+	if not pending_battle.is_empty() or poi.owner=="player" or int(unit.ap)<1 or int(unit.soldiers)<=0: return false
 	var a: int = int(unit.cell)
 	for b in poi.cells:
 		# Require a real land adjacency. No capture through a river or mountain.
@@ -171,22 +182,170 @@ func can_capture(unit: Dictionary, poi: Dictionary) -> bool:
 	return false
 
 func capture(unit: Dictionary, poi: Dictionary) -> bool:
-	if not can_capture(unit,poi): return false
+	if not can_capture(unit,poi) or poi.owner=="shang": return false
 	poi.owner="player"
 	unit.ap=int(unit.ap)-1
 	revision+=1
 	captured+=1
 	return true
 
+func garrison(poi: Dictionary) -> Dictionary:
+	var count: int = {"city":4200,"pass":2800,"village":1200,"ferry":1500}[poi.type]
+	var value: Dictionary=garrisons.get(poi.id,{"soldiers":count,"morale":50}).duplicate(true)
+	value.hero_id=value.get("hero_id","wenzhong")
+	value.stats=Catalog.canonical_stats(value.get("stats",Catalog.profile(value).stats))
+	value.effects=Catalog.canonical_effects(value.get("effects",[]))
+	return value
+
+func begin_battle(unit: Dictionary, poi: Dictionary) -> Dictionary:
+	if poi.owner != "shang" or not can_capture(unit,poi): return {}
+	var defender := garrison(poi)
+	pending_battle = {"unit_id":unit.id,"poi_id":poi.id,"origin":int(unit.cell),"owner":poi.owner,
+		"player":unit.duplicate(true),"enemy":{"id":defender.hero_id,"hero_id":defender.hero_id,"name":Catalog.profile(defender).name,"soldiers":defender.soldiers,"morale":50,"stats":defender.stats,"effects":defender.effects},"title":poi.name+" · 阵前交锋"}
+	return pending_battle.duplicate(true)
+
+func finish_battle(result: Dictionary) -> bool:
+	if pending_battle.is_empty(): return false
+	var unit: Dictionary = {}
+	for u in units:
+		if u.id == pending_battle.unit_id: unit = u
+	var poi: Dictionary = by_poi[pending_battle.poi_id]
+	if unit.is_empty() or int(unit.cell) != pending_battle.origin or poi.owner != pending_battle.owner: return false
+	for key in ["player_remaining","enemy_remaining","morale","enemy_morale"]:
+		var maximum: int = 100 if key in ["morale","enemy_morale"] else int(pending_battle.player.soldiers if key=="player_remaining" else pending_battle.enemy.soldiers)
+		if not Economy.integer(result.get(key),0,maximum): return false
+	if not result.get("player_won") is bool: return false
+	if result.player_won and int(result.player_remaining)<=0: return false
+	unit.soldiers = int(result.player_remaining)
+	unit.troops = BattleRules.roster(int(unit.soldiers))
+	unit.morale = int(result.morale)
+	unit.ap = maxi(0,int(unit.ap)-1)
+	unit.guarding = false
+	if result.player_won:
+		poi.owner = "player"
+		captured += 1
+		garrisons.erase(poi.id)
+	else:
+		var defender:=garrison(poi)
+		defender.soldiers=int(result.enemy_remaining)
+		defender.morale=int(result.enemy_morale)
+		garrisons[poi.id]=defender
+	pending_battle.clear()
+	revision += 1
+	return true
+
 func next_turn() -> void:
+	if not pending_battle.is_empty(): return
 	economy.next_turn(by_poi)
 	turn+=1
 	for u in units:
+		u.effects=u.effects.filter(func(effect: Dictionary)->bool: return int(effect.expires_turn)>turn)
+		u.max_ap=Catalog.movement(u)
 		u.ap=int(u.max_ap)
+		u.morale=50
+		u.action_done=false
 		u.guarding=false
+	for pid in garrisons:
+		garrisons[pid].effects=garrisons[pid].get("effects",[]).filter(func(effect: Dictionary)->bool: return int(effect.expires_turn)>turn)
 	revision+=1
 
+func map_skill(unit: Dictionary) -> Dictionary:
+	return Catalog.skill(unit,"map")
+
+func map_skill_ready_reason(unit: Dictionary) -> String:
+	if not pending_battle.is_empty(): return "交战中无法施放地图技能"
+	if not units.has(unit): return "请选择我方部队"
+	if int(unit.soldiers)<=0: return "部队无可用兵力"
+	if unit.get("action_done",false) or int(unit.ap)<=0: return "本轮行动已结束"
+	return ""
+
+func map_skill_targets(unit: Dictionary, target: int) -> Dictionary:
+	var result: Dictionary={"units":[],"garrisons":[],"cells":[]}
+	if target<0 or target>=cells.size(): return result
+	var ability:=map_skill(unit)
+	var radius_cells:=int(ability.radius)
+	result.cells=hex_disk(target,radius_cells)
+	if ability.effect in ["heal","buff"]:
+		for other in units:
+			if hex_distance(int(other.cell),target)<=radius_cells:
+				if ability.effect!="heal" or int(other.soldiers)<int(other.max_soldiers): result.units.append(other.id)
+	elif ability.effect in ["aoe","debuff"]:
+		for poi in pois:
+			if poi.owner!="shang": continue
+			for ci in poi.cells:
+				if hex_distance(int(ci),target)<=radius_cells:
+					if int(garrison(poi).soldiers)>0: result.garrisons.append(poi.id)
+					break
+	return result
+
+func hex_disk(target: int, radius_cells: int) -> Array[int]:
+	var result: Array[int]=[]
+	if target<0 or target>=cells.size(): return result
+	# Enumerate the small hex disk, not the entire world grid.
+	var hex:=Vector2i(int(cells[target].q),int(cells[target].r))
+	for dq in range(-radius_cells,radius_cells+1):
+		for dr in range(maxi(-radius_cells,-dq-radius_cells),mini(radius_cells,-dq+radius_cells)+1):
+			var id: int=by_hex.get(hex+Vector2i(dq,dr),-1)
+			if id>=0: result.append(id)
+	return result
+
+func map_skill_reason(unit: Dictionary, target: int) -> String:
+	var reason_text:=map_skill_ready_reason(unit)
+	if not reason_text.is_empty(): return reason_text
+	if target<0 or target>=cells.size(): return "请选择地图上的目标格"
+	var ability:=map_skill(unit)
+	if ability.effect=="march":
+		if target==int(unit.cell): return "请选择新的落点"
+		if not search(int(unit.cell),int(ability.march_range),unit.id,target).dist.has(target): return "目标不在合法行军范围内"
+		return ""
+	if hex_distance(int(unit.cell),target)>int(ability.range): return "超出技能射程"
+	var targets:=map_skill_targets(unit,target)
+	if targets.units.is_empty() and targets.garrisons.is_empty(): return "范围内没有有效目标"
+	return ""
+
+func add_map_effect(unit: Dictionary, ability: Dictionary) -> void:
+	var effects: Array=unit.get("effects",[])
+	effects=effects.filter(func(effect: Dictionary)->bool: return effect.id!=ability.id)
+	effects.append({"id":ability.id,"name":ability.name,"expires_turn":turn+int(ability.duration),"bonuses":ability.bonuses.duplicate(true)})
+	unit.effects=effects
+	if unit.has("ap"):
+		unit.max_ap=Catalog.movement(unit)
+		unit.ap=mini(int(unit.ap),int(unit.max_ap))
+
+func cast_map_skill(unit: Dictionary, target: int) -> Dictionary:
+	var reason_text:=map_skill_reason(unit,target)
+	if not reason_text.is_empty(): return {"ok":false,"reason":reason_text}
+	var ability:=map_skill(unit)
+	var targets:=map_skill_targets(unit,target)
+	var amount:=0
+	match ability.effect:
+		"march": unit.cell=target
+		"heal","buff":
+			for other in units:
+				if not other.id in targets.units: continue
+				if ability.effect=="heal":
+					var healed:=mini(int(ability.heal_soldiers),int(other.max_soldiers)-int(other.soldiers))
+					other.soldiers+=healed
+					other.troops=BattleRules.roster(int(other.soldiers))
+					amount+=healed
+				else: add_map_effect(other,ability)
+		"aoe","debuff":
+			for pid in targets.garrisons:
+				var defender:=garrison(by_poi[pid])
+				if ability.effect=="aoe":
+					var damage:=mini(int(defender.soldiers),roundi(Catalog.damage(Catalog.effective_stats(unit),Catalog.effective_stats(defender,"halberd"),"magic",float(ability.power))*5))
+					defender.soldiers-=damage
+					amount+=damage
+				else: add_map_effect(defender,ability)
+				garrisons[pid]=defender
+	unit.ap=0
+	unit.action_done=true
+	unit.guarding=false
+	revision+=1
+	return {"ok":true,"skill":ability.name,"effect":ability.effect,"amount":amount,"targets":targets}
+
 func recruit_reason(unit: Dictionary, poi: Dictionary) -> String:
+	if not pending_battle.is_empty(): return "交战中无法补兵"
 	if poi.owner != "player": return "占领后可补充兵员"
 	var has_camp: bool = false
 	for plot in economy.settlements[poi.id].plots:
@@ -208,13 +367,17 @@ func recruit(unit: Dictionary, poi: Dictionary) -> int:
 	economy.treasury.reserve -= count
 	economy.treasury.grain -= count*2
 	unit.soldiers = int(unit.soldiers)+count
+	unit.troops = BattleRules.roster(int(unit.soldiers))
 	unit.ap = int(unit.ap)-1
 	return count
 
 func save_game(file_path: String = "user://campaign.json") -> Error:
+	if not pending_battle.is_empty(): return ERR_BUSY
 	var owners: Dictionary={}
 	for p in pois: owners[p.id]=p.owner
-	var save={"schema":2,"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units,"economy":economy.serialize()}
+	var saved_garrisons: Dictionary={}
+	for pid in garrisons: saved_garrisons[pid]=garrison(by_poi[pid])
+	var save={"schema":5,"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units,"economy":economy.serialize(),"garrisons":saved_garrisons}
 	var temp_path: String=file_path+".tmp"
 	var f=FileAccess.open(temp_path,FileAccess.WRITE)
 	if f==null: return FileAccess.get_open_error()
@@ -226,9 +389,10 @@ func save_game(file_path: String = "user://campaign.json") -> Error:
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path),ProjectSettings.globalize_path(file_path))
 
 func load_game(file_path: String = "user://campaign.json") -> bool:
+	if not pending_battle.is_empty(): return false
 	if not FileAccess.file_exists(file_path): return false
 	var saved = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-	if not saved is Dictionary or (saved.get("schema",0)!=1 and saved.get("schema",0)!=2) or saved.get("art_revision","")!=data.art_revision: return false
+	if not saved is Dictionary or not Economy.integer(saved.get("schema"),1,5) or saved.get("art_revision","")!=data.art_revision: return false
 	# Validate the complete state before mutating the live campaign.
 	if not saved.get("owners",{}) is Dictionary or not saved.get("units",[]) is Array or saved.units.size()!=units.size(): return false
 	for p in pois:
@@ -236,6 +400,7 @@ func load_game(file_path: String = "user://campaign.json") -> bool:
 	for key in ["turn","captured","crossed"]:
 		if not Economy.integer(saved.get(key),1 if key=="turn" else 0,1000000000): return false
 	var used_cells: Array = []
+	var loaded_units: Array=[]
 	for i in units.size():
 		var u=saved.units[i]
 		if not u is Dictionary or u.get("id","")!=units[i].id: return false
@@ -245,18 +410,53 @@ func load_game(file_path: String = "user://campaign.json") -> bool:
 		used_cells.append(ci)
 		if ci<0 or ci>=cells.size() or cells[ci].t!=0: return false
 		if not str(cells[ci].p).is_empty() and saved.owners[cells[ci].p]!="player": return false
-		if not Economy.integer(u.get("ap"),0,int(units[i].max_ap)): return false
+		var candidate: Dictionary=units[i].duplicate(true)
+		candidate.hero_id=Catalog.hero_id({"id":u.id})
+		candidate.stats=Catalog.canonical_stats(Catalog.profile(candidate).stats)
+		candidate.effects=[]
+		candidate.action_done=false
+		if saved.schema>=5:
+			if not Catalog.DATA.heroes.has(u.get("hero_id","")) or not Catalog.valid_stats(u.get("stats")): return false
+			if not Catalog.valid_effects(u.get("effects"),int(saved.turn)) or not u.get("action_done") is bool: return false
+			candidate.hero_id=u.hero_id
+			candidate.stats=Catalog.canonical_stats(u.stats)
+			candidate.effects=Catalog.canonical_effects(u.effects)
+			candidate.action_done=u.action_done
+		candidate.max_ap=Catalog.movement(candidate)
+		if not Economy.integer(u.get("ap"),0,int(candidate.max_ap)): return false
+		if candidate.action_done and int(u.ap)!=0: return false
 		if not Economy.integer(u.get("soldiers"),0,int(units[i].max_soldiers)): return false
 		if u.has("guarding") and not u.guarding is bool: return false
-	var loaded_economy: Variant = saved.get("economy",{}) if saved.schema==2 else Economy.new(pois,theme).serialize()
+		if saved.schema >= 4:
+			if not Economy.integer(u.get("morale"),0,100): return false
+			if not BattleRules.valid_roster(u.get("troops"),int(u.soldiers)): return false
+		candidate.cell=ci
+		candidate.ap=int(u.ap)
+		candidate.soldiers=int(u.soldiers)
+		candidate.guarding=bool(u.get("guarding",false))
+		candidate.morale=int(u.morale) if saved.schema>=4 else 50
+		candidate.troops=u.troops.duplicate(true) if saved.schema>=4 else BattleRules.roster(int(u.soldiers))
+		for troop in candidate.troops:
+			if not troop.is_empty(): troop.count=int(troop.count)
+		loaded_units.append(candidate)
+	var loaded_garrisons: Variant = saved.get("garrisons",{}) if saved.schema>=4 else {}
+	if not loaded_garrisons is Dictionary: return false
+	for pid in loaded_garrisons:
+		if not by_poi.has(pid) or saved.owners[pid]!="shang" or not loaded_garrisons[pid] is Dictionary: return false
+		if not Economy.integer(loaded_garrisons[pid].get("soldiers"),0,10000) or not Economy.integer(loaded_garrisons[pid].get("morale"),0,100): return false
+		if saved.schema>=5:
+			var defender: Dictionary=loaded_garrisons[pid]
+			if not Catalog.DATA.heroes.has(defender.get("hero_id","")) or not Catalog.valid_stats(defender.get("stats")): return false
+			if not Catalog.valid_effects(defender.get("effects"),int(saved.turn)): return false
+	var loaded_economy: Variant = saved.get("economy",{}) if saved.schema>=2 else Economy.new(pois,theme).serialize()
+	if saved.schema==2: loaded_economy=economy.migrate_legacy(loaded_economy,by_poi)
 	if not economy.validate(loaded_economy,by_poi): return false
 	economy.restore(loaded_economy)
 	for p in pois: p.owner=saved.owners[p.id]
 	for i in units.size():
-		units[i].cell=int(saved.units[i].cell)
-		units[i].ap=int(saved.units[i].ap)
-		units[i].soldiers=int(saved.units[i].soldiers)
-		units[i].guarding=bool(saved.units[i].get("guarding",false))
+		units[i].clear()
+		units[i].merge(loaded_units[i],true)
+	garrisons=loaded_garrisons.duplicate(true)
 	turn=maxi(1,int(saved.get("turn",1)))
 	captured=int(saved.get("captured",0))
 	crossed=int(saved.get("crossed",0))

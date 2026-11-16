@@ -1,18 +1,29 @@
 封神 · 九州经营
-Godot 4.7.2 可运行原型 / v0.3 手绘内景
+Godot 4.7.2 可运行原型 / v0.4 暖色城邑
 
 在 Mac 上打开
 1. 下载本版本的 ZIP 并解压，或切换到 codex/fengshen-settlement-economy 分支。
 2. 使用 Godot 4.7 导入同目录的 project.godot，等待首次素材导入，按 F5 运行。
 3. 运行不需要网络、插件、Node.js 或额外下载素材。所有中文字体、地图与内景随工程提供。
-4. 已在 Godot 4.7.2 stable 官方版、Compatibility 渲染器实测；未在真实 macOS GPU 上测试。
+4. 已在本机 Godot 4.7.2 stable、macOS AMD Radeon Pro 555X、Compatibility 渲染器运行验证。
 
 本版视觉更新
-采用主城、村庄、关隘、渡口四套精致二次元手绘环境，建筑分布在花树、道路、水岸和院墙之间。
-新绘十二类建筑、五个地标、资源与操作图标、姬发肖像，以及金边面板、建筑名牌和绿色加成飘带。
-常态收起建设目录和密集地块；选择空地自动展开营建。点击“布局”显示全部建设位，“协作”显示规则中的连接。
-同一院落的建设位在布局模式下展开；普通视图按当前建筑数分配展示空间，不改变地块编号、邻接关系和存档。
+内政沿用大地图的暖土黄、木褐、柔和草绿与青蓝河水，建筑朴素，界面采用简洁名牌与木色面板。
+大城有内城、外城两重城垣；小城只有一重。大城采用与村庄接近的斜俯视角，墙段在空间中以直角连接，投影到画面后自然倾斜，街道贯通城门。
+小城使用用户指定的暖色斜俯视原图，保留河流、水车、桥梁和周边农田，19 处建设用地沿图中的街巷与院落分布。
+大城外墙顺着西北坡地和南侧河湾形成不对称的进退轮廓，内城设侧院与退台；街巷以宽窄不同的石路和土路连接院落。
+大城内城偏东北，北侧里巷、西侧街市、西南菜圃、南门仓坊与东侧军院形成错落街区；用地嵌在建筑群与院落之间。
+朝歌、西岐等九区主城为大城，各有 31 处用地；其余 31 座城市为小城，各有 19 处。
+关隘突出高大城楼与山间关墙；渡口沿河分布栈桥和渡船；村庄保留农户、田地与灌溉水道。
+每处建设用地拥有固定位置，顺着街道、河岸、田边散落，不画圆圈或方块建设边框。
+空地以小木桩示意；“用地”显示全部空地名牌。选择、开关营建目录、建造均不会移动周围建筑。
+“协作”显示规则中的邻接连接；经济邻接仍按原地块关系结算，不按画面距离重新计算。
 内景滚轮或顶部加减号缩放，中键/右键拖动；顶部“复位”恢复视角。
+
+1080p 性能
+当前窗口与设计分辨率为 1920×1080，目标 60 FPS。本机 AMD Radeon Pro 555X / Godot 4.7.2 实测五类内景平均约 60 FPS，大城建满与连续缩放拖动均约 60 FPS。
+进入内景时停止后方大地图绘制，界面按变化刷新；macOS 使用完成帧节拍补偿等待时间。528 项交互回归通过，包括升级后的产出显示、地图显隐恢复与战斗往返。
+完整条件、P99 帧耗时、单帧尖峰和原始数据见 previews/settlement-performance/report.md；本轮统计覆盖内景与返回大地图静止状态。
 
 先玩这一条路线
 启动后是西岐开局，哪吒、南宫适、黄天化位于关中。
@@ -25,8 +36,8 @@ Godot 4.7.2 可运行原型 / v0.3 手绘内景
 
 经营系统
 125 个据点都有独立建设状态：40 城、27 关、33 村、25 渡口。
-内景采用城池、村庄、关隘、渡口四套新绘制背景，不是 125 张独立原画。
-城市 19 块建设地、村庄 12 块、关隘 10 块、渡口 7 块；地形资源属性固定、存档可恢复。
+内景使用大城、小城、村庄、关隘、渡口五套背景。
+大城 31 块、小城 19 块、村庄 12 块、关隘 10 块、渡口 7 块；地形资源属性固定、存档可恢复。
 城市可同时施工两项，其他据点一项。普通建筑三级：工期 1 / 2 / 3 回合，费用为基础的 1 / 2 / 3 倍。
 建造立即从共享府库扣费。新建在竣工后的下一次结算开始生产；升级期间保留原等级产出。
 回合顺序：结算当前产出入库 → 推进工程并竣工 → 恢复部队行动力。
@@ -73,14 +84,16 @@ Godot 4.7.2 可运行原型 / v0.3 手绘内景
 每步移动前复核占位与据点控制，失守会阻断已规划路线。部队不能重叠。
 资源共享不改变上述行军限制。
 E 结束回合，Space 定位部队，G 显隐六边格，F 全图，1/2/3 选择部队，C 占领。
+Q 进入当前武将的地图技能选点，左键施放，右键 / Esc 取消。成功施法后本队本轮行动结束。
 F3 为开发用地形覆盖。内景中这些地图快捷键不会穿透到大地图；Esc 关闭内景菜单或返回。
 原 MapStitch v5 九区图片、拼接坐标、导航地形数据与 11,875 个六边格保持不变。
 
 存档
 大地图顶部“存 / 读”、内景底部“存档 / 读档”，或 F5 / F9 保存和读取。行军中禁用存读。
 保存资源、声望、全部地块、等级、施工队列、地标、归属、兵力、位置、行动力、回合。
+当前统一存档为 schema 5，另保存武将身份、六项基础属性、临时增减益和地图施法行动状态；兼容 schema 1–4。
 先写临时文件再替换正式存档；读档先完整校验，损坏存档不会部分覆盖当前战局。
-兼容 v0.1 行军存档：保留原据点归属与部队，补上默认经营状态和起始府库。
+内政布局使用 schema 3 及后续格式。兼容 schema 2 经营存档：保留原有 19 块城市用地、建筑、地形与工程，大城追加 12 块空地。兼容 schema 1 行军存档：保留原据点归属与部队，补上默认经营状态和起始府库。
 新启动默认开始西岐新战局；需要主动读档恢复。旧存档保留旧归属，因此不等于新的西岐开局。
 保存位置仍使用原“山河 · 九州行军”目录：
 macOS: ~/Library/Application Support/Godot/app_userdata/山河 · 九州行军/campaign.json
@@ -89,15 +102,20 @@ Godot 其他平台通过 user://campaign.json 访问。
 工程结构
 scripts/settlement_economy.gd   共享府库、建筑、队列、邻接、地标、结算与存档校验
 scripts/settlement_view.gd      内景场景、地块、营建目录、详情、工匠与地标界面
+scripts/frame_pacer.gd          macOS 目标帧率与完成帧节拍
 scripts/world_model.gd         通行、占领、军队、经营状态与统一存档
+scripts/unit_catalog.gd        四技能与六项属性、被动及临时效果、伤害公式
+data/unit_catalog.json         武将、戟兵属性与技能参数
 scripts/game.gd                主循环、相机、输入、内景切换和行军动画
 scripts/hud.gd                 战略 UI 与共享资源栏
 scripts/map_layer.gd           六边格可达范围、路线、标牌
-assets/interiors/*_painted.png  新版四类手绘内景（原图也保留）
-assets/buildings/painted/      新版十二类建筑与五个地标透明图层
-assets/ui/painted/            手绘界面皮肤与姬发肖像
-assets/ui/painted_icons/      资源与操作手绘图标
-data/interior_layouts.json   分散院落与地块的视觉布局
+assets/interiors/grounded/    新版五类暖色内景
+assets/buildings/grounded/    十二类建筑与五个地标透明素材及源图集
+data/interior_layouts.json   每个地块的固定自然位置
+data/settlement_warm_prompts.json   图像生成提示词与修订记录
+data/city_oblique_prompt.json      大城斜俯视版本的完整生成提示词
+tests/settlement_performance.gd    实际 1920×1080 内景性能采样
+tools/slice_settlement_atlas.gd    保留 alpha 的图集裁切工具
 assets/maps/                   未改动的 MapStitch v5 底图
 assets/fonts/                  Noto CJK 中文字体及 OFL 许可
 scenes/main.tscn               入口
@@ -108,7 +126,8 @@ tools/build_world.cjs 是可选离线编译器，只有重新标定通行数据�
 测试与截图
 previews/economy-tests.json                 经营规则与存档测试
 previews/navigation-tests.json              原地图通行规则回归
-previews/painted/                           新版实际经营操作截图与报告
+previews/warm-settlements/                  当前版实际经营操作、五种内景与建满后的截图及报告
+previews/painted/                           v0.3 旧版截图与报告
 previews/painted/09-developed-village.png    完成建设后的村庄
 previews/painted/10-developed-pass.png       完成建设后的关隘
 previews/painted/11-city-overview.png        主城经营视图
@@ -120,7 +139,10 @@ previews/art-integrity.json                 原始地图哈希校验
 命令行（第一次先导入素材）：
 godot --headless --editor --path . --import
 godot --headless --path . --script tests/economy_check.gd
+godot --headless --path . --script tests/city_profile_check.gd
 godot --headless --path . --script tests/navigation_check.gd
+godot --headless --path . --script tests/skills_check.gd
+godot --path . -- --skills-capture=/绝对路径/技能截图目录
 godot --path . -- --settlement-capture=/绝对路径/经营截图目录
 godot --path . -- --legacy-fixture --capture=/绝对路径/通行截图目录
 --legacy-fixture 仅给旧行军回归测试保留原起点，不影响正常新战局。
@@ -128,8 +150,13 @@ godot --path . -- --legacy-fixture --capture=/绝对路径/通行截图目录
 
 当前范围
 已可进行建设、升级、邻接布局、地标修复、全势力资源结算、补兵、占领和九州行军。
-相邻占领仍直接变更归属，尚未加入战斗、敌方 AI、外交、武将养成或封神主线。
-等级和武将四维仍为 UI 占位示例；资源、兵力、行动力、建设和地标均为真实状态。
+商军据点须先相邻接战，胜利后占领；中立据点仍可直接占领。新增戟兵自动战斗 MVP：分屏列阵、互冲、帧动画、实体碰撞、英雄自动读条技能和士气终结技。
+大地图按 B 进入独立演武；实战按 C 接战，R 终结技、Space 暂停、X 倍速、Enter 返回地图。详细规则、三编制槽范围与美术来源见 docs/battle_mvp.md。
+每名武将配置自动读条技能、手动终结技、地图技能和被动。每战士气从 50 开始，随实际击杀增加，到 100 可释放并消耗 100；可再次积累。
+英雄与戟兵都有物攻、物防、魔攻、魔防、生命、移动力。攻击和减伤使用真实属性，移动力决定大地图每回合移动预算。地图左侧展示含被动及临时效果的最终属性，右侧展示四技能。
+当前可操作的哪吒、南宫适、黄天化分别拥有范围伤害、群体增益、群体恢复地图技能；行军和减益结算也已实现，关联的姬发、闻仲尚无玩家招募入口。参数和范围见 docs/hero_skills.md。
+暂未加入野战巡逻 AI、外交、武将养成或封神主线。
+等级仍为 UI 占位示例；六项通用属性、技能、资源、兵力、行动力、建设和地标均为真实状态。
 建筑三级目前共用基础原画，以名牌等级区分，未制作每级独立美术。
 经营测试中的“已建成村庄 / 关隘”截图使用实际建设、回合结算后的状态；新战局保留原有起始建筑数量。
 原始地图工具：https://github.com/anan1213095357/MapStitch

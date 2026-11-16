@@ -18,7 +18,7 @@ func _initialize() -> void:
 	var enemy: Dictionary=w.by_poi.wanluo_city_0
 	check(cap.name=="西岐" and cap.owner=="player" and enemy.name=="朝歌" and enemy.owner=="shang","Fengshen western campaign starts correctly")
 	check(e.settlements.size()==125,"every city, village, pass and ferry has independent interior state")
-	check(e.settlements[cap.id].plots.size()==19 and e.settlements[village.id].plots.size()==12,"settlement footprints differ by type")
+	check(e.settlements[cap.id].plots.size()==31 and e.settlements[village.id].plots.size()==12,"settlement footprints differ by type")
 	var income: Dictionary=e.income(w.by_poi)
 	var sum: Dictionary={}
 	for key in e.KEYS: sum[key]=0

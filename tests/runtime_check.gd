@@ -115,6 +115,16 @@ func run(game: Node,dir: String) -> void:
 	game.action("end_turn")
 	check(game.world.can_capture(u,gate),"army reaches adjacent mountain pass")
 	game.action("capture")
+	if is_instance_valid(game.battle):
+		game.battle.paused=true
+		for i in 5000:
+			game.battle.sim.use_finisher(0)
+			game.battle.sim.advance()
+			game.battle.sim.events.clear()
+			if not game.battle.sim.result.is_empty(): break
+		game.battle.result_age=2.0
+		game.battle.activate("return")
+		await settle(game)
 	check(gate.owner=="player","mountain pass changes ownership")
 	var south_target: int=-1
 	for ci in game.reachable.dist:

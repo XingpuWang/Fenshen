@@ -1,0 +1,53 @@
+{
+	"benchmark_cap": 0,
+	"cpu": "Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz",
+	"renderer": "AMD Radeon Pro 555X OpenGL Engine",
+	"resolution": [
+		1920,
+		1080
+	],
+	"runtime_cap": 60,
+	"samples": [
+		{
+			"combat": {
+				"attacks": 177,
+				"collisions": 148656,
+				"finishers": 2,
+				"skills": 6
+			},
+			"cpu_process_ms_p95": 15.156,
+			"fps_average": 129.611440596422,
+			"frame_ms_max": 35.386,
+			"frame_ms_p95": 11.485,
+			"frame_ms_p99": 13.42,
+			"frames_over_16_67_ms": 10,
+			"meets_60fps_p95": true,
+			"sample_frames": 2593,
+			"sample_seconds": 20.00595,
+			"soldiers_per_side": 2400,
+			"starting_actors": 50
+		},
+		{
+			"combat": {
+				"attacks": 270,
+				"collisions": 735405,
+				"finishers": 2,
+				"skills": 6
+			},
+			"cpu_process_ms_p95": 97.065,
+			"fps_average": 58.0565932556537,
+			"frame_ms_max": 128.315,
+			"frame_ms_p95": 81.372,
+			"frame_ms_p99": 116.401,
+			"frames_over_16_67_ms": 200,
+			"meets_60fps_p95": false,
+			"sample_frames": 1193,
+			"sample_seconds": 20.548915,
+			"soldiers_per_side": 6000,
+			"starting_actors": 122
+		}
+	],
+	"simulation_hz": 60,
+	"target_fps": 60,
+	"vsync": "disabled during measurement"
+}

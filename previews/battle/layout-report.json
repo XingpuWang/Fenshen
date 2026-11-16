@@ -1,0 +1,19 @@
+{
+	"battlefield_corners": 4,
+	"checks": 4877,
+	"facings": 2,
+	"failures": [],
+	"feet_area": [
+		160,
+		500,
+		1600,
+		300
+	],
+	"frames_checked": 112,
+	"max_actors": 122,
+	"standard_body_heights": {
+		"hero": 180,
+		"soldier": 108,
+		"wenzhong": 194
+	}
+}

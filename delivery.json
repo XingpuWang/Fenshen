@@ -15,30 +15,62 @@
   "original_map_images_unchanged": true,
   "entry_point": "project.godot",
   "readme": "README.txt",
-  "version": "0.3",
+  "version": "0.4",
   "git_branch": "codex/fengshen-settlement-economy",
   "economy_validation": "passed",
   "economy_model_checks": 77,
-  "settlement_input_checks": 77,
+  "settlement_input_checks": 528,
   "navigation_checks": 59999,
   "settlement_count": 125,
   "building_types": 12,
   "building_max_level": 3,
   "unique_landmarks": 5,
-  "interior_backgrounds": 4,
-  "save_schema": 2,
+  "interior_backgrounds": 5,
+  "save_schema": 4,
   "compatible_save_schemas": [
     1,
-    2
+    2,
+    3,
+    4
   ],
-  "real_mac_validation": false,
-  "interior_style_revision": "painted-courtyards-v1",
-  "settlement_runtime_report": "previews/painted/settlement-runtime-tests.json",
+  "real_mac_validation": true,
+  "interior_style_revision": "warm-oblique-settlements-v5",
+  "settlement_runtime_report": "previews/small-city-reference/settlement-runtime-tests.json",
   "design_qa": "design-qa.md",
   "settlement_previews": [
-    "previews/painted/11-city-overview.png",
-    "previews/painted/09-developed-village.png",
-    "previews/painted/10-developed-pass.png",
-    "previews/painted/06-ferry-interior.png"
-  ]
+    "previews/oblique-city/17-large-city-developed.png",
+    "previews/small-city-reference/18-small-city-developed.png",
+    "previews/warm-settlements/19-village-developed.png",
+    "previews/warm-settlements/20-pass-developed.png",
+    "previews/warm-settlements/21-ferry-developed.png"
+  ],
+  "city_profile_checks": 1126,
+  "city_sizes": {
+    "large": {
+      "cities": 9,
+      "plots": 31
+    },
+    "small": {
+      "cities": 31,
+      "plots": 19
+    }
+  },
+  "settlement_performance": {
+    "rendered_size": [
+      1920,
+      1080
+    ],
+    "target_fps": 60,
+    "report": "previews/settlement-performance/production/performance.json",
+    "summary": "previews/settlement-performance/report.md",
+    "scope": "Five interiors developed, initial large city, continuous large-city pan/zoom, repeated interior switching, static overworld return.",
+    "small_city_retest": "previews/settlement-performance/small-reference-retest/performance.json",
+    "small_city_retest_result": {
+      "frames": 1800,
+      "average_fps": 59.9003657250094,
+      "p99_frame_ms": 16.688,
+      "max_frame_ms": 66.579,
+      "over_33ms_frames": 1
+    }
+  }
 }

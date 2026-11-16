@@ -1,0 +1,21 @@
+{
+	"checks": 13,
+	"failures": [],
+	"fps_average": 81.7942233525503,
+	"renderer": "AMD Radeon Pro 555X OpenGL Engine",
+	"result": {
+		"elapsed": 26.2333333333331,
+		"enemy_morale": 0,
+		"enemy_remaining": 0,
+		"morale": 30,
+		"player_remaining": 522,
+		"player_won": true,
+		"reason": "敌阵溃散",
+		"stats": {
+			"attacks": 307,
+			"collisions": 516706,
+			"finishers": 2,
+			"skills": 7
+		}
+	}
+}

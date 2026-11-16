@@ -1,0 +1,59 @@
+{
+	"benchmark_cap": 0,
+	"cpu": "Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz",
+	"renderer": "AMD Radeon Pro 555X OpenGL Engine",
+	"resolution": [
+		1920,
+		1080
+	],
+	"runtime_cap": 60,
+	"samples": [
+		{
+			"combat": {
+				"attacks": 195,
+				"collisions": 142632,
+				"finishers": 2,
+				"skills": 6
+			},
+			"cpu_process_ms_p95": 9.899,
+			"draw_script_ms_p95": 1.835,
+			"fps_average": 182.904755523644,
+			"frame_ms_max": 29.081,
+			"frame_ms_p95": 8.05,
+			"frame_ms_p99": 8.997,
+			"frames_over_16_67_ms": 1,
+			"meets_60fps_p95": true,
+			"sample_frames": 3658,
+			"sample_seconds": 19.99948,
+			"simulation_ms_p95": 1.185,
+			"soldiers_per_side": 2400,
+			"starting_actors": 50,
+			"steps_per_frame_p95": 1.0
+		},
+		{
+			"combat": {
+				"attacks": 270,
+				"collisions": 670182,
+				"finishers": 2,
+				"skills": 6
+			},
+			"cpu_process_ms_p95": 30.222,
+			"draw_script_ms_p95": 3.491,
+			"fps_average": 107.075383369363,
+			"frame_ms_max": 38.953,
+			"frame_ms_p95": 18.243,
+			"frame_ms_p99": 23.651,
+			"frames_over_16_67_ms": 242,
+			"meets_60fps_p95": false,
+			"sample_frames": 2142,
+			"sample_seconds": 20.004598,
+			"simulation_ms_p95": 5.276,
+			"soldiers_per_side": 6000,
+			"starting_actors": 122,
+			"steps_per_frame_p95": 1.0
+		}
+	],
+	"simulation_hz": 60,
+	"target_fps": 60,
+	"vsync": "disabled during measurement"
+}

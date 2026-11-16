@@ -1,9 +1,10 @@
 {
-  "version": 2,
-  "created": "2026-11-15",
-  "provenance": "Generated for this project with image_gen using the user-provided visual direction; source atlases preserved. Sprite atlas slicing, UI alpha trimming and resizing are mechanical sharp operations.",
+  "version": 7,
+  "created": "2026-11-16",
+  "provenance": "Large-city and earlier settlement art were generated with built-in image_gen; prompt records are retained. The active small-city background is the exact image explicitly supplied by the user, copied without changes. See small_city_source.",
   "background_templates": [
-    "city",
+    "city_large",
+    "city_small",
     "village",
     "pass",
     "ferry"
@@ -302,27 +303,135 @@
     {
       "file": "assets/ui/painted_icons_atlas.png",
       "sha256": "43e64022ace987a82359c9879fca0cc879a1fc3b94223ef3081cae209ca4932e"
+    },
+    {
+      "file": "assets/interiors/grounded/ferry.png",
+      "sha256": "fa18e31ea23409c352235f963f0c559c44b141957899dd48d29d01e18216c0d4"
+    },
+    {
+      "file": "assets/interiors/grounded/city_large.png",
+      "sha256": "88a00c1546e23a0aa8d7e239932ccb7fdbdc523c791fe4ca6555a1956cfd530b"
+    },
+    {
+      "file": "assets/interiors/grounded/city_small.png",
+      "sha256": "7a3ff15bbc6837c67b98ec01fc43953d1fd43e7779585d4b35713269a4f08d4b"
+    },
+    {
+      "file": "assets/interiors/grounded/village.png",
+      "sha256": "a94eb1335a6517c108ae05f193b1e024368c3201124c56870650f185a697ebc9"
+    },
+    {
+      "file": "assets/interiors/grounded/pass.png",
+      "sha256": "4c20f650721de0bc22d3269840a817326ff152f3af33231453f14989458ee05b"
+    },
+    {
+      "file": "assets/buildings/grounded/jade.png",
+      "sha256": "9423d1f1698a5f6f18b9aa8503312b62de49b3773a959a5183c8593190ec94ff"
+    },
+    {
+      "file": "assets/buildings/grounded/landmark_1.png",
+      "sha256": "c2081a82d32f888e6e3ae892e4c1b0ae29623150440c477e56f23b782f5ab6a1"
+    },
+    {
+      "file": "assets/buildings/grounded/landmark_0.png",
+      "sha256": "e060772480d57bf5142b04878b5cd812d933c5b5a9e088c318e9ca78a2dc6a76"
+    },
+    {
+      "file": "assets/buildings/grounded/landmark_2.png",
+      "sha256": "b47587126333da57dcd9a40b1272c38a98d93a7c3cba20cdcc574f3b069e8519"
+    },
+    {
+      "file": "assets/buildings/grounded/landmark_3.png",
+      "sha256": "679357de50d857f40de7f84afa900f90240bae5070d89f1e76e5486eedd6ad16"
+    },
+    {
+      "file": "assets/buildings/grounded/landmarks_atlas.png",
+      "sha256": "8073924aae4b7905ca348c98f822e50faba1abee8e0978c03f937fde75b747d2"
+    },
+    {
+      "file": "assets/buildings/grounded/farm.png",
+      "sha256": "9a32cba81ff7c618bf0f8dabaaf81c9251754c15bf8fd74403e0b8ff643570f8"
+    },
+    {
+      "file": "assets/buildings/grounded/landmark_4.png",
+      "sha256": "726aa32b3bcca6d5557084d4dd9e56119a405f93023c90b015cbc9063e2afa6d"
+    },
+    {
+      "file": "assets/buildings/grounded/mine.png",
+      "sha256": "0a4c225cc7ed61d6d2421ee55d15be720eb3345e7437b99a9bca8e5103ce1015"
+    },
+    {
+      "file": "assets/buildings/grounded/lumber.png",
+      "sha256": "0ab71d4806f4cfc18f4bb9458cd00bbf390f1d066d58c1efcc1821e849146b13"
+    },
+    {
+      "file": "assets/buildings/grounded/drill.png",
+      "sha256": "d41138e1bfa70828fd7eed5de4980f88cbb70d93ef0706292404595e8b312a6d"
+    },
+    {
+      "file": "assets/buildings/grounded/atlas.png",
+      "sha256": "0f87e52f1a8e279f06b340264d4b16c36f97f8bb8bbdb6c2770376011b6c8555"
+    },
+    {
+      "file": "assets/buildings/grounded/granary.png",
+      "sha256": "5163919805aaacfe9044fafb710b63fe59c7d8ca91277f004a4b633d48c9049d"
+    },
+    {
+      "file": "assets/buildings/grounded/forge.png",
+      "sha256": "e0bc6c5ee0d312e136c99b56cbf9bb41ad339f41eed280c954258e5efc3f3a69"
+    },
+    {
+      "file": "assets/buildings/grounded/barracks.png",
+      "sha256": "fad24597716b71d5412e1165af5c0a4a492aca82441e8c297cfb16a8c2d03904"
+    },
+    {
+      "file": "assets/buildings/grounded/homes.png",
+      "sha256": "6bd1a2c0f99d0384ea7fa78d04bdf19fd69d06a5c7fbb680290f143db21cb397"
+    },
+    {
+      "file": "assets/buildings/grounded/market.png",
+      "sha256": "b4caafd3cc27e8c150bf70355582ab891ae93cbc3910ddb780719f5e1c39cf5b"
+    },
+    {
+      "file": "assets/buildings/grounded/alchemy.png",
+      "sha256": "196fe6b34506f02b4849d4a69da0e52096decc4d1712d06fd2e8caa749232031"
+    },
+    {
+      "file": "assets/buildings/grounded/altar.png",
+      "sha256": "d742b039e6b635053fd6283c5a2b310924f2eea4b38ee0d38710828b51838ea7"
+    },
+    {
+      "file": "assets/interiors/grounded/city_large_quarters.png",
+      "sha256": "4944732b3fb7e926c357f0b7d806b93a4fbb54917a72cf876e6bedc5364eca1f"
+    },
+    {
+      "file": "assets/interiors/grounded/city_large_stepped.png",
+      "sha256": "7cecd78219c4492893c882476b171938f51c4f906ca8f4c2d16bbc1eb3c6ad1e"
+    },
+    {
+      "file": "assets/interiors/grounded/city_large_oblique.png",
+      "sha256": "3af344e733be78c499b5c0e76ca3233acaea67cdbb298b7de4e2d6abdabec736"
+    },
+    {
+      "file": "assets/interiors/grounded/city_small_reference.png",
+      "sha256": "181c3f603134a79207344c09a97b3f9c70806251531a684ba7b18aa9e63ec749"
     }
   ],
-  "active_style_revision": "painted-courtyards-v1",
-  "layout": "data/interior_layouts.json: independent terraces with stable saved plot IDs. Layout/build mode exposes all plots; ordinary view distributes occupied sites within each terrace. Economic adjacency remains unchanged.",
+  "active_style_revision": "warm-oblique-settlements-v5",
+  "layout": "data/interior_layouts.json: fixed independent landscape positions for every saved plot ID. No plot circles, diamonds or enclosing rectangles; catalogue, selection and development do not rearrange buildings. Existing economic adjacency and terrain IDs are preserved.",
   "active_backgrounds": {
-    "city": "assets/interiors/city_painted.png",
-    "village": "assets/interiors/village_painted.png",
-    "pass": "assets/interiors/pass_painted.png",
-    "ferry": "assets/interiors/ferry_painted.png"
+    "city_large": "assets/interiors/grounded/city_large_oblique.png",
+    "city_small": "assets/interiors/grounded/city_small_reference.png",
+    "village": "assets/interiors/grounded/village.png",
+    "pass": "assets/interiors/grounded/pass.png",
+    "ferry": "assets/interiors/grounded/ferry.png"
   },
-  "active_building_atlas": "assets/buildings/painted/atlas.png",
-  "active_landmark_atlas": "assets/buildings/painted/landmarks_atlas.png",
+  "active_building_atlas": "assets/buildings/grounded/atlas.png",
+  "active_landmark_atlas": "assets/buildings/grounded/landmarks_atlas.png",
   "ui_art": {
-    "portrait": "assets/ui/painted/jifa_portrait.png",
-    "panel": "assets/ui/painted/panel.png",
-    "panel_source": "assets/ui/painted/panel_source.png",
-    "control_atlas": "assets/ui/painted/control_atlas.png",
-    "icons_atlas": "assets/ui/painted_icons_atlas.png",
-    "primary_button": "assets/ui/painted/primary_button.png",
-    "nameplate": "assets/ui/painted/nameplate.png",
-    "synergy": "assets/ui/painted/synergy.png"
+    "style": "plain warm timber-brown panels, compact building labels and small survey stakes; line resource icons",
+    "source": "scripts/settlement_view.gd",
+    "landmarks": "civic-hall plaques select individual monument illustrations in the inspector"
   },
   "retained_legacy_files": [
     "assets/interiors/city.png",
@@ -347,6 +456,53 @@
     "assets/buildings/landmarks.png",
     "assets/buildings/lumber.png",
     "assets/buildings/market.png",
-    "assets/buildings/mine.png"
-  ]
+    "assets/buildings/mine.png",
+    "assets/interiors/grounded/city_large.png",
+    "previews/warm-settlements/interior_layouts.json",
+    "assets/interiors/grounded/city_large_quarters.png",
+    "previews/city-quarters/interior_layouts.json",
+    "assets/interiors/grounded/city_large_stepped.png",
+    "previews/stepped-city/interior_layouts.json",
+    "assets/interiors/grounded/city_small.png",
+    "previews/small-city-reference/layout-before.json"
+  ],
+  "city_sizes": {
+    "large": {
+      "count": 9,
+      "plots": 31,
+      "walls": "Straight world-space walls meeting at right angles, viewed obliquely; asymmetric outer perimeter and separate inner compound.",
+      "composition": "Oblique three-quarter view matching the village interior; northwest rocks, northeast inner city, diagonal lanes and 31 playable sites."
+    },
+    "small": {
+      "count": 31,
+      "plots": 19,
+      "walls": "One outer city wall, with a modest administrative courtyard inside; exact user-selected image.",
+      "composition": "Warm oblique town, curved lanes, natural work courts, southern bridge, western watermill and surrounding fields; 19 stable playable sites."
+    }
+  },
+  "validation": {
+    "city_profile_checks": 1126,
+    "runtime_checks": 528,
+    "runtime_failures": 0,
+    "runtime_report": "previews/small-city-reference/settlement-runtime-tests.json",
+    "renderer": "AMD Radeon Pro 555X OpenGL Engine",
+    "capital_previews": [
+      "previews/oblique-city/12-large-city.png",
+      "previews/oblique-city/17-large-city-developed.png"
+    ],
+    "city_profile_report": "previews/small-city-reference/city-profile-tests.json",
+    "performance_report": "previews/settlement-performance/production/performance.json",
+    "small_city_previews": [
+      "previews/small-city-reference/13-small-city.png",
+      "previews/small-city-reference/18-small-city-developed.png"
+    ],
+    "small_city_performance_report": "previews/settlement-performance/small-reference-retest/performance.json",
+    "small_city_performance_initial_report": "previews/settlement-performance/small-reference/performance.json"
+  },
+  "small_city_source": {
+    "type": "user-provided image",
+    "source_name": "codex-clipboard-2ca86ff5-fbd5-4b22-940b-d1e3a7343270.png",
+    "copied_unmodified": true,
+    "sha256": "181c3f603134a79207344c09a97b3f9c70806251531a684ba7b18aa9e63ec749"
+  }
 }

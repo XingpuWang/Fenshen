@@ -1,0 +1,11 @@
+{
+  "checks": 1126,
+  "failures": [],
+  "settlement_counts": {
+    "city_large": 9,
+    "city_small": 31,
+    "ferry": 25,
+    "pass": 27,
+    "village": 33
+  }
+}

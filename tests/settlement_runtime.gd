@@ -1,5 +1,9 @@
 extends "res://tests/runtime_check.gd"
 
+# Representative capital: homes by northern lanes, farms beside the southwest
+# gardens, shops at junctions, workshops and stores near the southern gate.
+const LARGE_CITY_GALLERY=["granary","farm","farm","homes","market","barracks","farm","homes","homes","homes","market","forge","granary","homes","market","forge","granary","granary","forge","homes","homes","barracks","forge","market","drill","homes","market","lumber","lumber","homes","homes"]
+
 func ui(game: Node,id: String) -> void:
 	if id.begins_with("settlement:") and not game.interior.settlement_menu:
 		await ui(game,"settlements")
@@ -21,6 +25,7 @@ func run(game: Node,dir: String) -> void:
 	# Enter through the actual world HUD, then place a building through actual clicks.
 	await click(game,Vector2(1710,290))
 	check(game.interior.visible and game.interior.poi_id==capital.id,"world capital button opens independent settlement scene")
+	check(not game.layer.visible and not game.grid.visible,"covered world stops rendering behind the interior")
 	await ui(game,"plot:6")
 	await ui(game,"blueprint:farm")
 	await shot(game,dir,"02-xiqi-building-preview")
@@ -34,6 +39,7 @@ func run(game: Node,dir: String) -> void:
 	check(econ.settlements[capital.id].plots[6].level==1,"upgrade remains at old level before completion")
 	await ui(game,"end_turn")
 	check(econ.settlements[capital.id].plots[6].level==2,"two-turn upgrade completes through UI")
+	check(game.interior.economy_display_cache.current==econ.yield_detail(capital.id,6),"upgrade invalidates the displayed yield cache")
 	await shot(game,dir,"03-upgraded-farm")
 	await ui(game,"landmark:lingtai")
 	await ui(game,"restore")
@@ -52,6 +58,7 @@ func run(game: Node,dir: String) -> void:
 	var cap_plots: String=JSON.stringify(econ.settlements[capital.id].plots)
 	await ui(game,"settlement:guanzhong_village_0")
 	check(game.interior.poi_id=="guanzhong_village_0","owned-settlement switcher opens village")
+	check(game.interior.economy_display_cache.income==econ.local_income("guanzhong_village_0"),"switching settlement refreshes local output")
 	await ui(game,"plot:4")
 	await ui(game,"blueprint:lumber")
 	var gold_before: int=int(econ.treasury.gold)
@@ -68,6 +75,7 @@ func run(game: Node,dir: String) -> void:
 	await shot(game,dir,"06-ferry-interior")
 	await ui(game,"back")
 	check(not game.interior.visible and game.hud.visible,"back returns to world HUD")
+	check(game.layer.visible and game.grid.visible==game.grid_visible and not game.terrain_overlay.visible,"return restores world visibility without enabling the terrain debug mask")
 	# Actual map click opens an enemy pass; economic actions are not offered.
 	var gate: Dictionary=w.by_poi.guanzhong_pass_1
 	game.camera.position=Vector2(gate.position[0],gate.position[1])+Vector2(0,150)
@@ -146,7 +154,50 @@ func run(game: Node,dir: String) -> void:
 	await ui(game,"reset_view")
 	check(game.interior.view_zoom==1.0 and game.interior.view_pan==Vector2.ZERO,"interior view resets")
 	await ui(game,"back")
-	var report: Dictionary={"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_video_adapter_name(),"checks":checks,"failures":failures,"captures":11}
+	# Exercise the five landscape templates and every clickable construction site.
+	var profiles: Array=[["guanzhong_city_0","large-city"],["guanzhong_city_1","small-city"],["guanzhong_village_0","village"],["guanzhong_pass_1","pass"],["guanzhong_ferry_1","ferry"]]
+	for k in profiles.size():
+		var pid: String=profiles[k][0]
+		var poi: Dictionary=w.by_poi[pid]
+		poi.owner="player"
+		for key in econ.KEYS: econ.treasury[key]=1000000
+		game.open_settlement(pid)
+		game.toast=""
+		await shot(game,dir,"%02d-%s" % [12+k,profiles[k][1]])
+		var original_positions: Dictionary=game.interior.plot_views.duplicate(true)
+		await ui(game,"layout")
+		check(game.interior.plot_views==original_positions,"layout toggle never moves buildings: "+pid)
+		await ui(game,"layout")
+		for i in econ.settlements[pid].plots.size():
+			if game.interior.build_mode: await ui(game,"close_catalog")
+			await ui(game,"plot:"+str(i))
+			check(game.interior.selected_plot==i,"individual plot click reaches correct stable ID: %s/%d" % [pid,i])
+			check(game.interior.plot_views==original_positions,"catalogue does not rearrange plots: %s/%d" % [pid,i])
+			var plot: Dictionary=econ.settlements[pid].plots[i]
+			if plot.building.is_empty():
+				while not econ.settlements[pid].jobs.is_empty(): w.next_turn()
+				var building: String=["farm","lumber","mine","market","jade"][int(plot.terrain)]
+				if econ.layout_kind(poi)=="city_large": building=LARGE_CITY_GALLERY[i]
+				check(econ.build(poi,i,building,w.by_poi).is_empty(),"full-capacity construction succeeds: %s/%d" % [pid,i])
+				w.next_turn()
+		if game.interior.build_mode: await ui(game,"close_catalog")
+		game.interior.selected_plot=0
+		game.toast=""
+		game.refresh()
+		await shot(game,dir,"%02d-%s-developed" % [17+k,profiles[k][1]])
+		check(game.interior.plot_views==original_positions,"full development preserves natural layout: "+pid)
+		for i in econ.settlements[pid].plots.size():
+			var point: Vector2=game.interior.plot_views[i].position+Vector2(0,19)
+			check(game.interior.hit_test(point).get("id","")=="plot:"+str(i),"developed nameplate remains individually accessible: %s/%d" % [pid,i])
+		await ui(game,"back")
+	# A battle can follow an interior; both full-screen views share world coverage.
+	game.open_settlement(capital.id)
+	game.start_exhibition()
+	check(is_instance_valid(game.battle) and not game.layer.visible,"battle entered from interior keeps world covered")
+	game.close_battle({})
+	await settle(game)
+	check(game.hud.visible and game.layer.visible and game.covered_world_visibility.is_empty(),"battle return restores the world after interior coverage")
+	var report: Dictionary={"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_video_adapter_name(),"checks":checks,"failures":failures,"captures":21}
 	FileAccess.open(dir.path_join("settlement-runtime-tests.json"),FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("SETTLEMENT_RUNTIME "+JSON.stringify(report))
 	game.get_tree().quit(0 if failures.is_empty() else 1)

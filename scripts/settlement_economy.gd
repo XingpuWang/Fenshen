@@ -11,19 +11,28 @@ var definitions: Dictionary = {}
 var catalog: Array = []
 var landmarks: Dictionary = {}
 var last_report: Dictionary = {}
+var large_cities: Array = []
+
+func layout_kind(poi: Dictionary) -> String:
+	if poi.type == "city": return "city_large" if poi.id in large_cities else "city_small"
+	return poi.type
+
+func plot_count(poi: Dictionary) -> int:
+	return {"city_large":31,"city_small":19,"village":12,"pass":10,"ferry":7}[layout_kind(poi)]
 
 func _init(pois: Array = [], theme: Dictionary = {}) -> void:
 	catalog = JSON.parse_string(FileAccess.get_file_as_string("res://data/buildings.json"))
 	for d in catalog: definitions[d.id] = d
 	landmarks = theme.get("landmarks", {})
+	large_cities = theme.get("large_cities", [])
 	for p in pois:
 		var plots: Array = []
 		var coords: Array = [Vector2i.ZERO]
-		for radius in [1, 2]:
+		for radius in [1, 2, 3]:
 			for r in range(-radius, radius+1):
 				for q in range(-radius, radius+1):
 					if maxi(abs(q), maxi(abs(r), abs(q+r))) == radius: coords.append(Vector2i(q,r))
-		var count: int = {"city":19,"village":12,"pass":10,"ferry":7}[p.type]
+		var count: int = plot_count(p)
 		for i in count:
 			plots.append({"q":coords[i].x,"r":coords[i].y,"terrain":(i+int(str(p.id).hash()%5))%5,"building":"","level":0})
 		var marks: Dictionary = {}
@@ -205,6 +214,22 @@ func next_turn(pois: Dictionary) -> Dictionary:
 
 func serialize() -> Dictionary:
 	return {"treasury":treasury.duplicate(true),"prestige":prestige,"settlements":settlements.duplicate(true)}
+
+# Schema 2 had nineteen plots in every city. Keep their indices, buildings,
+# terrain and construction jobs intact; only large cities gain new empty land.
+func migrate_legacy(saved: Variant, pois: Dictionary) -> Variant:
+	if not saved is Dictionary or not saved.get("settlements") is Dictionary: return saved
+	var migrated: Dictionary = saved.duplicate(true)
+	for pid in settlements:
+		var state: Variant = migrated.settlements.get(pid)
+		if not state is Dictionary or not state.get("plots") is Array: continue
+		if pois[pid].type == "city" and state.plots.size() == 19:
+			for i in range(19, settlements[pid].plots.size()):
+				var plot: Dictionary=settlements[pid].plots[i].duplicate(true)
+				plot.building=""
+				plot.level=0
+				state.plots.append(plot)
+	return migrated
 
 static func integer(value: Variant, low: int, high: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value)) and float(value)>=low and float(value)<=high

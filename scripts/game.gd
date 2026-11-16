@@ -4,6 +4,9 @@ const World=preload("res://scripts/world_model.gd")
 const MapLayer=preload("res://scripts/map_layer.gd")
 const HUD=preload("res://scripts/hud.gd")
 const Interior=preload("res://scripts/settlement_view.gd")
+const BattleView=preload("res://scripts/battle_view.gd")
+var battle: Control
+var battle_canvas: CanvasLayer
 var interior: Control
 var economy_income: Dictionary = {}
 var world: ShanheWorld
@@ -31,8 +34,18 @@ var grid_visible: bool=true
 var terrain_overlay: Sprite2D
 var capture_mode: bool=false
 var travel_speed: float=1.0
+var covered_world_visibility: Dictionary={}
+var world_view_dirty: bool=true
+var last_camera_position:=Vector2(INF,INF)
+var last_camera_zoom:=Vector2.ZERO
+var frame_pacer: Node
+var map_skill_targeting:=false
+var skill_range_cells: Array=[]
+var skill_preview: Dictionary={}
 
 func _ready() -> void:
+	frame_pacer=load("res://scripts/frame_pacer.gd").new()
+	add_child(frame_pacer)
 	world=World.new(not "--legacy-fixture" in OS.get_cmdline_user_args())
 	texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	load_map()
@@ -94,6 +107,7 @@ func _ready() -> void:
 	var canvas=CanvasLayer.new()
 	canvas.layer=20
 	add_child(canvas)
+	battle_canvas=canvas
 	hud=HUD.new()
 	hud.game=self
 	canvas.add_child(hud)
@@ -106,6 +120,15 @@ func _ready() -> void:
 	refresh()
 	say("西岐开局 · 点击城池经营，选择青色地块行军")
 	for arg in OS.get_cmdline_user_args():
+		if arg=="--battle-demo": call_deferred("start_exhibition")
+		if arg.begins_with("--skills-capture="):
+			var runner=load("res://tests/skills_runtime.gd").new()
+			add_child(runner)
+			runner.call_deferred("run",self,arg.trim_prefix("--skills-capture="))
+		if arg.begins_with("--battle-capture="):
+			var runner=load("res://tests/battle_runtime.gd").new()
+			add_child(runner)
+			runner.call_deferred("run",self,arg.trim_prefix("--battle-capture="))
 		if arg.begins_with("--settlement-capture="):
 			var test_runner=load("res://tests/settlement_runtime.gd").new()
 			add_child(test_runner)
@@ -136,7 +159,10 @@ func make_style(fill: Color,border: Color,width: float=1.0,roundness: float=4.0)
 
 func refresh() -> void:
 	economy_income=world.economy.income(world.by_poi)
-	if interior!=null: interior.queue_redraw()
+	world_view_dirty=true
+	if interior!=null:
+		interior.invalidate_economy_cache()
+		interior.queue_redraw()
 	var u: Dictionary=world.units[selected_unit]
 	reachable=world.search(int(u.cell),int(u.ap),u.id)
 	path.clear()
@@ -147,12 +173,21 @@ func refresh() -> void:
 func say(message: String) -> void:
 	toast=message
 	toast_time=5.0
+	world_view_dirty=true
 	if hud!=null: hud.queue_redraw()
+	if interior!=null and interior.visible: interior.queue_redraw()
 
 func _process(delta: float) -> void:
+	if is_instance_valid(battle): return
 	if toast_time>0:
 		toast_time-=delta
-		if toast_time<=0: toast=""
+		if toast_time<=0:
+			toast=""
+			world_view_dirty=true
+			if interior.visible: interior.queue_redraw()
+	# Interior changes invalidate their own canvas through input / refresh.
+	# The covered world has no visible animation or hover state to redraw.
+	if interior.visible: return
 	if not moving and not interior.visible:
 		var pan=Vector2.ZERO
 		if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP): pan.y-=1
@@ -164,15 +199,26 @@ func _process(delta: float) -> void:
 	if moving:
 		var sprite: Sprite2D=unit_nodes[selected_unit].get_node("Soldiers")
 		sprite.position.y=(-83 if unit_nodes[selected_unit].get_node("Boat").visible else -126)+sin(Time.get_ticks_msec()*.016)*2.8
-	for i in unit_nodes.size(): unit_nodes[i].z_index=5 if i!=selected_unit else 6
-	layer.queue_redraw()
-	hud.queue_redraw()
-	if interior.visible: interior.queue_redraw()
+		world_view_dirty=true
+	if camera.position!=last_camera_position or camera.zoom!=last_camera_zoom:
+		world_view_dirty=true
+		last_camera_position=camera.position
+		last_camera_zoom=camera.zoom
+	if world_view_dirty:
+		for i in unit_nodes.size(): unit_nodes[i].z_index=5 if i!=selected_unit else 6
+		layer.queue_redraw()
+		hud.queue_redraw()
+		world_view_dirty=false
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(battle):
+		battle.handle_input(event)
+		get_viewport().set_input_as_handled()
+		return
 	if interior.visible:
 		interior.handle_input(event)
 		return
+	world_view_dirty=true
 	if event is InputEventMouseMotion:
 		last_mouse=event.position
 		var hit: Dictionary=hud.hit_test(event.position)
@@ -184,9 +230,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				clamp_camera()
 			hover_cell=-1
 		else: hover_cell=world.cell_at(screen_to_world(event.position)) if hit.is_empty() else -1
+		if map_skill_targeting: update_skill_preview()
 	elif event is InputEventMouseButton:
 		last_mouse=event.position
 		var hit: Dictionary=hud.hit_test(event.position)
+		if map_skill_targeting and event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
+			cancel_map_skill()
+			return
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN] and event.pressed:
 			if hit.is_empty(): zoom_at(event.position,1.13 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.0/1.13)
 			return
@@ -208,6 +258,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			if moving: return
 			var wp=screen_to_world(event.position)
+			if map_skill_targeting:
+				cast_selected_map_skill(world.cell_at(wp))
+				return
 			for i in unit_nodes.size():
 				if wp.distance_to(unit_nodes[i].position)<world.radius*1.1 or Rect2(unit_nodes[i].position-Vector2(65,240),Vector2(130,240)).has_point(wp):
 					select_unit(i,false)
@@ -230,8 +283,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ENTER: action("move")
 			KEY_E: action("end_turn")
 			KEY_C: action("capture")
+			KEY_B: action("battle_demo")
+			KEY_Q: action("map_skill")
 			KEY_ESCAPE:
 				if not moving:
+					cancel_map_skill()
 					path.clear()
 					selected_poi=""
 			KEY_F3: terrain_overlay.visible=not terrain_overlay.visible
@@ -257,6 +313,7 @@ func poi_at(wp: Vector2) -> String:
 	return closest
 
 func choose_cell(ci: int) -> void:
+	world_view_dirty=true
 	if ci<0: return
 	var u: Dictionary=world.units[selected_unit]
 	if not world.walkable(ci):
@@ -278,6 +335,10 @@ func choose_cell(ci: int) -> void:
 		else: say("无法到达 · 途中有山水阻隔或尚未占领的据点")
 
 func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
+	if is_instance_valid(battle): return
+	if map_skill_targeting and not id in ["map_skill","focus","overview","grid","minimap","panel"]:
+		cancel_map_skill()
+	world_view_dirty=true
 	if id.begins_with("region:"):
 		for r in world.regions:
 			if r.id==id.trim_prefix("region:"):
@@ -288,6 +349,8 @@ func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
 		select_unit(int(id.trim_prefix("unit:")))
 		return
 	match id:
+		"map_skill": toggle_map_skill()
+		"battle_demo": start_exhibition()
 		"capital": open_settlement(world.theme.capital)
 		"interior": open_settlement(selected_poi)
 		"minimap":
@@ -307,6 +370,11 @@ func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
 		"capture":
 			if moving or selected_poi.is_empty(): return
 			var p: Dictionary=world.by_poi[selected_poi]
+			if p.owner=="shang":
+				var encounter: Dictionary=world.begin_battle(world.units[selected_unit],p)
+				if encounter.is_empty(): say("须有兵力、相邻陆地和 1 点行动力才能接战")
+				else: open_battle(encounter)
+				return
 			if world.capture(world.units[selected_unit],p):
 				refresh()
 				say(p.name+"已归西岐 · "+("两岸航线已开放" if p.type=="ferry" else "我方通行已开放"))
@@ -370,7 +438,7 @@ func approach_selected() -> void:
 	say("已规划到据点附近的路线" if best_cost<=int(u.ap) else "目标较远 · 已标出本回合可行军路段")
 
 func execute_move() -> void:
-	if moving or path.size()<2: return
+	if is_instance_valid(battle) or moving or path.size()<2: return
 	var u: Dictionary=world.units[selected_unit]
 	var planned: Array[int]=path.duplicate()
 	var total: int=0
@@ -422,7 +490,8 @@ func execute_move() -> void:
 	say("部队已抵达 · 剩余 %d 点行动力" % int(u.ap))
 
 func select_unit(index: int,focus: bool=true) -> void:
-	if moving or index<0 or index>=world.units.size(): return
+	if is_instance_valid(battle) or moving or index<0 or index>=world.units.size(): return
+	cancel_map_skill()
 	selected_unit=index
 	selected_poi=""
 	refresh()
@@ -459,16 +528,108 @@ func current_region() -> String:
 			best=r.id
 	return best
 
+func cover_world(covered: bool) -> void:
+	if covered:
+		if not covered_world_visibility.is_empty(): return
+		for child in get_children():
+			if child is CanvasItem and child!=camera:
+				covered_world_visibility[child]=child.visible
+				child.hide()
+	else:
+		for item in covered_world_visibility:
+			if is_instance_valid(item): item.visible=covered_world_visibility[item]
+		covered_world_visibility.clear()
+
 func open_settlement(pid: String) -> void:
-	if moving or not world.by_poi.has(pid): return
+	if is_instance_valid(battle) or moving or not world.by_poi.has(pid): return
+	cancel_map_skill()
 	selected_poi=pid
 	dragging=false
 	hover_cell=-1
 	path.clear()
+	cover_world(true)
 	hud.hide()
 	interior.open(pid)
 
 func close_settlement() -> void:
 	interior.hide()
+	cover_world(false)
 	hud.show()
 	refresh()
+
+func start_exhibition() -> void:
+	if moving or is_instance_valid(battle): return
+	var player: Dictionary=world.units[selected_unit].duplicate(true)
+	player.soldiers=2400
+	player.morale=50
+	open_battle({"exhibition":true,"title":"岐山 · 戟兵演武","player":player,"enemy":{"id":"wenzhong","name":"闻仲","soldiers":2200,"morale":50}})
+
+func open_battle(encounter: Dictionary) -> void:
+	cancel_map_skill()
+	dragging=false
+	path.clear()
+	hover_cell=-1
+	cover_world(true)
+	interior.hide()
+	hud.hide()
+	battle=BattleView.new()
+	battle.setup(encounter)
+	battle.returned.connect(close_battle)
+	battle_canvas.add_child(battle)
+	battle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+func close_battle(result: Dictionary) -> void:
+	if not is_instance_valid(battle): return
+	var exhibition: bool=battle.sim.encounter.get("exhibition",false)
+	if not exhibition and not world.finish_battle(result):
+		push_error("Battle result could not be applied")
+		return
+	battle.queue_free()
+	battle=null
+	cover_world(false)
+	hud.show()
+	refresh()
+	say("演武结束 · 实际兵力与士气保持不变" if exhibition else ("攻城告捷 · 兵损与士气已结算" if result.player_won else "败退原阵 · 补兵整军后可再次进攻"))
+
+func toggle_map_skill() -> void:
+	if moving or is_instance_valid(battle) or interior.visible: return
+	if map_skill_targeting:
+		cancel_map_skill()
+		return
+	var unit: Dictionary=world.units[selected_unit]
+	var reason_text:=world.map_skill_ready_reason(unit)
+	if not reason_text.is_empty():
+		say(reason_text)
+		return
+	var ability:=world.map_skill(unit)
+	map_skill_targeting=true
+	path.clear()
+	skill_range_cells=world.search(int(unit.cell),int(ability.march_range),unit.id).dist.keys() if ability.effect=="march" else world.hex_disk(int(unit.cell),int(ability.range))
+	update_skill_preview()
+	say(ability.name+" · 左键选择目标，右键 / Esc 取消")
+
+func cancel_map_skill() -> void:
+	map_skill_targeting=false
+	skill_range_cells.clear()
+	skill_preview.clear()
+	world_view_dirty=true
+	if layer!=null: layer.queue_redraw()
+	if hud!=null: hud.queue_redraw()
+
+func update_skill_preview() -> void:
+	var unit: Dictionary=world.units[selected_unit]
+	skill_preview=world.map_skill_targets(unit,hover_cell)
+	skill_preview.reason=world.map_skill_reason(unit,hover_cell)
+	world_view_dirty=true
+
+func cast_selected_map_skill(target: int) -> void:
+	if moving or not map_skill_targeting: return
+	var result:=world.cast_map_skill(world.units[selected_unit],target)
+	if not result.ok:
+		say(result.reason)
+		return
+	for i in unit_nodes.size(): unit_nodes[i].position=world.center(int(world.units[i].cell))
+	cancel_map_skill()
+	refresh()
+	var suffix: String=" · 恢复 %d 人" % result.amount if result.effect=="heal" else (" · 杀伤 %d 人" % result.amount if result.effect=="aoe" else "")
+	say(result.skill+suffix+" · 本轮行动结束")

@@ -1,0 +1,26 @@
+{
+	"checks": 37,
+	"example_result": {
+		"elapsed": 24.8166666666665,
+		"enemy_morale": 65,
+		"enemy_remaining": 0,
+		"kills": [
+			1200,
+			1152
+		],
+		"morale": 68,
+		"player_remaining": 98,
+		"player_won": true,
+		"reason": "敌阵溃散",
+		"stats": {
+			"attacks": 116,
+			"collisions": 51271,
+			"finishers": 2,
+			"skills": 6
+		}
+	},
+	"failures": [],
+	"max_penetration": 5.99127197265625,
+	"stress_900_steps_ms": 2334.268,
+	"stress_actors": 122
+}

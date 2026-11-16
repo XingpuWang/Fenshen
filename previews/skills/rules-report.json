@@ -1,0 +1,9 @@
+{
+	"checks": 111,
+	"failures": [],
+	"heroes": 5,
+	"morale_cost": 100,
+	"morale_per_kill": 0.1,
+	"morale_start": 50,
+	"skill_slots": 4
+}

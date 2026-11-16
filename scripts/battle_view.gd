@@ -1,0 +1,392 @@
+extends Control
+## Presentation consumes fixed simulation time: pause/speed also affect sprites and effects.
+signal returned(result: Dictionary)
+const Rules = preload("res://scripts/battle_rules.gd")
+const FONT = preload("res://assets/fonts/ShanheSerif.otf")
+const SANS = preload("res://assets/fonts/ShanheSans.otf")
+const BG = preload("res://assets/battle/fortress_amber.webp")
+const NEZHA = preload("res://assets/battle/motion/nezha_upright_v3.png")
+const ZHOU = preload("res://assets/battle/motion/zhou_upright_v3.png")
+const SHANG = preload("res://assets/battle/motion/shang_upright_v3.png")
+const WENZHONG = preload("res://assets/battle/motion/wenzhong_upright_v3.png")
+const GENERAL = preload("res://assets/battle/motion/general_upright_v3.png")
+const TEXTURES = {"zhou":ZHOU,"shang":SHANG,"nezha":NEZHA,"wenzhong":WENZHONG,"general":GENERAL}
+const CREAM = Color("fff0d2")
+const GOLD = Color("e6b46e")
+const MUTED = Color("c9b49a")
+const INK = Color("271c22")
+const TEAM = [Color("e99b64"), Color("baa0da")]
+# 1920x1080 design-space contract. Backdrop ground starts at y≈425 after framing.
+const BACKDROP := Rect2(-48,-240,2016,1134)
+const FEET_AREA := Rect2(160,500,1600,300)
+const ACTOR_SAFE_AREA := Rect2(20,170,1880,650)
+const SOLDIER_HEIGHT := 108.0
+const HERO_HEIGHT := 180.0
+const WENZHONG_HEIGHT := 194.0
+class SpriteFrame:
+	var source: Rect2
+	var rect: Rect2
+var draw_frames: Dictionary={}
+var frame_catalog: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json"))
+var sim: Rules
+var paused := false
+var speed := 1
+var accumulator := 0.0
+var effects: Array[Dictionary] = []
+var hits: Array[Dictionary] = []
+var hovered := ""
+var debug_bodies := false
+var returning := false
+var audio: Array[AudioStreamPlayer] = []
+var sound_cooldown := 0.0
+var total_frames := 0
+var wall_time := 0.0
+var result_age := 0.0
+var profile_enabled:=false
+var profile_sim_ms:=0.0
+var profile_draw_ms:=0.0
+var profile_steps:=0
+var damage_labels: Dictionary={}
+
+func _init() -> void:
+	# Compile JSON regions once; the hot draw path does not rebuild dictionaries
+	# or compute off-screen QA bounds for every sprite every frame.
+	for key in frame_catalog:
+		var entry: Dictionary=frame_catalog[key]
+		var height: float=SOLDIER_HEIGHT if key in ["zhou","shang"] else (WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT)
+		var ratio: float=height/float(entry.body_height)
+		var frames: Array[SpriteFrame]=[]
+		for frame in entry.frames:
+			var compiled:=SpriteFrame.new()
+			var src: Array=frame.source
+			compiled.source=Rect2(src[0],src[1],src[2],src[3])
+			compiled.rect=Rect2(-Vector2(frame.pivot[0],frame.pivot[1])*ratio,compiled.source.size*ratio)
+			frames.append(compiled)
+		draw_frames[key]=frames
+
+func setup(encounter: Dictionary) -> void:
+	sim = Rules.new(encounter)
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	if DisplayServer.get_name() != "headless":
+		for name in ["drum", "clash", "fire", "thunder"]:
+			var player := AudioStreamPlayer.new()
+			player.stream = load("res://assets/battle/" + name + ".wav")
+			player.volume_db = -17
+			player.max_polyphony = 2
+			add_child(player)
+			audio.append(player)
+		_audio(0)
+
+func _process(delta: float) -> void:
+	if sim == null: return
+	var profile_start:=Time.get_ticks_usec() if profile_enabled else 0
+	profile_steps=0
+	total_frames += 1
+	wall_time += delta
+	if not paused:
+		accumulator += minf(delta, 0.1) * speed
+		while accumulator >= Rules.STEP:
+			accumulator -= Rules.STEP
+			sim.advance()
+			advance_effects(Rules.STEP)
+			profile_steps+=1
+	if profile_enabled: profile_sim_ms=(Time.get_ticks_usec()-profile_start)/1000.0
+	queue_redraw()
+
+func advance_effects(dt: float) -> void:
+	if not sim.result.is_empty():
+		result_age += dt
+		for f in sim.fighters:
+			if f.hp<=0: f.death_age+=dt
+			else:
+				f.action="idle"
+				f.walking=false
+	sound_cooldown -= dt
+	for effect in effects: effect.age += dt
+	effects = effects.filter(func(e: Dictionary) -> bool: return e.age < e.life)
+	for event in sim.events:
+		var e := event.duplicate()
+		e.age = 0.0
+		e.life = 1.4 if e.kind in ["skill", "finisher"] else 0.7
+		if e.kind in ["hit","skill_hit","finisher_hit"]:
+			var font_size:=26 if e.kind=="hit" else 34
+			var key:=Vector2i(int(e.amount),font_size)
+			if not damage_labels.has(key):
+				if damage_labels.size()>=256: damage_labels.clear()
+				var line:=TextLine.new()
+				line.add_string(str(e.amount),SANS,font_size)
+				damage_labels[key]=line
+			e.label=damage_labels[key]
+		effects.append(e)
+		if e.kind in ["skill", "finisher"]: _audio(2 + int(e.side))
+		elif e.kind == "hit" and sound_cooldown <= 0:
+			_audio(1)
+			sound_cooldown = 0.15
+	sim.events.clear()
+
+func _audio(index: int) -> void:
+	if not audio.is_empty(): audio[index].play()
+
+func handle_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		hovered = ""
+		for hit in hits:
+			if hit.rect.has_point(event.position): hovered = hit.id
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		for hit in hits:
+			if hit.rect.has_point(event.position) and hit.enabled:
+				activate(hit.id)
+				break
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode:
+			KEY_SPACE: activate("pause")
+			KEY_X: activate("speed")
+			KEY_R: activate("finisher")
+			KEY_ENTER, KEY_KP_ENTER: activate("return")
+			KEY_F3: debug_bodies = not debug_bodies
+
+func activate(id: String) -> void:
+	match id:
+		"pause":
+			if sim.result.is_empty():
+				paused = not paused
+				for player in audio: player.stream_paused = paused
+		"speed": speed = 2 if speed == 1 else 1
+		"finisher":
+			if not paused: sim.use_finisher(0)
+		"return":
+			if not sim.result.is_empty() and result_age>=1.35 and not returning:
+				returning = true
+				returned.emit(sim.result)
+
+func text(value: String, at: Vector2, font_size := 22, color := CREAM, centered := false) -> void:
+	var w := FONT.get_string_size(value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x if centered else 0.0
+	var point := at - Vector2(w * 0.5 if centered else 0, 0)
+	draw_string(FONT, point, value, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
+
+func panel(rect: Rect2, fill := INK, border := GOLD) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	draw_style_box(style, rect)
+
+func button(id: String, rect: Rect2, label: String, enabled := true) -> void:
+	panel(rect, Color("6f4333") if hovered == id and enabled else Color("34242a"), GOLD if enabled else Color("6d5b56"))
+	text(label, rect.get_center() + Vector2(0, 8), 22, CREAM if enabled else Color("99877a"), true)
+	hits.append({"id": id, "rect": rect, "enabled": enabled})
+
+func bar(rect: Rect2, value: float, color: Color) -> void:
+	draw_rect(rect, Color("4a3533"))
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(value, 0, 1), rect.size.y)), color)
+	draw_rect(rect, Color(1, 0.83, 0.6, 0.35), false, 1)
+
+func ground(p: Vector2) -> Vector2:
+	return FEET_AREA.position+Vector2(p.x/1920.0,(p.y+25.0)/765.0)*FEET_AREA.size
+
+func sprite_key(f: Rules.Fighter) -> String:
+	if not f.hero: return "zhou" if f.side==0 else "shang"
+	return "wenzhong" if f.side==1 else ("nezha" if sim.encounter.player.id=="nezha" else "general")
+
+func sprite_geometry(f: Rules.Fighter, pose: Vector2i) -> Dictionary:
+	var key := sprite_key(f)
+	var entry: Dictionary=frame_catalog[key]
+	var frame: Dictionary=entry.frames[pose.y*4+pose.x]
+	var raw: Array=frame.source
+	var source:=Rect2(raw[0],raw[1],raw[2],raw[3])
+	var perspective:=lerpf(0.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
+	var body_height: float=(WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT) if f.hero else SOLDIER_HEIGHT
+	var ratio: float=body_height*perspective/float(entry.body_height)
+	var pivot:=Vector2(frame.pivot[0],frame.pivot[1])*ratio
+	var destination:=Rect2(-pivot,source.size*ratio)
+	var flip: bool=f.facing!=(1 if f.side==0 else -1)
+	var bounds:=Rect2(ground(f.pos)+Vector2(-destination.end.x if flip else destination.position.x,destination.position.y),destination.size)
+	var pixels: Array=frame.opaque
+	var visible:=Rect2(Vector2(pixels[0],pixels[1])*ratio-pivot,Vector2(pixels[2],pixels[3])*ratio)
+	var visible_bounds:=Rect2(ground(f.pos)+Vector2(-visible.end.x if flip else visible.position.x,visible.position.y),visible.size)
+	return {"source":source,"rect":destination,"bounds":bounds,"visible_bounds":visible_bounds,"flip":flip,"height":body_height*perspective,"key":key}
+
+func _draw() -> void:
+	if sim == null: return
+	var profile_start:=Time.get_ticks_usec() if profile_enabled else 0
+	hits.clear()
+	draw_rect(Rect2(0,0,1920,1080),INK)
+	draw_texture_rect(BG, BACKDROP, false)
+	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.3, 0.12, 0.08, 0.05))
+	# Warm motes stay subtle and never hide action silhouettes.
+	for i in 22:
+		var p := Vector2(fmod(i * 157.0 + sim.elapsed * (13 + i % 5), 1920), 230 + fmod(i * 89.0 + sin(sim.elapsed + i) * 15, 520))
+		draw_circle(p, 1.4, Color(1, 0.87, 0.58, 0.45))
+	var ordered: Array[Vector2]=[]
+	for f in sim.fighters:
+		if f.hp>0 or f.death_age<=1.4: ordered.append(Vector2(f.pos.y,f.id))
+	ordered.sort()
+	for entry in ordered: _fighter(sim.fighters[int(entry.y)])
+	for effect in effects: _effect(effect)
+	if sim.elapsed < Rules.INTRO: _divider()
+	_draw_header()
+	_draw_team(0)
+	_draw_team(1)
+	_draw_commands()
+	if paused:
+		panel(Rect2(798, 370, 324, 90), Color(0.12, 0.08, 0.1, 0.9))
+		text("战斗暂停", Vector2(960, 427), 34, CREAM, true)
+	if not sim.result.is_empty() and result_age>=1.35: _draw_result()
+	if profile_enabled: profile_draw_ms=(Time.get_ticks_usec()-profile_start)/1000.0
+
+func animation(f: Rules.Fighter) -> Vector2i:
+	if f.hp <= 0: return Vector2i(mini(3, int(f.death_age / 0.18)), 4)
+	if f.action in ["attack", "cast", "finisher"]:
+		var frame := mini(1, int(f.age / f.impact * 2)) if f.age < f.impact else 2 + mini(1, int((f.age - f.impact) / (f.duration - f.impact) * 2))
+		return Vector2i(frame, 2 if f.action == "attack" else 5)
+	if f.hit_age < 0.32: return Vector2i(mini(3, int(f.hit_age / 0.08)), 3)
+	return Vector2i(int((f.stride if f.walking else sim.elapsed + f.id * 0.13) * (10 if f.walking else 4)) % 4, 1 if f.walking else 0)
+
+func _fighter(f: Rules.Fighter) -> void:
+	if f.hp <= 0 and f.death_age > 1.4: return
+	var at := ground(f.pos)
+	var alpha := 1.0 if f.hp > 0 else 1.0 - smoothstep(0.6, 1.4, f.death_age)
+	draw_set_transform(at, 0, Vector2(FEET_AREA.size.x/1920.0,FEET_AREA.size.y/765.0))
+	draw_circle(Vector2.ZERO, f.radius, Color(0.16, 0.09, 0.07, 0.30 * alpha))
+	if debug_bodies:
+		draw_arc(Vector2.ZERO, f.radius, 0, TAU, 32, TEAM[f.side], 2)
+	draw_set_transform(Vector2.ZERO)
+	var key:=sprite_key(f)
+	var pose:=animation(f)
+	var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
+	var texture: Texture2D=TEXTURES[key]
+	var perspective:=lerpf(.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
+	var flip: bool=f.facing!=(1 if f.side==0 else -1)
+	var color := Color(1, 0.94, 0.86, alpha) if f.hit_age < 0.09 else Color(1, 1, 1, alpha)
+	draw_set_transform(at,0,Vector2(-perspective if flip else perspective,perspective))
+	draw_texture_rect_region(texture,frame.rect,frame.source,color)
+	draw_set_transform(Vector2.ZERO)
+	if f.hero and f.hp > 0:
+		var name: String = sim.encounter.player.name if f.side == 0 else sim.encounter.enemy.name
+		var label_at := at + Vector2(0,-(WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT)*perspective-9)
+		draw_string_outline(FONT, label_at - Vector2(FONT.get_string_size(name,HORIZONTAL_ALIGNMENT_LEFT,-1,20).x / 2,0), name, HORIZONTAL_ALIGNMENT_LEFT,-1,20,5,INK)
+		text(name, label_at, 20, CREAM, true)
+		if f.action in ["cast", "finisher"]:
+			bar(Rect2(at.x - 64, label_at.y + 9, 128, 7), f.age / f.impact, GOLD)
+	elif f.hp < f.max_hp and f.hp > 0:
+		bar(Rect2(at + Vector2(-19, 8), Vector2(38, 3)), f.hp / f.max_hp, TEAM[f.side])
+
+func _divider() -> void:
+	var alpha := 1.0 - smoothstep(2.3, Rules.INTRO, sim.elapsed)
+	# Two separately framed halves become a single continuous arena on charge.
+	draw_rect(Rect2(951, 76, 18, 765), Color(0.12, 0.07, 0.09, alpha))
+	for x in [950, 956, 964, 970]: draw_line(Vector2(x, 76), Vector2(x, 841), Color(0.9, 0.7, 0.4, alpha), 2)
+	var points := PackedVector2Array([Vector2(960, 297), Vector2(1028, 365), Vector2(960, 433), Vector2(892, 365)])
+	draw_colored_polygon(points, Color(0.18, 0.1, 0.12, alpha))
+	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[3], points[0]]), Color(0.95, 0.77, 0.46, alpha), 3, true)
+	text("战", Vector2(960, 387), 48, Color(1, 0.9, 0.7, alpha), true)
+	text("西 岐 · 列 阵", Vector2(460, 238), 32, INK, true)
+	text("商 军 · 列 阵", Vector2(1460, 238), 32, INK, true)
+
+func _draw_header() -> void:
+	draw_rect(Rect2(0, 0, 1920, 82), Color(0.14, 0.09, 0.10, 0.96))
+	draw_line(Vector2(0, 81), Vector2(1920, 81), GOLD, 2)
+	text("封 神  /  阵 前 演 武" if sim.encounter.get("exhibition", false) else "封 神  /  两 军 接 战", Vector2(34, 50), 25, GOLD)
+	text(sim.encounter.title, Vector2(960, 49), 30, CREAM, true)
+	var phase := "列阵  %d" % maxi(1, ceili(Rules.INTRO - sim.elapsed)) if sim.elapsed < Rules.INTRO else "交战  %04.1f 秒" % (sim.elapsed - Rules.INTRO)
+	text(phase, Vector2(1886, 49) - Vector2(FONT.get_string_size(phase,HORIZONTAL_ALIGNMENT_LEFT,-1,22).x,0), 22, MUTED)
+
+func _draw_team(side: int) -> void:
+	var x := 28.0 if side == 0 else 1268.0
+	panel(Rect2(x, 837, 624, 211), Color(0.15, 0.095, 0.11, 0.96), TEAM[side])
+	# Use the same complete upright artwork in HUD and battle, always aspect-fitted.
+	var portrait_key:=sprite_key(sim.hero_for(side))
+	var frame: Dictionary=frame_catalog[portrait_key].frames[0]
+	var pixels: Array=frame.opaque
+	var region: Array=frame.source
+	var src:=Rect2(region[0]+pixels[0],region[1]+pixels[1],pixels[2],pixels[3])
+	var ratio:=minf(147.0/src.size.x,188.0/src.size.y)
+	var fitted:=src.size*ratio
+	draw_texture_rect_region(TEXTURES[portrait_key],Rect2(Vector2(x+5+(147-fitted.x)*0.5,1045-fitted.y),fitted),src)
+	var tx := x + 165
+	var data: Dictionary = sim.encounter.player if side == 0 else sim.encounter.enemy
+	var hero := sim.hero_for(side)
+	text(data.name, Vector2(tx, 872), 30, CREAM)
+	text("西岐先锋" if side == 0 else "商军守将", Vector2(tx + 265, 869), 17, TEAM[side])
+	bar(Rect2(tx, 887, 426, 9), hero.hp / hero.max_hp, Color("cbb482"))
+	text("戟兵  %d / %d 人" % [sim.remaining(side), sim.initial[side]], Vector2(tx, 925), 21)
+	bar(Rect2(tx, 935, 426, 7), sim.remaining(side) / float(maxi(1,sim.initial[side])), TEAM[side])
+	var skill: String = skill_name(side)
+	var progress := 1.0 - maxf(0, hero.skill_clock) / float(sim.kits[side].battle.cooldown)
+	if hero.hp <= 0: skill = "主将已退场"
+	elif hero.action in ["cast", "finisher"]:
+		skill = (finisher_name(side) if hero.action == "finisher" else skill) + " · 读条"
+		progress = minf(1, hero.age / hero.impact)
+	else: skill += " · 自动"
+	text(skill, Vector2(tx, 972), 19, TEAM[side])
+	bar(Rect2(tx, 982, 426, 5), progress, GOLD)
+	text("士气 %d / 100 · 击杀 %d" % [floori(sim.morale[side]+.00001),sim.kills[side]],Vector2(tx,1011),17,GOLD)
+	bar(Rect2(tx,1019,426,5),sim.morale[side]/100.0,TEAM[side])
+	text("被动 · "+str(sim.kits[side].passive.name),Vector2(tx,1041),16,MUTED)
+
+func skill_name(side: int) -> String:
+	return str(sim.kits[side].battle.name)
+
+func finisher_name(side: int) -> String:
+	return str(sim.kits[side].ultimate.name)
+
+func _draw_commands() -> void:
+	panel(Rect2(678, 876, 564, 172), Color(0.15, 0.095, 0.11, 0.96))
+	var reason := sim.finisher_reason(0)
+	button("finisher", Rect2(702, 892, 516, 56), "R  ·  " + finisher_name(0), reason.is_empty() and not paused)
+	text("可释放 · 消耗 100 士气" if reason.is_empty() else reason, Vector2(960, 973), 18, GOLD if reason.is_empty() else MUTED, true)
+	button("pause", Rect2(702, 992, 250, 40), "继续  Space" if paused else "暂停  Space", sim.result.is_empty())
+	button("speed", Rect2(968, 992, 250, 40), "速度  ×%d  X" % speed, sim.result.is_empty())
+	if sim.elapsed >= Rules.INTRO and sim.elapsed < Rules.INTRO + 1.2:
+		text("冲 阵", Vector2(960, 245), 55, INK, true)
+
+func _effect(e: Dictionary) -> void:
+	var at := ground(e.pos)
+	var t: float = e.age / e.life
+	var color: Color = TEAM[int(e.side)]
+	color.a = 1.0 - t
+	if e.kind in ["hit", "skill_hit", "finisher_hit"]:
+		at += Vector2(0, -95 - 60 * t)
+		# Reuse the shaped line for the entire floating-number lifetime. TextLine
+		# draws from its top-left; subtract ascent to preserve our baseline anchor.
+		var label: TextLine=e.label
+		var top_left:=at-Vector2(0,label.get_line_ascent())
+		label.draw_outline(get_canvas_item(),top_left,5,INK)
+		label.draw(get_canvas_item(),top_left,color)
+		# Impact sparks are a short contact flash; only the damage number floats
+		# for the full lifetime. Dense melee need not redraw hundreds of old rays.
+		if e.age<.16:
+			for i in 4:
+				var v := Vector2.from_angle(i * TAU / 4 + 0.3)
+				draw_line(at + v * 6, at + v * (12 + t * 35), color, 2, true)
+	elif e.kind in ["skill", "finisher"]:
+		var strong: bool = e.kind == "finisher"
+		var extent := (410.0 if strong else 230.0) * sin(minf(1, t * 2) * PI * 0.5)
+		draw_set_transform(at - Vector2(0, 60), 0, Vector2(1, 0.66))
+		for i in 4:
+			var r := extent * (0.65 + i * 0.12)
+			draw_arc(Vector2.ZERO, r, -PI * 0.83 + t, PI * 0.7 + t, 70, color, (9.0 if strong else 4.0) - i, true)
+		draw_set_transform(Vector2.ZERO)
+		if int(e.side) == 1:
+			for i in 5:
+				var p := at + Vector2((i - 2) * extent * 0.35, -260)
+				draw_polyline(PackedVector2Array([p, p + Vector2(-20, 90), p + Vector2(26, 70), p + Vector2(0, 230)]), color, 4, true)
+		if t < 0.65:
+			panel(Rect2(710, 117, 500, 68), Color(0.18, 0.09, 0.11, 0.93), color)
+			text(finisher_name(e.side) if strong else skill_name(e.side), Vector2(960, 164), 36, CREAM, true)
+
+func _draw_result() -> void:
+	draw_rect(Rect2(0, 82, 1920, 754), Color(0.10, 0.06, 0.09, 0.5))
+	panel(Rect2(630, 283, 660, 385), Color(0.16, 0.09, 0.11, 0.98))
+	var result: Dictionary = sim.result
+	text("西 岐 告 捷" if result.player_won else "整 军 再 战", Vector2(960, 354), 43, GOLD, true)
+	text(result.reason, Vector2(960, 399), 22, MUTED, true)
+	text("我军存活 %d 人   ·   损失 %d 人" % [result.player_remaining, sim.initial[0] - int(result.player_remaining)], Vector2(960, 447), 24, CREAM, true)
+	text("敌军存活 %d 人 · 本战击杀 %d" % [result.enemy_remaining,sim.kills[0]],Vector2(960,489),22,MUTED,true)
+	var outcome := "演武不影响兵力与士气" if sim.encounter.get("exhibition", false) else ("胜利后据点归西岐，兵损与士气将带回舆图" if result.player_won else "保留原位置，敌方残余守军保留")
+	text(outcome, Vector2(960, 538), 18, MUTED, true)
+	button("return", Rect2(755, 581, 410, 58), "返回大地图  ↵")

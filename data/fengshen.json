@@ -588,5 +588,17 @@
       "source": "《封神演义》第十二回"
     }
   },
-  "note": "采用原著人物、地名与地标，并以九州地形进行游戏化布局；无名据点为游戏扩写。地标数值效果为原创玩法。"
+  "note": "采用原著人物、地名与地标，并以九州地形进行游戏化布局；无名据点为游戏扩写。地标数值效果为原创玩法。",
+  "large_cities": [
+    "wanluo_city_0",
+    "guanzhong_city_0",
+    "jin_city_0",
+    "youyan_city_0",
+    "qilu_city_0",
+    "jingxiang_city_0",
+    "xiliang_city_0",
+    "bashu_city_0",
+    "wuyue_city_0"
+  ],
+  "city_size_note": "游戏规模划分：九区主城为大城，31 处建设用地；其余为小城，19 处。"
 }

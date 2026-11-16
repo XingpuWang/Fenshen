@@ -1,0 +1,25 @@
+{
+	"checks": 13,
+	"failures": [],
+	"fps_average": 56.4487827753689,
+	"renderer": "AMD Radeon Pro 555X OpenGL Engine",
+	"result": {
+		"elapsed": 11.6000000000002,
+		"enemy_morale": 100,
+		"enemy_remaining": 735,
+		"kills": [
+			3465,
+			5200
+		],
+		"morale": 66,
+		"player_remaining": 0,
+		"player_won": false,
+		"reason": "我军溃退",
+		"stats": {
+			"attacks": 119,
+			"collisions": 274458,
+			"finishers": 4,
+			"skills": 2
+		}
+	}
+}
