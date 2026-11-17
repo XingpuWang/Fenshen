@@ -685,7 +685,7 @@ func cast_selected_map_skill(target: int) -> void:
 	if not reason_text.is_empty():
 		say(reason_text)
 		return
-	if world.Catalog.hero_id(unit)=="nezha":
+	if world.Catalog.hero_id(unit) in ["nezha","wenzhong"]:
 		map_cast={"unit":selected_unit,"target":target,"origin":unit_nodes[selected_unit].position,"position":world.center(target),"age":0.0,"resolved":false,"cells":world.map_skill_targets(unit,target).cells}
 		unit_nodes[selected_unit].get_node("Soldiers").hide()
 		dragging=false

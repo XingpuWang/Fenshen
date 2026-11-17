@@ -60,12 +60,19 @@ func run() -> void:
 	for i in 16:
 		var frame = art.frame_number("attack", i)
 		check(frame.texture != null and frame.texture.get_width() > frame.source.position.x, "attack frame %d loads without import cache" % i)
+	var wen = load("res://scripts/wenzhong_art.gd")
+	wen.prepare()
+	for clip in ["attack","thunder_whip","nine_thunders","thunder_seal"]:
+		for i in 16:
+			var frame = wen.frame_number(clip,i)
+			check(frame.texture != null and frame.texture.get_width() >= frame.source.end.x,"Wen Zhong %s frame %d loads without import cache" % [clip,i])
 	var textures = load("res://scripts/runtime_textures.gd")
 	var fallbacks: Array = textures.source_fallbacks.duplicate()
 	if expect_fallback:
 		check(fallbacks.has("res://assets/characters/nezha/v3/portrait.png"), "portrait uses source fallback when its import is absent")
 		check(fallbacks.has("res://assets/ui/skills/hero_icons.png"), "icons use source fallback when their import is absent")
-		check(fallbacks.size() == art.DATA.sheets.size() + 2, "all runtime sheets, portrait and icon atlas load from source")
+		check(fallbacks.has("res://assets/characters/wenzhong/v1/portrait.png"),"Wen Zhong illustration uses source fallback")
+		check(fallbacks.size() == art.DATA.sheets.size() + wen.DATA.sheets.size() + 3, "both heroes' runtime sheets, portraits and icon atlas load from source")
 	else:
 		check(fallbacks.is_empty(), "normal imported textures retain the standard resource path")
 	var report := {"engine": Engine.get_version_info().string, "checks": checks, "failures": failures, "source_fallbacks": fallbacks}

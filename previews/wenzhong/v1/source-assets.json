@@ -1,0 +1,57 @@
+{
+  "generator": "image_gen",
+  "portrait_reference": "User-supplied white-haired Wen Zhong illustration; faithfully prepared by image_gen",
+  "image_pixels_modified_after_generation": false,
+  "assets": [
+    {
+      "path": "assets/characters/wenzhong/v1/portrait.png",
+      "generated_source": "exec-d1712d45-bf16-4e54-8b06-80a5a27b04c1.png",
+      "sha256": "b180b8ae77fe132ad89f1f841035d5c48bcb6e05a8586158c21c3335369b33e8"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/battle_master.png",
+      "generated_source": "exec-5985d350-275c-4250-be84-ce6f36ec6a16.png",
+      "sha256": "4efdc75189164c72bbb48f95221663d40c712e92bff0020ccc72074442ebdb56"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/actions.png",
+      "generated_source": "exec-f7fef501-68a7-43f6-85b4-30c3ceec4642.png",
+      "sha256": "4747ece640e17c990b8e615cf42ff1dbe9be508722123c41be6cc770cd42a5ab"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/attack.png",
+      "generated_source": "exec-db149e5d-6290-4375-86df-ed0ad3a3c030.png",
+      "sha256": "399a1b80c677f2ec502ce124da6c9289ded0daab6276a5d1d1e410ff624ee772"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/thunder_whip.png",
+      "generated_source": "exec-3e031ea7-cdd5-48ca-a1c7-140374ea657d.png",
+      "sha256": "6031c0e2077c091a7f237da7ac06c47e42b4a8aef499e9a90d07c22122a1c71f"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/nine_thunders.png",
+      "generated_source": "exec-e6efd32b-1952-481e-880c-7521f92557c9.png",
+      "sha256": "90400aec7ec6281d1518e3162ea040c2816f2b6f505793eb4aceb3efd082682b"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/attack_fx.png",
+      "generated_source": "exec-b08d3371-f3ef-40b9-9128-696a84902544.png",
+      "sha256": "e65c6d44e671efeb725201d3fb198becfd024dffee3d556ed8f51c8b5e124188"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/thunder_whip_fx.png",
+      "generated_source": "exec-3ebde448-406b-4d92-b7cd-2a3fc0d25eca.png",
+      "sha256": "845759773e58e34cc73bb0833d823611b00f56481092ac7a3aece0f5d6d6a5d9"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/nine_thunders_fx.png",
+      "generated_source": "exec-ffcf9397-b875-485e-b762-00624bc8f8ff.png",
+      "sha256": "c08da6e2a88ae2771de03cf1caab9850018ceb61302ae7b68ec9148644d85929"
+    },
+    {
+      "path": "assets/characters/wenzhong/v1/thunder_seal_fx.png",
+      "generated_source": "exec-9ec5632d-6724-42c0-b864-7b22b40b0847.png",
+      "sha256": "909ac64354a5d746b242ed973bed55392b27edd68ea9ca25785e49cfe7053a52"
+    }
+  ]
+}

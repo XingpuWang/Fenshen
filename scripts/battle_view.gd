@@ -3,14 +3,14 @@ extends Control
 signal returned(result: Dictionary)
 const Rules = preload("res://scripts/battle_rules.gd")
 const NezhaArt = preload("res://scripts/nezha_art.gd")
+const WenzhongArt = preload("res://scripts/wenzhong_art.gd")
 const FONT = preload("res://assets/fonts/ShanheSerif.otf")
 const SANS = preload("res://assets/fonts/ShanheSans.otf")
 const BG = preload("res://assets/battle/fortress_amber.webp")
 const ZHOU = preload("res://assets/battle/motion/zhou_upright_v3.png")
 const SHANG = preload("res://assets/battle/motion/shang_upright_v3.png")
-const WENZHONG = preload("res://assets/battle/motion/wenzhong_upright_v3.png")
 const GENERAL = preload("res://assets/battle/motion/general_upright_v3.png")
-const TEXTURES = {"zhou":ZHOU,"shang":SHANG,"wenzhong":WENZHONG,"general":GENERAL}
+const TEXTURES = {"zhou":ZHOU,"shang":SHANG,"general":GENERAL}
 const CREAM = Color("fff0d2")
 const GOLD = Color("e6b46e")
 const MUTED = Color("c9b49a")
@@ -52,7 +52,9 @@ func _init() -> void:
 	# Compile JSON regions once; the hot draw path does not rebuild dictionaries
 	# or compute off-screen QA bounds for every sprite every frame.
 	frame_catalog.erase("nezha")
+	frame_catalog.erase("wenzhong")
 	NezhaArt.prepare()
+	WenzhongArt.prepare()
 	for key in frame_catalog:
 		var entry: Dictionary=frame_catalog[key]
 		var height: float=SOLDIER_HEIGHT if key in ["zhou","shang"] else (WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT)
@@ -131,7 +133,9 @@ func advance_effects(dt: float) -> void:
 				damage_labels[key]=line
 			e.label=damage_labels[key]
 		effects.append(e)
-		if e.kind in ["skill", "finisher"]: _audio(2 + int(e.side))
+		if e.kind in ["skill", "finisher"]:
+			var source: Rules.Fighter=sim.fighters[int(e.source)]
+			_audio(3 if source.hero_id=="wenzhong" else (2 if source.hero_id=="nezha" else 2+int(e.side)))
 		elif e.kind == "hit" and sound_cooldown <= 0:
 			_audio(1)
 			sound_cooldown = 0.15
@@ -218,12 +222,23 @@ func nezha_pose(f: Rules.Fighter) -> Dictionary:
 	if f.hit_age < NezhaArt.duration("hit"): return {"clip":"hit","time":f.hit_age}
 	return {"clip":"run" if f.walking else "idle","time":f.stride if f.walking else sim.elapsed}
 
+func wenzhong_pose(f: Rules.Fighter) -> Dictionary:
+	if f.hp <= 0: return {"clip":"defeat","time":f.death_age}
+	if f.action in ["attack","cast","finisher"]:
+		return {"clip":{"attack":"attack","cast":"thunder_whip","finisher":"nine_thunders"}[f.action],"time":f.age}
+	if f.hit_age < WenzhongArt.duration("hit"): return {"clip":"hit","time":f.hit_age}
+	return {"clip":"run" if f.walking else "idle","time":f.stride if f.walking else sim.elapsed}
+
 func sprite_geometry(f: Rules.Fighter, pose: Vector2i) -> Dictionary:
 	var key := sprite_key(f)
 	if key == "nezha":
 		var depth := lerpf(.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
 		var current := nezha_pose(f)
 		return NezhaArt.geometry(NezhaArt.frame(current.clip,current.time),ground(f.pos),HERO_HEIGHT*depth,f.facing)
+	if key == "wenzhong":
+		var depth := lerpf(.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
+		var current := wenzhong_pose(f)
+		return WenzhongArt.geometry(WenzhongArt.frame(current.clip,current.time),ground(f.pos),WENZHONG_HEIGHT*depth,f.facing)
 	var entry: Dictionary=frame_catalog[key]
 	var frame: Dictionary=entry.frames[pose.y*4+pose.x]
 	var raw: Array=frame.source
@@ -252,6 +267,7 @@ func _draw() -> void:
 		var p := Vector2(fmod(i * 157.0 + sim.elapsed * (13 + i % 5), 1920), 230 + fmod(i * 89.0 + sin(sim.elapsed + i) * 15, 520))
 		draw_circle(p, 1.4, Color(1, 0.87, 0.58, 0.45))
 	_draw_nezha_windups()
+	_draw_wenzhong_windups()
 	var ordered: Array[Vector2]=[]
 	for f in sim.fighters:
 		if f.hp>0 or f.death_age<=1.4: ordered.append(Vector2(f.pos.y,f.id))
@@ -301,6 +317,14 @@ func _fighter(f: Rules.Fighter) -> void:
 				if age < 0 or age >= NezhaArt.duration("spear_fx"): continue
 				var offset := Vector2(event.socket[0]*f.facing,event.socket[1])*height
 				NezhaArt.draw(self,"spear_fx",age,at+offset,height*.4,f.facing,Color.WHITE,float(event.rotation)*f.facing)
+	elif key == "wenzhong":
+		var pose := wenzhong_pose(f)
+		var height := WENZHONG_HEIGHT*perspective
+		WenzhongArt.draw(self,pose.clip,float(pose.time),at,height,f.facing,color)
+		if f.hp > 0 and f.action == "attack":
+			var time := f.age-WenzhongArt.event_time("attack","arc_start")
+			if time >= 0 and time < WenzhongArt.duration("attack_fx"):
+				WenzhongArt.draw(self,"attack_fx",time,at+Vector2(.47*f.facing,-.58)*height,height*.72,f.facing)
 	else:
 		var pose:=animation(f)
 		var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
@@ -319,6 +343,10 @@ func _fighter(f: Rules.Fighter) -> void:
 			var pose := nezha_pose(f)
 			var frame := NezhaArt.frame(pose.clip,pose.time)
 			label_at.y=minf(label_at.y,at.y+(frame.visible.position.y-frame.pivot.y)*HERO_HEIGHT*perspective/frame.body_height-14)
+		elif key == "wenzhong":
+			var pose := wenzhong_pose(f)
+			var frame := WenzhongArt.frame(pose.clip,pose.time)
+			label_at.y=minf(label_at.y,at.y+(frame.visible.position.y-frame.pivot.y)*WENZHONG_HEIGHT*perspective/frame.body_height-14)
 		draw_string_outline(FONT, label_at - Vector2(FONT.get_string_size(name,HORIZONTAL_ALIGNMENT_LEFT,-1,20).x / 2,0), name, HORIZONTAL_ALIGNMENT_LEFT,-1,20,5,INK)
 		text(name, label_at, 20, CREAM, true)
 		if f.action in ["cast", "finisher"]:
@@ -349,10 +377,12 @@ func _draw_header() -> void:
 func _draw_team(side: int) -> void:
 	var x := 28.0 if side == 0 else 1268.0
 	panel(Rect2(x, 837, 624, 211), Color(0.15, 0.095, 0.11, 0.96), TEAM[side])
-	# Nezha uses the portrait illustration; existing heroes retain their fitted art.
+	# Commander illustrations are independent from their battle actor sheets.
 	var portrait_key:=sprite_key(sim.hero_for(side))
 	if portrait_key == "nezha":
 		NezhaArt.draw_portrait(self,Rect2(x+8,849,140,188),"battle")
+	elif portrait_key == "wenzhong":
+		WenzhongArt.draw_portrait(self,Rect2(x+8,849,140,188),"battle")
 	else:
 		var frame: Dictionary=frame_catalog[portrait_key].frames[0]
 		var pixels: Array=frame.opaque
@@ -424,6 +454,15 @@ func _effect(e: Dictionary) -> void:
 	if e.kind == "detonate":
 		if e.age < .3: NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),90)
 		return
+	if e.kind in ["skill","finisher"] and e.get("ability","") in ["thunder_whip","nine_thunders"]:
+		var clip: String=str(e.ability)+"_fx"
+		var time := float(e.age)+WenzhongArt.event_time(clip,"impact")
+		if time < WenzhongArt.duration(clip):
+			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),460 if e.ability=="nine_thunders" else 285)
+		if e.age < .6:
+			panel(Rect2(710,117,500,68),Color(.14,.10,.23,.93),Color("b7b9ff"))
+			text(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Vector2(960,164),36,CREAM,true)
+		return
 	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit"]:
 		if e.kind == "burn_hit": color = Color(1,.55,.2,1.0-t)
 		if e.kind == "splash_hit": color = Color(1,.83,.35,1.0-t)
@@ -470,6 +509,17 @@ func _draw_nezha_windups() -> void:
 		draw_set_transform(Vector2.ZERO)
 		var time := hero.age-(hero.impact-NezhaArt.event_time("samadhi_fx","lotus_burst"))
 		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),520)
+
+func _draw_wenzhong_windups() -> void:
+	for side in 2:
+		var hero := sim.hero_for(side)
+		if hero.hero_id != "wenzhong" or hero.hp <= 0 or hero.action not in ["cast","finisher"] or hero.age >= hero.impact: continue
+		var clip := "nine_thunders_fx" if hero.action=="finisher" else "thunder_whip_fx"
+		var time := hero.age-(hero.impact-WenzhongArt.event_time(clip,"impact"))
+		if time < 0: continue
+		# Wen Zhong's existing skill resolves at the live target position.
+		var at := ground(sim.fighters[hero.target].pos)
+		WenzhongArt.draw(self,clip,time,at+Vector2(0,4),460 if hero.action=="finisher" else 285)
 
 func _draw_result() -> void:
 	draw_rect(Rect2(0, 82, 1920, 754), Color(0.10, 0.06, 0.09, 0.5))

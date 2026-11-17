@@ -1,9 +1,9 @@
 extends RefCounted
 ## Runtime crops of existing character art, clipped to the circular badge.
 const NezhaArt=preload("res://scripts/nezha_art.gd")
+const WenzhongArt=preload("res://scripts/wenzhong_art.gd")
 const COMMANDER=preload("res://assets/units/red_army.png")
 const GENERAL=preload("res://assets/battle/motion/general_upright_v3.png")
-const WENZHONG=preload("res://assets/battle/wenzhong_bust.webp")
 
 static func portrait(id: String) -> Dictionary:
 	match id:
@@ -11,7 +11,9 @@ static func portrait(id: String) -> Dictionary:
 			var crop: Array=NezhaArt.DATA.portrait_regions.map
 			return {"texture":NezhaArt.PORTRAIT,"source":Rect2(crop[0],crop[1],crop[2],crop[3])}
 		"nangongshi": return {"texture":COMMANDER,"source":Rect2(321,424,112,112)}
-		"wenzhong": return {"texture":WENZHONG,"source":Rect2(82,42,235,235)}
+		"wenzhong":
+			var crop: Array=WenzhongArt.DATA.portrait_regions.map
+			return {"texture":WenzhongArt.PORTRAIT,"source":Rect2(crop[0],crop[1],crop[2],crop[3])}
 		_: return {"texture":GENERAL,"source":Rect2(101,37,58,58)}
 
 static func draw_circle_portrait(canvas: CanvasItem,id: String,at: Vector2,radius: float) -> void:

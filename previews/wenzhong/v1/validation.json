@@ -1,0 +1,100 @@
+{
+  "hero": "wenzhong",
+  "art_version": 1,
+  "checks": 5910,
+  "failures": [],
+  "reports": [
+    {
+      "path": "previews/wenzhong/v1/rules-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 1004,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v4/rules-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 983,
+      "failures": []
+    },
+    {
+      "path": "previews/chaoge-test/rules-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 80,
+      "failures": []
+    },
+    {
+      "path": "previews/battle/layout-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 3677,
+      "failures": []
+    },
+    {
+      "path": "previews/wenzhong/v1/runtime/runtime-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 68,
+      "failures": []
+    },
+    {
+      "path": "previews/wenzhong/v1/fallback/report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 98,
+      "failures": []
+    }
+  ],
+  "image_pixels_modified_after_generation": false,
+  "source_asset_hashes_verified": 10,
+  "source_fallback_textures_verified": 20,
+  "import_caches_restored": true,
+  "asset_warnings": [],
+  "actor_source_frames": 64,
+  "effect_source_frames": 64,
+  "sampled_clip_frames": 144,
+  "native_runtime_resolutions": [
+    [
+      1920,
+      1080
+    ],
+    [
+      1280,
+      720
+    ]
+  ],
+  "runtime_screenshots_include_forced_interrupt_fixture": true,
+  "gameplay_recording": {
+    "engine": "4.7.2-stable (official)",
+    "balance_overrides": false,
+    "ordinary_attack_seen": true,
+    "battle_skill_seen": true,
+    "map_debuff_seen": true,
+    "ultimate_releases": 2,
+    "ultimate_impacts": 2,
+    "attack_frames": 16,
+    "battle_skill_frames": 16,
+    "ultimate_frames": 16,
+    "map_cast_frames": 16,
+    "vfx_frames_per_clip": 16,
+    "saved_campaign": false,
+    "seconds": 41.7
+  },
+  "video": {
+    "path": "previews/wenzhong/v1/wenzhong-gameplay-v1.mp4",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1"
+      },
+      {
+        "codec_name": "aac",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "41.733333",
+      "size": "21044666"
+    }
+  }
+}

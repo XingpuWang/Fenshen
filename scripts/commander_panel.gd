@@ -5,6 +5,7 @@ const PORTRAIT_RECT:=Rect2(40,40,146,162)
 const ROW_HEIGHT:=44
 const FRAME=preload("res://assets/ui/painted/panel.png")
 const NezhaArt=preload("res://scripts/nezha_art.gd")
+const WenzhongArt=preload("res://scripts/wenzhong_art.gd")
 const Portraits=preload("res://scripts/map_portraits.gd")
 const GENERAL=preload("res://assets/battle/motion/general_upright_v3.png")
 const COMMANDER=preload("res://assets/units/red_army.png")
@@ -110,6 +111,9 @@ static func portrait(hud: Control,hero: String,rect: Rect2) -> void:
 	if hero=="nezha":
 		NezhaArt.draw_portrait(hud,rect,"map_panel")
 		return
+	if hero=="wenzhong":
+		WenzhongArt.draw_portrait(hud,rect,"map_panel")
+		return
 	var source: Rect2
 	var texture: Texture2D
 	match hero:
@@ -121,9 +125,6 @@ static func portrait(hud: Control,hero: String,rect: Rect2) -> void:
 			source=Rect2(85,24,96,104)
 		"jifa":
 			texture=JIFA
-			source=Rect2(Vector2.ZERO,texture.get_size())
-		"wenzhong":
-			texture=Portraits.WENZHONG
 			source=Rect2(Vector2.ZERO,texture.get_size())
 		_:
 			var entry:=Portraits.portrait(hero)

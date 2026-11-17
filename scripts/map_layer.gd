@@ -1,5 +1,6 @@
 extends Node2D
 const NezhaArt=preload("res://scripts/nezha_art.gd")
+const WenzhongArt=preload("res://scripts/wenzhong_art.gd")
 const Portraits=preload("res://scripts/map_portraits.gd")
 const Tactics=preload("res://scripts/map_tactics.gd")
 var effect_age:=0.0
@@ -145,6 +146,13 @@ func _draw_map_cast(zoom: float) -> void:
 	var cast: Dictionary=game.map_cast
 	var age: float=cast.age
 	var facing:=1 if cast.position.x>=cast.origin.x else -1
+	if game.world.Catalog.hero_id(game.world.units[int(cast.unit)])=="wenzhong":
+		var casting := age<WenzhongArt.duration("thunder_seal")
+		WenzhongArt.draw(self,"thunder_seal" if casting else "idle",age if casting else 0.0,cast.origin,180.0/zoom,facing)
+		var time: float=age-game.MAP_CAST_RELEASE
+		if time>=0 and time<WenzhongArt.duration("thunder_seal_fx"):
+			WenzhongArt.draw(self,"thunder_seal_fx",time,cast.position+Vector2(0,35)/game.camera.zoom,maxf(280.0/zoom,game.world.radius*5.0))
+		return
 	NezhaArt.draw(self,"fire_field" if age<NezhaArt.duration("fire_field") else "idle",age if age<NezhaArt.duration("fire_field") else 0.0,cast.origin,170.0/zoom,facing,Color.WHITE)
 	var effect_time: float=age-game.MAP_CAST_RELEASE
 	if effect_time>=0 and effect_time<NezhaArt.duration("fire_field_fx"):

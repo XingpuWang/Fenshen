@@ -21,8 +21,8 @@ func _initialize() -> void:
 			var visible: Array=frame.opaque
 			check(visible[0]>0 and visible[1]>0 and visible[0]+visible[2]<src[2] and visible[1]+visible[3]<src[3],"complete silhouettes have transparent gutters: "+key)
 	# Both facings, every animation frame, all four battlefield corners, every character type.
-	# The variable-sized Nezha atlas is exercised in nezha_check.gd.
-	for kind in ["zhou","shang","wenzhong","general"]:
+	# The variable-sized hero atlases are exercised in nezha_check / wenzhong_check.
+	for kind in ["zhou","shang","general"]:
 		var f:=Rules.Fighter.new()
 		f.hero=not kind in ["zhou","shang"]
 		f.side=1 if kind in ["shang","wenzhong"] else 0
@@ -47,7 +47,7 @@ func _initialize() -> void:
 		for f in view.sim.fighters:
 			check(View.FEET_AREA.grow(0.1).has_point(view.ground(f.pos)),"live crowd feet stay on the land rectangle")
 	view.free()
-	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":88,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[160,500,1600,300],"standard_body_heights":{"soldier":108,"hero":180,"wenzhong":194}}
+	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":64,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[160,500,1600,300],"standard_body_heights":{"soldier":108,"hero":180,"wenzhong":194}}
 	FileAccess.open("res://previews/battle/layout-report.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("BATTLE_LAYOUT "+JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)

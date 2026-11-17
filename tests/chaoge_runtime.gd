@@ -138,6 +138,10 @@ func run() -> void:
 	await click(badge(1))
 	await click(Commander.skill_rect(2).get_center())
 	await click(badge(0))
+	check(game.is_map_casting(),"Wen Zhong starts the animated thunder seal")
+	while game.is_map_casting() and game.map_cast.age<1.15: await process_frame
+	await shot("13-thunder-seal-impact")
+	while game.is_map_casting(): await process_frame
 	check(game.world.units[0].effects.size()==1 and game.world.units[1].effects.is_empty(),"Wen Zhong's map icon debuffs Nezha")
 	await click(badge(0))
 	await shot("05-enemy-map-skill")

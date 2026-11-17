@@ -1,0 +1,27 @@
+{
+	"checks": 98,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"source_fallbacks": [
+		"res://assets/characters/nezha/v3/portrait.png",
+		"res://assets/characters/wenzhong/v1/portrait.png",
+		"res://assets/ui/skills/hero_icons.png",
+		"res://assets/characters/nezha/v4/attack.png",
+		"res://assets/characters/nezha/v4/actions.png",
+		"res://assets/characters/nezha/v3/three_heads_fx.png",
+		"res://assets/characters/nezha/effects/combat.png",
+		"res://assets/characters/nezha/v4/samadhi_fx.png",
+		"res://assets/characters/nezha/effects/fire_field.png",
+		"res://assets/characters/nezha/v4/qiankun.png",
+		"res://assets/characters/nezha/v4/samadhi.png",
+		"res://assets/characters/nezha/v4/ring_fx.png",
+		"res://assets/characters/wenzhong/v1/actions.png",
+		"res://assets/characters/wenzhong/v1/attack.png",
+		"res://assets/characters/wenzhong/v1/thunder_whip.png",
+		"res://assets/characters/wenzhong/v1/nine_thunders.png",
+		"res://assets/characters/wenzhong/v1/attack_fx.png",
+		"res://assets/characters/wenzhong/v1/thunder_whip_fx.png",
+		"res://assets/characters/wenzhong/v1/nine_thunders_fx.png",
+		"res://assets/characters/wenzhong/v1/thunder_seal_fx.png"
+	]
+}

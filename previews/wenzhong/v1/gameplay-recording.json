@@ -1,0 +1,129 @@
+{
+	"art_version": 1,
+	"attack_frames": 16,
+	"balance_overrides": false,
+	"battle_skill_frames": 16,
+	"battle_skill_seen": true,
+	"battle_speed": 1,
+	"capture_fps": 30,
+	"engine": "4.7.2-stable (official)",
+	"frames": 1251,
+	"hero": "wenzhong",
+	"map_cast_frames": 16,
+	"map_debuff_seen": true,
+	"markers": [
+		{
+			"frame": 0,
+			"name": "闻仲 · 白发紫金甲立绘",
+			"seconds": 0.0
+		},
+		{
+			"frame": 75,
+			"name": "雷法精通 · 被动说明",
+			"seconds": 2.5
+		},
+		{
+			"frame": 105,
+			"name": "雷印镇军 · 目标范围",
+			"seconds": 3.5
+		},
+		{
+			"frame": 169,
+			"name": "雷印镇军 · 落雷与减防",
+			"seconds": 5.63333333333333
+		},
+		{
+			"frame": 221,
+			"name": "朝歌交锋 · 闻仲迎战哪吒",
+			"seconds": 7.36666666666667
+		},
+		{
+			"frame": 437,
+			"name": "雷鞭震阵 · 双雷震击",
+			"seconds": 14.5666666666667
+		},
+		{
+			"frame": 437,
+			"name": "士气积满 · R 释放终结技",
+			"seconds": 14.5666666666667
+		},
+		{
+			"frame": 476,
+			"name": "九霄雷殛 · 多重落雷",
+			"seconds": 15.8666666666667
+		},
+		{
+			"frame": 493,
+			"name": "士气积满 · R 释放终结技",
+			"seconds": 16.4333333333333
+		},
+		{
+			"frame": 532,
+			"name": "九霄雷殛 · 多重落雷",
+			"seconds": 17.7333333333333
+		},
+		{
+			"frame": 612,
+			"name": "雷鞭震阵 · 双雷震击",
+			"seconds": 20.4
+		},
+		{
+			"frame": 651,
+			"name": "双鞭普攻 · 电弧命中",
+			"seconds": 21.7
+		},
+		{
+			"frame": 791,
+			"name": "雷鞭震阵 · 双雷震击",
+			"seconds": 26.3666666666667
+		},
+		{
+			"frame": 1021,
+			"name": "雷鞭震阵 · 双雷震击",
+			"seconds": 34.0333333333333
+		},
+		{
+			"frame": 1146,
+			"name": "战斗结算",
+			"seconds": 38.2
+		},
+		{
+			"frame": 1212,
+			"name": "返回大地图",
+			"seconds": 40.4
+		}
+	],
+	"ordinary_attack_seen": true,
+	"resolution": [
+		1920,
+		1080
+	],
+	"result": {
+		"elapsed": 30.8499999999995,
+		"enemy_morale": 22,
+		"enemy_remaining": 0,
+		"kills": [
+			2400,
+			1878
+		],
+		"morale": 50,
+		"player_remaining": 522,
+		"player_won": true,
+		"reason": "敌阵溃散",
+		"stats": {
+			"attacks": 97,
+			"collisions": 143502,
+			"finishers": 4,
+			"skills": 7,
+			"splash_hits": 10
+		}
+	},
+	"saved_campaign": false,
+	"seconds": 41.7,
+	"simulation_hz": 60,
+	"source": "actual Godot game viewport / Movie Maker",
+	"ultimate_frames": 16,
+	"ultimate_impacts": 2,
+	"ultimate_releases": 2,
+	"vfx_frames_per_clip": 16
+}
