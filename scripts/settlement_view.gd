@@ -323,8 +323,9 @@ func draw_right(poi: Dictionary,state: Dictionary) -> void:
 		action_button("build",Rect2(1625,822,262,51),"升级" if level>0 else "兴建", "upgrade" if level>0 else "build",why.is_empty())
 		if not why.is_empty(): center_text(why,Vector2(1756,808),15,SOFT)
 	else:
-		text("尚未归附 · 占领后可营建",Vector2(1630,746),17,SOFT)
-		action_button("capture_here",Rect2(1625,766,262,48),"接战 · 1 点行动力" if poi.owner=="shang" else "占领 · 1 点行动力","flag",w.can_capture(w.units[game.selected_unit],poi))
+		text("可在「据点」切换到我方城邑" if w.test_scenario else "尚未归附 · 占领后可营建",Vector2(1630,746),17,SOFT)
+		if not w.test_scenario:
+			action_button("capture_here",Rect2(1625,766,262,48),"接战 · 1 点行动力" if poi.owner=="shang" else "占领 · 1 点行动力","flag",w.can_capture(w.units[game.selected_unit],poi))
 		action_button("approach_here",Rect2(1625,824,262,48),"行军至附近","map")
 
 func draw_toolbar(poi: Dictionary,state: Dictionary) -> void:
@@ -342,11 +343,15 @@ func draw_toolbar(poi: Dictionary,state: Dictionary) -> void:
 		var d: Array=more[i]
 		var enabled: bool=true
 		if d[0]=="recruit": enabled=game.world.recruit_reason(game.world.units[game.selected_unit],poi).is_empty()
+		if d[0] in ["save","load"] and game.world.test_scenario: enabled=false
 		action_button(d[0],Rect2(1105+i*157,1006,151,48),d[1],d[2],enabled)
 	if hovered=="recruit":
 		var why: String=game.world.recruit_reason(game.world.units[game.selected_unit],poi)
 		draw_style_box(small_style,Rect2(1152,942,510,40))
 		center_text("每人 2 粮草 · 至多 500 人 · 1 点行动力" if why.is_empty() else why,Vector2(1407,968),18,INK)
+	elif hovered in ["save","load"] and game.world.test_scenario:
+		draw_style_box(small_style,Rect2(1152,942,510,40))
+		center_text("朝歌测试场暂不存档",Vector2(1407,968),18,INK)
 
 func draw_catalog(poi: Dictionary) -> void:
 	panel(Rect2(285,803,1307,178))

@@ -359,7 +359,7 @@ func action(id: String,mouse: Vector2=Vector2.ZERO) -> void:
 	if is_instance_valid(battle): return
 	if is_map_casting(): return
 	if id=="commander_skill:map": id="map_skill"
-	if world.test_scenario and id in ["save","load","capital","interior","capture"]: return
+	if world.test_scenario and id in ["save","load","capture"]: return
 	if map_skill_targeting and not id in ["map_skill","focus","overview","grid","minimap","panel"]:
 		cancel_map_skill()
 	world_view_dirty=true
@@ -573,7 +573,6 @@ func cover_world(covered: bool) -> void:
 		covered_world_visibility.clear()
 
 func open_settlement(pid: String) -> void:
-	if world.test_scenario: return
 	if is_instance_valid(battle) or moving or is_map_casting() or not world.by_poi.has(pid): return
 	cancel_map_skill()
 	selected_poi=pid

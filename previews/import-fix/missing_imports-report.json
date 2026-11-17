@@ -1,0 +1,15 @@
+{
+	"checks": 33,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"source_fallbacks": [
+		"res://assets/characters/nezha/v3/portrait.png",
+		"res://assets/ui/skills/hero_icons.png",
+		"res://assets/characters/nezha/v3/attack.png",
+		"res://assets/characters/nezha/v3/actions.png",
+		"res://assets/characters/nezha/v3/three_heads_fx.png",
+		"res://assets/characters/nezha/effects/combat.png",
+		"res://assets/characters/nezha/effects/samadhi.png",
+		"res://assets/characters/nezha/effects/fire_field.png"
+	]
+}

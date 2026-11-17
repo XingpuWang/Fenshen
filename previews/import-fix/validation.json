@@ -1,0 +1,26 @@
+{
+  "base_commit": "9a18c2eb37d11b6db48233418d4cde532accf35e",
+  "platform": "Linux / OpenGL Compatibility / llvmpipe",
+  "reproduction": "New portrait, icon and animation source PNGs present; only their local imported .ctex files removed from an isolated checkout. Original code fails to preload portrait.png and hero_icons.png, then aborts portrait/icon/badge drawing.",
+  "reports": {
+    "missing_imports": {
+      "checks": 33,
+      "failures": [],
+      "report": "missing_imports-report.json",
+      "engine": "4.7.2-stable (official)"
+    },
+    "normal_imports": {
+      "checks": 31,
+      "failures": [],
+      "report": "normal_imports-report.json",
+      "engine": "4.6.3-stable (official)"
+    },
+    "map_settlement_battle": {
+      "checks": 67,
+      "failures": [],
+      "report": "map_settlement_battle-report.json",
+      "engine": "4.7.2-stable (official)"
+    }
+  },
+  "passed": true
+}

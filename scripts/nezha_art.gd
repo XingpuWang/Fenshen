@@ -1,6 +1,7 @@
 extends RefCounted
 ## Shared atlas sampler for live battle, map casting and HUD portraits.
-const PORTRAIT = preload("res://assets/characters/nezha/v3/portrait.png")
+const Textures = preload("res://scripts/runtime_textures.gd")
+static var PORTRAIT: Texture2D = Textures.get_texture("res://assets/characters/nezha/v3/portrait.png")
 static var DATA: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/nezha_art_v3.json"))
 static var sheets: Dictionary = {}
 
@@ -18,7 +19,7 @@ static func prepare() -> void:
 	if not sheets.is_empty(): return
 	for key in DATA.sheets:
 		var entry: Dictionary = DATA.sheets[key]
-		var texture: Texture2D = load("res://" + str(entry.path))
+		var texture: Texture2D = Textures.get_texture("res://" + str(entry.path))
 		var frames: Array[Frame] = []
 		for raw in entry.frames:
 			var f := Frame.new()

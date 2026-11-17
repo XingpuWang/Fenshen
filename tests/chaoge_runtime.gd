@@ -5,7 +5,10 @@ var checks:=0
 var failures: Array[String]=[]
 var output:="res://previews/chaoge-test"
 
-func _initialize() -> void: call_deferred("run")
+func _initialize() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--preview-dir="): output=arg.trim_prefix("--preview-dir=")
+	call_deferred("run")
 
 func check(ok: bool,label: String) -> void:
 	checks+=1
@@ -48,6 +51,13 @@ func badge(index: int) -> Vector2:
 		if int(entry.unit)==index: return entry.rect.get_center()
 	return Vector2.ZERO
 
+func interior_button(id: String) -> void:
+	for hit in game.interior.hits:
+		if hit.id==id and hit.get("enabled",false):
+			await click(hit.rect.get_center())
+			return
+	check(false,"interior button is available: "+id)
+
 func shot(name: String) -> void:
 	await settle()
 	var screenshot:=root.get_texture().get_image()
@@ -73,6 +83,32 @@ func run() -> void:
 		check(Commander.artifact_rect(i).size==Vector2(56,56),"artifact slots are full square icons")
 	await hover(Vector2(700,800))
 	await shot("01-clean-map")
+	# Simplifying the map HUD must not disable direct city entry or city management.
+	var city: Dictionary=game.world.by_poi[game.world.test_city_id]
+	var camera_before: Vector2=game.camera.position
+	var army_cells: Array=[game.world.units[0].cell,game.world.units[1].cell]
+	await click(game.world_to_screen(Vector2(city.position[0],city.position[1])))
+	check(game.interior.visible and game.interior.poi_id==city.id,"clicking Chaoge opens its interior in the default test scenario")
+	check(not game.hud.visible and not game.layer.visible,"interior covers the map and tactical HUD")
+	for hit in game.interior.hits:
+		if hit.id in ["build","restore","demolish","save","load"]:
+			check(not hit.get("enabled",false),"enemy city and test save restrictions remain explicit")
+	await shot("11-chaoge-interior")
+	await interior_button("settlements")
+	await interior_button("settlement:"+str(game.world.theme.capital))
+	var capital: String=game.world.theme.capital
+	check(game.interior.poi_id==capital and game.world.by_poi[capital].owner=="player","owned settlement menu opens Xiqi administration")
+	var wood_before: int=game.world.economy.treasury.wood
+	await interior_button("plot:6")
+	await interior_button("blueprint:farm")
+	await interior_button("build")
+	check(game.world.economy.settlements[capital].jobs.size()==1 and game.world.economy.treasury.wood==wood_before-100,"administration construction spends resources through real UI input")
+	await interior_button("end_turn")
+	check(game.world.economy.settlements[capital].plots[6].building=="farm" and game.world.economy.settlements[capital].plots[6].level==1,"interior end-turn completes construction")
+	await shot("12-xiqi-administration")
+	await interior_button("back")
+	check(not game.interior.visible and game.hud.visible and game.layer.visible,"return to map restores portraits, army badges and input")
+	check(game.camera.position==camera_before and [game.world.units[0].cell,game.world.units[1].cell]==army_cells,"administration preserves the two-army test setup and map position")
 	for index in 2:
 		await click(badge(index))
 		check(game.selected_unit==index,"army badge selects the corresponding test commander")

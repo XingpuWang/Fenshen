@@ -1,6 +1,7 @@
 extends RefCounted
 ## Opaque square anime paintings, sampled without stretching or letterboxing.
-const SQUARE_ATLAS=preload("res://assets/ui/skills/hero_icons.png")
+const Textures=preload("res://scripts/runtime_textures.gd")
+static var SQUARE_ATLAS: Texture2D=Textures.get_texture("res://assets/ui/skills/hero_icons.png")
 const SQUARE_IDS=["qiankun","samadhi","fire_field","three_heads_six_arms","thunder_whip","nine_thunders","thunder_seal","thunder_master"]
 const NezhaArt=preload("res://scripts/nezha_art.gd")
 const FLAG=preload("res://assets/ui/painted_icons/flag.png")
@@ -38,7 +39,7 @@ static func draw(hud: Control,ability: Dictionary,rect: Rect2) -> void:
 			var clip: Dictionary=NezhaArt.DATA.clips[recipe[0]]
 			var sheet: Dictionary=NezhaArt.DATA.sheets[clip.sheet]
 			var frame: Dictionary=sheet.frames[int(clip.frames[int(recipe[1])])]
-			effect_icons[id]={"texture":load("res://"+str(sheet.path)),"source":Rect2(frame.source[0]+frame.visible[0],frame.source[1]+frame.visible[1],frame.visible[2],frame.visible[3])}
+			effect_icons[id]={"texture":Textures.get_texture("res://"+str(sheet.path)),"source":Rect2(frame.source[0]+frame.visible[0],frame.source[1]+frame.visible[1],frame.visible[2],frame.visible[3])}
 		var entry: Dictionary=effect_icons[id]
 		var source: Rect2=entry.source
 		var size: Vector2=source.size*minf(rect.size.x/source.size.x,rect.size.y/source.size.y)
