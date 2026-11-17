@@ -1,0 +1,42 @@
+{
+  "generator": "image_gen",
+  "image_pixels_modified_after_generation": false,
+  "portrait_changed": false,
+  "assets": [
+    {
+      "path": "assets/characters/nezha/v4/battle_master.png",
+      "generated_source": "exec-04c7689c-70ad-4977-90e4-84143b4a2122.png",
+      "sha256": "93af16b11af0d14381c1fdaefe720d82385cbb779d88434390f7fbb90559387f"
+    },
+    {
+      "path": "assets/characters/nezha/v4/actions.png",
+      "generated_source": "exec-0e04d4b4-3cae-4d55-9fd3-0a23500c9e3f.png",
+      "sha256": "ece4d113fdba7218a59f4cd88b592aded87e1e6e8d60e0794a2d73b445b208c9"
+    },
+    {
+      "path": "assets/characters/nezha/v4/attack.png",
+      "generated_source": "exec-7f02696a-4eca-4b1c-9afb-06be8aded8a4.png",
+      "sha256": "522a0b1aaf80dc5f9926b3cce115d70e7c3d19b301d9603f90c78ccb9b2a5cb1"
+    },
+    {
+      "path": "assets/characters/nezha/v4/qiankun.png",
+      "generated_source": "exec-830faea9-ea74-4ff2-8277-6ebdd8c0a477.png",
+      "sha256": "082ac65ddac33cdfdc4df0e22cf2bb00f6e95fe0f6c2a2a18ddef543b1d55879"
+    },
+    {
+      "path": "assets/characters/nezha/v4/samadhi.png",
+      "generated_source": "exec-f5c6f6f1-d347-4be2-8d5e-f85a3ea55f45.png",
+      "sha256": "97e677167b37a5222d7a3590f99a88e4c9d2cf0d8f47796309f9929056d2238f"
+    },
+    {
+      "path": "assets/characters/nezha/v4/ring_fx.png",
+      "generated_source": "exec-1e91f373-40f1-47c6-95f2-cb3a3e902642.png",
+      "sha256": "382f321a4a0c72d0849984cf2eb8d63b53a59ef3673628e2ea61a7e1df55f2e6"
+    },
+    {
+      "path": "assets/characters/nezha/v4/samadhi_fx.png",
+      "generated_source": "exec-a522042c-316e-47c5-bb1f-fba8a26e4305.png",
+      "sha256": "b629ca289141ade98f92ad2eb0039bcb0b10daccf9c5339f04529a0fc0c081b3"
+    }
+  ]
+}

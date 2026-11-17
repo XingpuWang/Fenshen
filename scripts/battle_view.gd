@@ -404,14 +404,19 @@ func _effect(e: Dictionary) -> void:
 	var color: Color = TEAM[int(e.side)]
 	color.a = 1.0 - t
 	if e.kind == "ring":
-		var start := ground(e.from)+Vector2(float(e.facing)*64,-HERO_HEIGHT*.78)
+		var source: Rules.Fighter=sim.fighters[int(e.source)]
+		var height:=HERO_HEIGHT*lerpf(.88,1.03,clampf((source.pos.y+25.0)/765.0,0,1))
+		var start := ground(e.from)+Vector2(float(e.facing)*.29,-.66)*height
+		var catch_at := ground(e.from)+Vector2(float(e.facing)*.13,-.53)*height
 		var end := ground(e.pos)-Vector2(0,70)
-		var position := start.lerp(end,sin(t*PI))-Vector2(0,sin(t*PI)*18)
-		NezhaArt.draw(self,"ring_fx",e.age,position,62,int(e.facing))
+		var arc:=sin(t*PI)
+		var position := (start.lerp(end,arc) if t<.5 else catch_at.lerp(end,arc))-Vector2(0,arc*18)
+		NezhaArt.draw(self,"ring_fx",e.age,position,78,int(e.facing))
 		return
 	if e.kind in ["skill","finisher"] and e.get("ability","") in ["qiankun","samadhi"]:
-		if e.ability == "samadhi" and float(e.age)+.42 < NezhaArt.duration("samadhi_fx"):
-			NezhaArt.draw(self,"samadhi_fx",float(e.age)+.42,at+Vector2(0,4),520)
+		var burst:=NezhaArt.event_time("samadhi_fx","lotus_burst")
+		if e.ability == "samadhi" and float(e.age)+burst < NezhaArt.duration("samadhi_fx"):
+			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),520)
 		if e.age < .6:
 			panel(Rect2(710,117,500,68),Color(.18,.09,.11,.93),color)
 			text(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Vector2(960,164),36,CREAM,true)
@@ -463,7 +468,7 @@ func _draw_nezha_windups() -> void:
 		draw_circle(Vector2.ZERO,radius,Color(1,.42,.1,.07))
 		draw_arc(Vector2.ZERO,radius,0,TAU,64,Color(1,.68,.3,.45),2)
 		draw_set_transform(Vector2.ZERO)
-		var time := hero.age-(hero.impact-.42)
+		var time := hero.age-(hero.impact-NezhaArt.event_time("samadhi_fx","lotus_burst"))
 		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),520)
 
 func _draw_result() -> void:

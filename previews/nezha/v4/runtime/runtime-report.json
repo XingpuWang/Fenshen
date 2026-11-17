@@ -1,0 +1,19 @@
+{
+	"checks": 67,
+	"failures": [],
+	"focused_interrupt_fixture": true,
+	"heroes": [
+		"nezha",
+		"wenzhong"
+	],
+	"resolutions": [
+		[
+			1920,
+			1080
+		],
+		[
+			1280,
+			720
+		]
+	]
+}

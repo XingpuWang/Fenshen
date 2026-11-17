@@ -1,0 +1,66 @@
+{
+  "source_images_modified": false,
+  "warnings": [],
+  "sheets": {
+    "actions": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.6751,
+      "sha256": "ece4d113fdba7218a59f4cd88b592aded87e1e6e8d60e0794a2d73b445b208c9"
+    },
+    "attack": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.6767,
+      "sha256": "522a0b1aaf80dc5f9926b3cce115d70e7c3d19b301d9603f90c78ccb9b2a5cb1"
+    },
+    "qiankun": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.6425,
+      "sha256": "082ac65ddac33cdfdc4df0e22cf2bb00f6e95fe0f6c2a2a18ddef543b1d55879"
+    },
+    "samadhi": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.5933,
+      "sha256": "97e677167b37a5222d7a3590f99a88e4c9d2cf0d8f47796309f9929056d2238f"
+    },
+    "ring_fx": {
+      "size": [
+        1254,
+        1254
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.0103,
+      "sha256": "382f321a4a0c72d0849984cf2eb8d63b53a59ef3673628e2ea61a7e1df55f2e6"
+    },
+    "samadhi_fx": {
+      "size": [
+        1254,
+        1254
+      ],
+      "frames": 16,
+      "unique_frames": 16,
+      "fully_transparent_fraction": 0.0787,
+      "sha256": "b629ca289141ade98f92ad2eb0039bcb0b10daccf9c5339f04529a0fc0c081b3"
+    }
+  }
+}

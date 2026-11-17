@@ -61,7 +61,7 @@ func _initialize() -> void:
 	sim=fixture(); hero=sim.hero_for(0); target=sim.hero_for(1)
 	sim._begin(hero,target,"finisher")
 	for i in 50: sim.advance()
-	check(target.hp==10000,"ultimate does not deal damage during the jump")
+	check(target.hp==10000,"ultimate does not deal damage during the windup")
 	sim.advance()
 	check(target.hp<10000,"ultimate lands on the 0.84-second impact frame")
 	# Reapplication caps at three and refreshes duration without delaying a tick.
@@ -150,9 +150,18 @@ func _initialize() -> void:
 				for facing in [-1,1]:
 					var g:=Art.geometry(f,at,height,facing)
 					check(View.ACTOR_SAFE_AREA.encloses(g.visible_bounds),"complete Nezha silhouette fits battlefield: %s frame %d" % [clip,i])
-	check(frame_count==80,"all 80 runtime clip entries, including shared casting poses, are sampled")
+	check(frame_count==138,"all 138 runtime clip entries, including sixteen-frame casting and effects, are sampled")
 	check(Art.DATA.clips.attack.frames.size()==16,"ordinary attack contains sixteen authored poses")
-	check(Art.DATA.portrait!=Art.DATA.sheets.actions.path,"portrait and chibi actor use independent image resources")
+	check(Art.DATA.portrait!=Art.DATA.sheets.actions.path,"portrait and battle actor use independent image resources")
+	for clip in ["qiankun","samadhi","ring_fx","samadhi_fx"]:
+		check(Art.DATA.clips[clip].frames.size()==16,"sixteen authored frames in "+clip)
+	for pair in [["qiankun","battle"],["samadhi","ultimate"]]:
+		check(is_equal_approx(Art.duration(pair[0]),Rules.Catalog.DATA.heroes.nezha.skills[pair[1]].duration),"skill action covers its full simulation duration: "+pair[0])
+	check(Art.frame_index("qiankun",.36)==6 and Art.frame_index("qiankun",.86)==13,"ring release and catch align with the authored hand poses")
+	check(Art.frame_index("samadhi",.84)==12,"ultimate damage lands on the command thrust frame")
+	check(Art.frame_index("samadhi_fx",Art.event_time("samadhi_fx","lotus_burst"))==6,"lotus explosion starts on the seventh VFX frame")
+	check(is_equal_approx(Art.event_time("samadhi","lotus_impact")-Art.event_time("samadhi","lotus_windup"),Art.event_time("samadhi_fx","lotus_burst")),"ultimate windup and impact share one continuous VFX timeline")
+	check(is_equal_approx(Art.duration("ring_fx"),Rules.Catalog.DATA.heroes.nezha.skills.battle.return_time-Rules.Catalog.DATA.heroes.nezha.skills.battle.release),"sixteen ring frames cover the complete outward and return flight")
 	check(is_equal_approx(Art.duration("attack"),Rules.Catalog.DATA.heroes.nezha.normal_attack.duration),"attack clip and combat recovery have identical timing")
 	for i in 2:
 		var contact: float=Rules.Catalog.DATA.heroes.nezha.normal_attack.hits[i]
@@ -171,8 +180,8 @@ func _initialize() -> void:
 	check(view.sim.hero_for(0).hp==hp_after_result,"post-result presentation cannot deal new damage")
 	view.free()
 	var report: Dictionary={"checks":checks,"failures":failures,"frames":frame_count,"burn_cap":3,"burn_seconds":4,"simulation_hz":60}
-	DirAccess.make_dir_recursive_absolute("res://previews/nezha/v3")
-	FileAccess.open("res://previews/nezha/v3/rules-report.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
+	DirAccess.make_dir_recursive_absolute("res://previews/nezha/v4")
+	FileAccess.open("res://previews/nezha/v4/rules-report.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("NEZHA_CHECK "+JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)
 

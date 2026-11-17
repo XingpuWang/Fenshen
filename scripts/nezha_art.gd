@@ -2,7 +2,7 @@ extends RefCounted
 ## Shared atlas sampler for live battle, map casting and HUD portraits.
 const Textures = preload("res://scripts/runtime_textures.gd")
 static var PORTRAIT: Texture2D = Textures.get_texture("res://assets/characters/nezha/v3/portrait.png")
-static var DATA: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/nezha_art_v3.json"))
+static var DATA: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/nezha_art_v4.json"))
 static var sheets: Dictionary = {}
 
 class Frame:
@@ -35,6 +35,12 @@ static func duration(clip: String) -> float:
 	var ms := 0.0
 	for value in DATA.clips[clip].durations_ms: ms += float(value)
 	return ms / 1000.0
+
+static func event_time(clip: String, event: String) -> float:
+	for marker in DATA.clips[clip].events:
+		if marker.event == event: return float(marker.at_ms) / 1000.0
+	push_error("Unknown art event: " + clip + "/" + event)
+	return 0.0
 
 static func frame_index(clip: String, seconds: float) -> int:
 	var entry: Dictionary = DATA.clips[clip]

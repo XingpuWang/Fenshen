@@ -1,0 +1,91 @@
+{
+  "art_version": 4,
+  "checks": 5440,
+  "failures": [],
+  "reports": [
+    {
+      "path": "previews/nezha/v4/rules-report.json",
+      "engine": "Godot 4.6.3",
+      "checks": 983,
+      "failures": []
+    },
+    {
+      "path": "previews/chaoge-test/rules-report.json",
+      "engine": "Godot 4.6.3",
+      "checks": 80,
+      "failures": []
+    },
+    {
+      "path": "previews/battle/layout-report.json",
+      "engine": "Godot 4.6.3",
+      "checks": 4277,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v4/runtime/runtime-report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 67,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v4/fallback/report.json",
+      "engine": "Godot 4.7.2",
+      "checks": 33,
+      "failures": []
+    }
+  ],
+  "image_pixels_modified_after_generation": false,
+  "source_asset_hashes_verified": 7,
+  "portrait_changed": false,
+  "asset_warnings": [],
+  "source_fallback_textures_verified": 11,
+  "import_cache_restored": true,
+  "runtime_screenshots_include_forced_interrupt_fixture": true,
+  "gameplay_recording": {
+    "engine": "4.7.2-stable (official)",
+    "art_version": 4,
+    "balance_overrides": false,
+    "attack_frames": 16,
+    "battle_skill_frames": 16,
+    "ultimate_frames": 16,
+    "ordinary_attack_seen": true,
+    "passive_spirit_seen": true,
+    "splash_seen": true,
+    "ultimate_releases": 1,
+    "ultimate_impacts": 1,
+    "map_damage": 680,
+    "saved_campaign": false,
+    "seconds": 34.7
+  },
+  "video": {
+    "path": "previews/nezha/v4/nezha-gameplay-v4.mp4",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1"
+      },
+      {
+        "codec_name": "aac",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "34.733333",
+      "size": "19424461"
+    }
+  },
+  "verified": [
+    "new slender battle actor in idle, run, hit, defeat, attack and casting",
+    "sixteen distinct authored poses each for normal attack, qiankun and samadhi",
+    "independent sixteen-frame ring and fire-lotus effects",
+    "release, impact and catch aligned to unchanged combat timing",
+    "ultimate interrupt priority across eight action phases",
+    "Chaoge and Xiqi administration navigation",
+    "native rendering at 1920x1080 and 1280x720",
+    "source texture fallback with all eleven runtime import caches absent"
+  ]
+}

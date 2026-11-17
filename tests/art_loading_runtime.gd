@@ -65,7 +65,7 @@ func run() -> void:
 	if expect_fallback:
 		check(fallbacks.has("res://assets/characters/nezha/v3/portrait.png"), "portrait uses source fallback when its import is absent")
 		check(fallbacks.has("res://assets/ui/skills/hero_icons.png"), "icons use source fallback when their import is absent")
-		check(fallbacks.size() == 8, "all eight runtime art sheets load from source")
+		check(fallbacks.size() == art.DATA.sheets.size() + 2, "all runtime sheets, portrait and icon atlas load from source")
 	else:
 		check(fallbacks.is_empty(), "normal imported textures retain the standard resource path")
 	var report := {"engine": Engine.get_version_info().string, "checks": checks, "failures": failures, "source_fallbacks": fallbacks}

@@ -4,7 +4,7 @@ extends SceneTree
 ##   --write-movie /tmp/nezha-gameplay.avi --fixed-fps 30 --disable-vsync
 const FPS:=30
 var markers: Array[Dictionary]=[]
-var report_path:="res://previews/nezha/runtime/gameplay-recording.json"
+var report_path:="res://previews/nezha/v4/gameplay-recording.json"
 var capture_dir:=""
 
 func _initialize() -> void:
@@ -36,23 +36,10 @@ func record() -> void:
 	root.size=Vector2i(1920,1080)
 	var game=load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
-	# Set the demonstration's starting position to legal land beside an enemy.
-	# All casts, damage, morale and battle results use the normal game rules.
+	# Use the default two-army Chaoge scenario, with normal stats and earned morale.
 	var unit: Dictionary=game.world.units[0]
-	var poi: Dictionary={}
-	for p in game.world.pois:
-		if p.owner!="shang": continue
-		for ci in p.cells:
-			for adjacent in game.world.cells[int(ci)].n:
-				if game.world.walkable(int(adjacent)) and not game.world.occupied(int(adjacent),unit.id):
-					unit.cell=int(adjacent)
-					if game.world.can_capture(unit,p): poi=p; break
-			if not poi.is_empty(): break
-		if not poi.is_empty(): break
-	assert(not poi.is_empty(),"No legal map skill demonstration target")
-	game.unit_nodes[0].position=game.world.center(int(unit.cell))
-	game.action("focus")
-	game.refresh()
+	var opposing_army: Dictionary=game.world.units[1]
+	assert(game.world.test_scenario,"Recording expects the default Chaoge test scenario")
 	game.say("哪吒 · 火莲焚阵")
 	await RenderingServer.frame_post_draw
 	mark("大地图 · 哪吒头像与四技能")
@@ -67,23 +54,24 @@ func record() -> void:
 	hover.position=Vector2(850,750)
 	Input.parse_input_event(hover)
 	key(KEY_Q)
-	var target:=int(poi.cells[0])
+	var target:=int(opposing_army.cell)
 	game.hover_cell=target
 	game.update_skill_preview()
 	mark("火莲焚阵 · 目标范围")
 	await hold(1.5)
-	var garrison_before:=int(game.world.garrison(poi).soldiers)
+	var soldiers_before:=int(opposing_army.soldiers)
 	game.cast_selected_map_skill(target)
 	mark("火莲焚阵 · 结印与火柱")
 	while game.is_map_casting(): await process_frame
-	var map_damage:=garrison_before-int(game.world.garrison(poi).soldiers)
-	assert(map_damage>0 and unit.action_done,"Map skill must actually damage the garrison and spend the action")
+	var map_damage:=soldiers_before-int(opposing_army.soldiers)
+	assert(map_damage>0 and unit.action_done,"Map skill must damage the actual enemy army and spend the action")
 	await hold(1.0)
+	key(KEY_E)
 	key(KEY_B)
 	var battle: Control=game.battle
-	assert(is_instance_valid(battle),"Exhibition must open through normal game input")
+	assert(is_instance_valid(battle),"Field battle must open through normal game input")
 	await RenderingServer.frame_post_draw
-	mark("阵前演武 · 双方列阵")
+	mark("朝歌交锋 · 双方列阵")
 	var seen_effects: Array=[]
 	var seen_burn:=false
 	var seen_attack:=false
@@ -133,8 +121,8 @@ func record() -> void:
 	var report: Dictionary={"source":"actual Godot game viewport / Movie Maker","engine":Engine.get_version_info().string,
 		"resolution":[1920,1080],"capture_fps":FPS,"simulation_hz":60,"battle_speed":1,"map_damage":map_damage,
 		"ultimate_releases":released,"ultimate_impacts":impacts,"ordinary_attack_seen":seen_attack,"burn_seen":seen_burn,
-		"passive_spirit_seen":seen_spirit,"splash_seen":seen_splash,"attack_frames":16,"art_version":3,
-		"demo_start":"legal land adjacent to an enemy settlement","balance_overrides":false,"saved_campaign":false,
+		"passive_spirit_seen":seen_spirit,"splash_seen":seen_splash,"attack_frames":16,"battle_skill_frames":16,"ultimate_frames":16,"art_version":4,
+		"demo_start":"default Chaoge two-army scenario; normal end-turn refill before battle","balance_overrides":false,"saved_campaign":false,
 		"markers":markers,"result":result,"frames":Engine.get_frames_drawn(),"seconds":Engine.get_frames_drawn()/float(FPS)}
 	FileAccess.open(report_path,FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("GAMEPLAY_RECORDING "+JSON.stringify(report))
