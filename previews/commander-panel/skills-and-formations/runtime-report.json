@@ -1,0 +1,18 @@
+{
+	"active_skill_tooltips": 9,
+	"checks": 72,
+	"failures": [],
+	"formation_slots": 3,
+	"heroes": 3,
+	"resolutions": [
+		[
+			1920,
+			1080
+		],
+		[
+			1280,
+			720
+		]
+	],
+	"sparse_rosters_preserved": true
+}

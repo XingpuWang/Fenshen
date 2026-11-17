@@ -1,6 +1,6 @@
 {
 	"battlefield_corners": 4,
-	"checks": 4877,
+	"checks": 4277,
 	"facings": 2,
 	"failures": [],
 	"feet_area": [
@@ -9,7 +9,7 @@
 		1600,
 		300
 	],
-	"frames_checked": 112,
+	"frames_checked": 88,
 	"max_actors": 122,
 	"standard_body_heights": {
 		"hero": 180,

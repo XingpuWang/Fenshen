@@ -1,0 +1,80 @@
+{
+  "change": "Reference-inspired commander panel with side-by-side portrait and identity, vertical live attributes, army information, three empty equipment slots and three empty artifact slots.",
+  "validated_at_utc": "2026-11-17T10:12:16.034801+00:00",
+  "native_ui": "Godot CanvasItem; no web wrapper",
+  "panel_rect": [
+    18,
+    108,
+    310,
+    650
+  ],
+  "equipment_slots": {
+    "count": 3,
+    "state": "empty"
+  },
+  "artifact_slots": {
+    "count": 3,
+    "state": "empty"
+  },
+  "displayed_data": "Six existing gameplay attributes, current soldiers/capacity, occupied roster slots, movement points, action state and live effects. The header bar uses the real opening morale; no experience or combat-power values are fabricated.",
+  "assets": "Existing gold panel frame and runtime crops of existing character art.",
+  "checks": {
+    "map_presentation": {
+      "captures": 6,
+      "checks": 102,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "map_aspect_unchanged": true,
+      "radius": 80.0
+    },
+    "live_skills_and_stats": {
+      "checks": 14,
+      "failures": [],
+      "resolution": [
+        1920,
+        1080
+      ]
+    }
+  },
+  "all_passed": true,
+  "total_checks": 116,
+  "visual_review": {
+    "resolutions": [
+      [
+        1920,
+        1080
+      ],
+      [
+        1280,
+        720
+      ]
+    ],
+    "heroes": [
+      "nezha",
+      "nangongshi",
+      "huangtianhua"
+    ],
+    "result": "passed",
+    "evidence": [
+      "tactical-route.png",
+      "portraits/nezha-panel.png",
+      "portraits/nangongshi-panel.png",
+      "portraits/huangtianhua-panel.png",
+      "portraits/window-1280x720.png",
+      "skills/04-buff-and-effective-stats.png",
+      "skills/05-heal-and-completed-action.png"
+    ]
+  },
+  "unchanged_since_compact_armies": {
+    "data/world.json": true,
+    "scripts/map_army.gd": true,
+    "scripts/game.gd": true,
+    "scripts/map_tactics.gd": true
+  },
+  "source_sha256": {
+    "scripts/commander_panel.gd": "b85ccd006dcc8f2c29d1e8196003eb8cb06ab8aabaf9f6ec2b5c40709c33fcc7",
+    "scripts/hud.gd": "3bb51c1b092440ec3a5efe842c6e983bd9d576ce9da439594109c3b87a8b9c6b",
+    "assets/ui/painted/panel.png": "006c52eb174218381971d3659b00c8d8444e3b326f940f021a8c135ec31d33eb"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "programs": [],
+  "stream_groups": [],
+  "streams": [
+    {
+      "codec_name": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "r_frame_rate": "30/1"
+    },
+    {
+      "codec_name": "aac",
+      "r_frame_rate": "0/0"
+    },
+    {
+      "codec_name": "bin_data",
+      "r_frame_rate": "0/0"
+    }
+  ],
+  "format": {
+    "duration": "35.800000",
+    "size": "18772865"
+  },
+  "sha256": "b3fca184cf566c0173d816a917d37d105c13e8663636464a0f7fd261951aace0",
+  "decoded_frame_verified": true
+}

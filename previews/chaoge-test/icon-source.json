@@ -1,0 +1,20 @@
+{
+  "asset": "assets/ui/skills/hero_icons.png",
+  "source": "/workspace/generated_images/exec-dc1cc856-b1da-402d-83c2-e2580980b82c.png",
+  "sha256": "b46f7dcced33c01c49361bc38fad5a92a1600f79979a183a07ffd471efce78d3",
+  "columns": 3,
+  "rows": 3,
+  "cells": [
+    "qiankun",
+    "samadhi",
+    "fire_field",
+    "three_heads_six_arms",
+    "thunder_whip",
+    "nine_thunders",
+    "thunder_seal",
+    "thunder_master",
+    "empty_artifact"
+  ],
+  "opaque": true,
+  "source_pixels_unmodified": true
+}

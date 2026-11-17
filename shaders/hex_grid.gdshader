@@ -2,6 +2,7 @@ shader_type canvas_item;
 render_mode unshaded;
 
 uniform float hex_radius : hint_range(32.0, 256.0) = 96.0;
+uniform float grid_y_scale : hint_range(0.4, 1.0) = 0.70710678118;
 uniform float grid_opacity : hint_range(0.0, 1.0) = 0.38;
 uniform float line_width_px : hint_range(0.5, 3.0) = 1.0;
 uniform vec4 ink_color : source_color = vec4(0.12, 0.18, 0.14, 1.0);
@@ -33,17 +34,21 @@ vec2 axial_round(vec2 axial) {
 
 void fragment() {
 	const float SQRT3 = 1.7320508075688772;
-	vec2 axial = vec2(map_position.x / SQRT3 - map_position.y / 3.0,
-		map_position.y * 2.0 / 3.0) / hex_radius;
+	vec2 plane = map_position / vec2(1.0, grid_y_scale);
+	vec2 axial = vec2(plane.x / SQRT3 - plane.y / 3.0,
+		plane.y * 2.0 / 3.0) / hex_radius;
 	vec2 cell = axial_round(axial);
 	vec2 center = hex_radius * vec2(SQRT3 * (cell.x + cell.y * 0.5), cell.y * 1.5);
-	vec2 offset = abs(map_position - center);
+	vec2 offset = abs(plane - center);
 	float edge_distance = hex_radius * 0.8660254037844386
 		- max(offset.x, offset.x * 0.5 + offset.y * 0.8660254037844386);
 	float world_pixel = max(length(dFdx(map_position)), length(dFdy(map_position)));
-	float aa = max(fwidth(edge_distance), world_pixel * 0.55);
-	float half_line = world_pixel * line_width_px * 0.5;
-	float line = 1.0 - smoothstep(max(0.0, half_line - aa * 0.4), half_line + aa * 0.6, edge_distance);
+	// Screen-space edge distance keeps diagonal and vertical lines equally thin
+	// on the projected grid, including at fractional zoom levels.
+	float gradient = max(length(vec2(dFdx(edge_distance), dFdy(edge_distance))), 0.0001);
+	float edge_px = edge_distance / gradient;
+	float half_line = line_width_px * 0.5;
+	float line = 1.0 - smoothstep(max(0.0, half_line - 0.4), half_line + 0.6, edge_px);
 	float overview_fade = mix(0.45, 1.0, smoothstep(5.0, 22.0, hex_radius / world_pixel));
 	float alpha = line * grid_opacity * overview_fade;
 	vec3 rgb = ink_color.rgb;

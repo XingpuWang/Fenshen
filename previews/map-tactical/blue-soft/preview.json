@@ -1,0 +1,13 @@
+{
+  "change": "Slightly lighter blue fill; dark-blue borders retained",
+  "fill": "#17479c",
+  "fill_opacity": {
+    "previous_center": 0.62,
+    "center": 0.55,
+    "gradient": 0.055
+  },
+  "border": "#164586",
+  "source_sha256": "44ecfa2c76a4b66b0a76a1883323ce20979305233b6d600801ba8f3535d8dc6a",
+  "verification": "Actual Godot viewport, hero selection and legal five-point march preview",
+  "screenshot": "tactical-route.png"
+}

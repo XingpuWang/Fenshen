@@ -1,0 +1,8 @@
+{
+	"captures": 6,
+	"checks": 95,
+	"engine": "4.6.3-stable (official)",
+	"failures": [],
+	"grid_y_scale": 0.707106781186548,
+	"map_aspect_unchanged": true
+}

@@ -1,0 +1,44 @@
+{
+  "change": "Scale map soldiers and banner to 45 percent and center the formation over its occupied hex. Keep hero badge text readable and place it closer to the army.",
+  "validated_at_utc": "2026-11-17T09:32:42.838396+00:00",
+  "formation_linear_scale": 0.45,
+  "grid_radius": 80,
+  "selection": "The occupied hex and opaque model pixels select the army; neighboring empty ground accepts movement clicks.",
+  "checks": {
+    "presentation": {
+      "captures": 6,
+      "checks": 102,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "map_aspect_unchanged": true,
+      "radius": 80.0
+    },
+    "navigation_and_ferry": {
+      "captures": 9,
+      "checks": 20,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+    }
+  },
+  "all_passed": true,
+  "total_checks": 122,
+  "screenshot": {
+    "path": "tactical-route.png",
+    "source": "Actual Godot viewport from a fresh campaign",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "sha256": "e18068ae80c4a1c9268f64cf184538deb62de295352dbaf558ecaa302c198bd2"
+  },
+  "source_sha256": {
+    "scripts/map_army.gd": "fd19eb49efc8da57d21273a356d7b5eaee0a77e1f1f7e599798be48ae1537015",
+    "scripts/game.gd": "dbe78a2519bc07727f328b8ffb505f50d27a14d6791b56f5ff485a9b193d7d9f",
+    "scripts/map_layer.gd": "df36437e72f872db61f27b2e768b9a7f232cd4e9b3c880c0d6784954a6e89730",
+    "tests/map_presentation_runtime.gd": "9505fcebbdb981e60db7202658625ba04c5f02824de7cb7147fea88eab5c6327",
+    "data/world.json": "a71578f8a4bba823d65bcc7a5917508898c7d05acab8a49e7efd3ec73bc43379",
+    "scripts/map_tactics.gd": "44ecfa2c76a4b66b0a76a1883323ce20979305233b6d600801ba8f3535d8dc6a"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "change": "Three fixed formation rows show each slot's troop type and count; empty rows stay blank. Three active skill cards show names and icons with hover descriptions. The bottom section contains only artifact slots.",
+  "validated_at_utc": "2026-11-17T11:38:18.088215+00:00",
+  "active_skills": [
+    "battle",
+    "ultimate",
+    "map"
+  ],
+  "artifact_slots": 3,
+  "formation_data": "Read unit.troops by slot index; never compact empty slots or substitute the total army count.",
+  "removed_from_army_information": [
+    "roster occupancy total",
+    "remaining movement row",
+    "movement segments"
+  ],
+  "tooltip_behavior": [
+    "updates with selected hero",
+    "wraps Chinese descriptions",
+    "shows cooldown, damage or range and cost",
+    "closes when leaving a card or the window",
+    "card clicks do not trigger game actions"
+  ],
+  "icons": "Reuse existing skill effects and painted UI art; static thumbnails load only the required texture sheets.",
+  "checks": {
+    "commander_panel": {
+      "active_skill_tooltips": 9,
+      "checks": 72,
+      "failures": [],
+      "formation_slots": 3,
+      "heroes": 3,
+      "resolutions": [
+        [
+          1920,
+          1080
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "sparse_rosters_preserved": true
+    },
+    "map_interactions": {
+      "captures": 6,
+      "checks": 102,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "map_aspect_unchanged": true,
+      "radius": 80.0
+    }
+  },
+  "all_passed": true,
+  "total_checks": 174,
+  "screenshots": [
+    "01-three-formations-and-skills-panel.png",
+    "01-three-formations-and-skills.png",
+    "03-nezha-ultimate-tooltip.png",
+    "06-window-1280x720-tooltip.png"
+  ],
+  "source_sha256": {
+    "scripts/commander_panel.gd": "87bbd1ce7cdb8568f38f35c890fa72930b9f819fb02e49188498bcaf484341d4",
+    "scripts/skill_icons.gd": "058e9dc2edd1d2ad684c04df77dd4a7f993c139e2b580cf874814a8ceeef946e",
+    "scripts/hud.gd": "de42909f0b0db5c31aa423e0ea89f619f248397a966510f0ac75d4da73f6172c",
+    "tests/commander_panel_runtime.gd": "0832935558dc2d9bb9848949ecb720bf5371a4f00b970abe83e2689e3518d207"
+  }
+}

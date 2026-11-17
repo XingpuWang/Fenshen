@@ -1,0 +1,7 @@
+{
+	"captures": 9,
+	"checks": 20,
+	"engine": "4.6.3-stable (official)",
+	"failures": [],
+	"renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+}

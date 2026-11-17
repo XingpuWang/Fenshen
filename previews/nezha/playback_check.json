@@ -1,0 +1,15 @@
+{
+  "video": {
+    "duration": 19.433333,
+    "width": 1100,
+    "height": 650,
+    "played": true,
+    "error": null
+  },
+  "offline": {
+    "mode": "unpacked_archive_via_local_http",
+    "ready": true,
+    "clips": 14,
+    "portraitLoaded": true
+  }
+}

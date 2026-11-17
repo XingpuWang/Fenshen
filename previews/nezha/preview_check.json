@@ -1,0 +1,78 @@
+{
+  "clips": 14,
+  "frames": 70,
+  "errors": [],
+  "mobileOverflow": false,
+  "checks": [
+    {
+      "key": "idle",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "run",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "attack",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "qiankun",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "samadhi",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "fire_field",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "hit",
+      "frames": 3,
+      "thumbnails": 3
+    },
+    {
+      "key": "defeat",
+      "frames": 3,
+      "thumbnails": 3
+    },
+    {
+      "key": "spear_fx",
+      "frames": 4,
+      "thumbnails": 4
+    },
+    {
+      "key": "ring_fx",
+      "frames": 4,
+      "thumbnails": 4
+    },
+    {
+      "key": "burn_fx",
+      "frames": 4,
+      "thumbnails": 4
+    },
+    {
+      "key": "passive_fx",
+      "frames": 4,
+      "thumbnails": 4
+    },
+    {
+      "key": "samadhi_fx",
+      "frames": 6,
+      "thumbnails": 6
+    },
+    {
+      "key": "fire_field_fx",
+      "frames": 6,
+      "thumbnails": 6
+    }
+  ]
+}

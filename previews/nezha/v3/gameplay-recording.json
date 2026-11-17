@@ -1,0 +1,127 @@
+{
+	"art_version": 3,
+	"attack_frames": 16,
+	"balance_overrides": false,
+	"battle_speed": 1,
+	"burn_seen": true,
+	"capture_fps": 30,
+	"demo_start": "legal land adjacent to an enemy settlement",
+	"engine": "4.6.3-stable (official)",
+	"frames": 1073,
+	"map_damage": 680,
+	"markers": [
+		{
+			"frame": 0,
+			"name": "大地图 · 哪吒头像与四技能",
+			"seconds": 0.0
+		},
+		{
+			"frame": 60,
+			"name": "三头六臂 · 被动说明",
+			"seconds": 2.0
+		},
+		{
+			"frame": 105,
+			"name": "火莲焚阵 · 目标范围",
+			"seconds": 3.5
+		},
+		{
+			"frame": 150,
+			"name": "火莲焚阵 · 结印与火柱",
+			"seconds": 5.0
+		},
+		{
+			"frame": 236,
+			"name": "阵前演武 · 双方列阵",
+			"seconds": 7.86666666666667
+		},
+		{
+			"frame": 430,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 14.3333333333333
+		},
+		{
+			"frame": 438,
+			"name": "灼烧 · 持续伤害",
+			"seconds": 14.6
+		},
+		{
+			"frame": 484,
+			"name": "火尖枪 · 普攻连刺",
+			"seconds": 16.1333333333333
+		},
+		{
+			"frame": 493,
+			"name": "三头六臂 · 金色法相",
+			"seconds": 16.4333333333333
+		},
+		{
+			"frame": 493,
+			"name": "三头六臂 · 范围溅射命中",
+			"seconds": 16.4333333333333
+		},
+		{
+			"frame": 585,
+			"name": "士气满额 · R 释放终结技",
+			"seconds": 19.5
+		},
+		{
+			"frame": 611,
+			"name": "三昧真火 · 火莲引爆",
+			"seconds": 20.3666666666667
+		},
+		{
+			"frame": 636,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 21.2
+		},
+		{
+			"frame": 833,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 27.7666666666667
+		},
+		{
+			"frame": 944,
+			"name": "战斗结算",
+			"seconds": 31.4666666666667
+		},
+		{
+			"frame": 1028,
+			"name": "返回大地图",
+			"seconds": 34.2666666666667
+		}
+	],
+	"ordinary_attack_seen": true,
+	"passive_spirit_seen": true,
+	"resolution": [
+		1920,
+		1080
+	],
+	"result": {
+		"elapsed": 23.6333333333333,
+		"enemy_morale": 83,
+		"enemy_remaining": 779,
+		"kills": [
+			1421,
+			2400
+		],
+		"morale": 85,
+		"player_remaining": 0,
+		"player_won": false,
+		"reason": "我军溃退",
+		"stats": {
+			"attacks": 198,
+			"collisions": 148368,
+			"finishers": 3,
+			"skills": 6,
+			"splash_hits": 16
+		}
+	},
+	"saved_campaign": false,
+	"seconds": 35.7666666666667,
+	"simulation_hz": 60,
+	"source": "actual Godot game viewport / Movie Maker",
+	"splash_seen": true,
+	"ultimate_impacts": 1,
+	"ultimate_releases": 1
+}

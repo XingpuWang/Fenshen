@@ -1,0 +1,130 @@
+{
+  "change": "Hex width and height increased by 25 percent at identical camera zoom; the original map artwork and the existing lighter-blue palette are retained.",
+  "validated_at_utc": "2026-11-17T09:13:08.272610+00:00",
+  "radius_before": 64,
+  "radius_after": 80,
+  "linear_scale_ratio": 1.25,
+  "grid_cells": 10692,
+  "grid_y_scale": 0.7071067811865476,
+  "map_art_and_annotations_unchanged": true,
+  "fill": "#17479c",
+  "fill_center_alpha": 0.55,
+  "border": "#164586",
+  "current_save_schema": 6,
+  "current_grid_revision": 3,
+  "legacy_grid_revisions": [
+    1,
+    2
+  ],
+  "legacy_save_schemas": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "legacy_position_migration": "Resolve original coordinates in the saved grid; move to legal unoccupied land within 240 world units. Invalid migration is rejected before changing the campaign.",
+  "ferry_correction": "Constrain endpoints to their authored sides of the river; all 25 ferries retain the two-point crossing cost.",
+  "checks": {
+    "grid_and_save_migration": {
+      "cells": 10692,
+      "checks": 3694,
+      "failures": [],
+      "grid_revision": 3.0,
+      "grid_y_scale": 0.707106781186548,
+      "legacy_grids": [
+        1,
+        2
+      ],
+      "legacy_schemas": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "radius": 80.0
+    },
+    "navigation_rules": {
+      "checks": 54033,
+      "counts": {
+        "city": 40,
+        "ferry": 25,
+        "pass": 27,
+        "village": 33
+      },
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "initial_reachable_cells": 117
+    },
+    "skills_rules": {
+      "checks": 111,
+      "failures": [],
+      "heroes": 5,
+      "morale_cost": 100,
+      "morale_per_kill": 0.1,
+      "morale_start": 50,
+      "skill_slots": 4
+    },
+    "economy_rules": {
+      "checks": 77,
+      "engine": "4.6.3-stable (official)",
+      "failures": []
+    },
+    "presentation_runtime": {
+      "captures": 6,
+      "checks": 100,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "map_aspect_unchanged": true,
+      "radius": 80.0
+    },
+    "navigation_runtime": {
+      "captures": 9,
+      "checks": 20,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+    },
+    "skills_runtime": {
+      "checks": 14,
+      "failures": [],
+      "resolution": [
+        1920,
+        1080
+      ]
+    }
+  },
+  "total_checks": 58049,
+  "all_passed": true,
+  "runtime_notes": [
+    "Software rendering through llvmpipe; this is functional validation, not a hardware frame-rate benchmark.",
+    "The skills runner reports an object/resource cleanup warning at process exit; all 14 functional checks pass."
+  ],
+  "screenshot": {
+    "path": "tactical-route.png",
+    "source": "Actual Godot viewport from a fresh campaign; no balance overrides",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "sha256": "3e3cf18bcea93e30b4c0255313cf21da490d02f7b41de0598848262eaf1576ea"
+  },
+  "source_sha256": {
+    "scripts/world_model.gd": "e42c53c1e5446302629cb4413a06f02770c271168e3736e66b82c667559d2279",
+    "scripts/game.gd": "35a8503a68046b4b9a92efb67ce56368371724e5f5b969c331097a57720c0334",
+    "scripts/map_tactics.gd": "44ecfa2c76a4b66b0a76a1883323ce20979305233b6d600801ba8f3535d8dc6a",
+    "scripts/map_layer.gd": "8cc3c79b09d9555b6c6c5719cadcbd1e97c41431705cfbf1b1ff465dd4d2c410",
+    "shaders/hex_grid.gdshader": "c7b6d7c89a0bfc13f7bdb94e6be66dc514568c4db50b15d8ab71b73450cb90b8",
+    "tools/build_world.cjs": "6d52e8981f873b0bbfe6e10d5018e6c9111e7bc5e923e059867a5b929a3648f2",
+    "data/world.json": "a71578f8a4bba823d65bcc7a5917508898c7d05acab8a49e7efd3ec73bc43379",
+    "data/legacy_grid_v1.json": "864761c9ce516d4c6e9c7afd33d20fb1b3938aeb1dcec7d18252c762719da7c3",
+    "data/legacy_grid_v2.json": "416e11eff46db53ab6c4d7e599c6d1944bde5c68934879d0f8b822328f18cec3",
+    "tests/navigation_check.gd": "bd8842a2b05ec8836ed37cfd7b906f8ed6f4e398712e8b4ad4942a69aa38d6f1",
+    "tests/grid_projection_check.gd": "0e5d65d0b2ab2ea9e04d76309a251ece4faa2d817bb727759db4f9f074b0ec15",
+    "tests/map_presentation_runtime.gd": "c9e3b9db69a13969b04e3c1364a490ec014ab1df0b9cfb055d2b380afbe2bd73"
+  }
+}

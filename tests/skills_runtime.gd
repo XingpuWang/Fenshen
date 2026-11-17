@@ -39,7 +39,20 @@ func run(game: Node, dir: String) -> void:
 	var before:=int(game.world.garrison(poi).soldiers)
 	click(game,game.world_to_screen(game.world.center(target)))
 	await get_tree().process_frame
+	check(game.is_map_casting() and unit.ap==ap and game.world.garrison(poi).soldiers==before,"click starts casting without early damage or spending")
+	var turn: int=game.world.turn
+	key(KEY_E)
+	key(KEY_2)
+	key(KEY_B)
+	game.action("guard")
+	game.cast_selected_map_skill(target)
+	await get_tree().process_frame
+	check(game.world.turn==turn and game.selected_unit==0 and not is_instance_valid(game.battle) and unit.ap==ap,"map cast locks turn, selection, battle and repeated casting")
+	while game.is_map_casting() and game.map_cast.age<1.13: await get_tree().process_frame
+	await shot(game,dir,"03-fire-lotus-impact")
+	while game.is_map_casting(): await get_tree().process_frame
 	check(not game.map_skill_targeting and unit.ap==0 and unit.action_done,"real left click casts and completes army action")
+	check(game.unit_nodes[0].get_node("Soldiers").visible,"map army visual restored after casting")
 	check(game.world.garrison(poi).soldiers<before and not game.interior.visible,"AOE hit does not accidentally enter settlement")
 	await shot(game,dir,"03-aoe-completes-action")
 	key(KEY_Q)

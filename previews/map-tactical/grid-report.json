@@ -1,0 +1,20 @@
+{
+	"cells": 10692,
+	"checks": 3694,
+	"failures": [],
+	"grid_revision": 3.0,
+	"grid_y_scale": 0.707106781186548,
+	"legacy_grids": [
+		1,
+		2
+	],
+	"legacy_schemas": [
+		1,
+		2,
+		3,
+		4,
+		5,
+		6
+	],
+	"radius": 80.0
+}

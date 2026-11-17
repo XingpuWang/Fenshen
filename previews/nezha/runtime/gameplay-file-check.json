@@ -1,0 +1,16 @@
+{
+  "video": "previews/nezha/nezha_gameplay_v2.mp4",
+  "duration_seconds": 33.8,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "audio": "AAC stereo / 48000 Hz / game audio",
+  "video_codec": "H.264",
+  "faststart": true,
+  "bytes": 20022618,
+  "sha256": "8a6678244f2b9ea6787e8f6e78ac3bb98f94301864a129b97252b7afd6060a1c",
+  "chapters": 6,
+  "browser_check": "runtime/gameplay-playback-check.json"
+}

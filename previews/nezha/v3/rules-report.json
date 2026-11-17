@@ -1,0 +1,8 @@
+{
+	"burn_cap": 3,
+	"burn_seconds": 4,
+	"checks": 568,
+	"failures": [],
+	"frames": 80,
+	"simulation_hz": 60
+}

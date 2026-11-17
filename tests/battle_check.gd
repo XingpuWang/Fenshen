@@ -88,13 +88,13 @@ func _initialize() -> void:
 	check(world.begin_battle(u,poi).is_empty(),"only one battle can be pending")
 	var turn := world.turn
 	world.next_turn()
-	check(world.turn==turn and world.save_game("/private/tmp/battle-busy.json")==ERR_BUSY,"campaign mutations and saving blocked in combat")
+	check(world.turn==turn and world.save_game("user://battle-busy.json")==ERR_BUSY,"campaign mutations and saving blocked in combat")
 	var loss := {"player_won":false,"player_remaining":3400,"enemy_remaining":800,"morale":30,"enemy_morale":55}
 	check(world.finish_battle(loss),"loss result applies")
 	check(u.soldiers==3400 and u.morale==30 and u.ap==before.ap-1 and u.cell==before.cell and poi.owner=="shang","loss keeps origin and spends one AP with real casualties")
 	check(world.garrison(poi).soldiers==800,"enemy survivors persist for next assault")
 	check(not world.finish_battle(loss),"result cannot be applied twice")
-	var save_path := "/private/tmp/fengshen-battle-save.json"
+	var save_path := "user://fengshen-battle-save.json"
 	check(world.save_game(save_path)==OK,"battle state saves atomically")
 	var loaded := World.new()
 	check(loaded.load_game(save_path) and loaded.units[0].troops==u.troops and loaded.units[0].morale==30 and loaded.garrison(loaded.by_poi[poi.id]).soldiers==800,"save restores morale roster and damaged garrison")

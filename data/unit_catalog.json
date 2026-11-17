@@ -36,8 +36,15 @@
           "damage_type": "magic",
           "multiplier": 1.05,
           "radius": 230,
-          "windup": 1,
-          "cooldown": 5.8
+          "windup": 0.61,
+          "cooldown": 5.8,
+          "release": 0.36,
+          "return_time": 0.86,
+          "duration": 1.04,
+          "shape": "line",
+          "range": 350,
+          "width": 90,
+          "description": "乾坤圈穿击前方敌军，附加1层灼烧。"
         },
         "ultimate": {
           "id": "samadhi",
@@ -45,8 +52,12 @@
           "damage_type": "magic",
           "multiplier": 2.6,
           "radius": 520,
-          "windup": 1.25,
-          "cooldown": 0
+          "windup": 0.84,
+          "cooldown": 0,
+          "duration": 1.3,
+          "detonation_per_stack": 0.35,
+          "detonation_cap": 3,
+          "description": "火莲爆发并引爆自身施加的灼烧，每层增加0.35倍魔攻系数，最多3层。"
         },
         "map": {
           "id": "fire_field",
@@ -58,14 +69,34 @@
           "power": 2.5
         },
         "passive": {
-          "id": "lotus_body",
-          "name": "莲花化身",
-          "description": "自身魔防 +15。",
+          "id": "three_heads_six_arms",
+          "name": "三头六臂",
+          "description": "普攻每段命中时，对主目标周围的其他敌军造成该段35%系数的物理溅射伤害；溅射不连锁。",
           "scope": "self",
-          "bonuses": {
-            "magic_defense": 15
-          }
+          "bonuses": {},
+          "trigger": "normal_attack_hit",
+          "damage_type": "physical",
+          "splash_multiplier": 0.35,
+          "splash_radius": 140
         }
+      },
+      "normal_attack": {
+        "hits": [
+          0.27,
+          0.465
+        ],
+        "multipliers": [
+          0.5,
+          0.5
+        ],
+        "duration": 0.845,
+        "burn_every_hits": 3
+      },
+      "burn": {
+        "max_stacks": 3,
+        "duration": 4.0,
+        "interval": 1.0,
+        "multiplier_per_stack": 0.12
       }
     },
     "nangongshi": {

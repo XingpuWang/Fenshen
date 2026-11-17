@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "reports": {
+    "chaoge_rules": {
+      "report": "previews/chaoge-test/rules-report.json",
+      "checks": 80,
+      "failures": []
+    },
+    "chaoge_runtime": {
+      "report": "previews/chaoge-test/runtime-report.json",
+      "checks": 57,
+      "failures": [],
+      "focused_interrupt_fixture": true
+    },
+    "commander_panel_runtime": {
+      "report": "previews/chaoge-test/commander-regression/runtime-report.json",
+      "checks": 100,
+      "failures": []
+    },
+    "map_runtime": {
+      "report": "previews/chaoge-test/map-regression/runtime-report.json",
+      "checks": 102,
+      "failures": []
+    },
+    "skills_rules": {
+      "report": "previews/skills/rules-report.json",
+      "checks": 111,
+      "failures": []
+    },
+    "battle_rules": {
+      "report": "previews/battle/rules-report.json",
+      "checks": 37,
+      "failures": []
+    },
+    "nezha_rules": {
+      "report": "previews/nezha/v3/rules-report.json",
+      "checks": 568,
+      "failures": []
+    },
+    "navigation_rules": {
+      "report": "previews/navigation-tests.json",
+      "checks": 54033,
+      "failures": []
+    }
+  }
+}

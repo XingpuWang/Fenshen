@@ -12,6 +12,15 @@ class Fighter:
 	var id: int
 	var side: int
 	var hero := false
+	var hero_id := ""
+	var normal_attack: Dictionary = {}
+	var normal_hits := 0
+	var hit_index := 0
+	var released := false
+	var cast_origin := Vector2.ZERO
+	var cast_target := Vector2.ZERO
+	var burns: Dictionary = {}
+	var magic_hit_age := 99.0
 	var slot := 0
 	var people := 0
 	var pos := Vector2.ZERO
@@ -80,6 +89,8 @@ func _spawn(side: int, count: int) -> void:
 	hero.hero = true
 	hero.radius = 38.0
 	var commander: Dictionary=encounter.player if side==0 else encounter.enemy
+	hero.hero_id = Catalog.hero_id(commander)
+	hero.normal_attack = Catalog.profile(commander).get("normal_attack", {}).duplicate(true)
 	hero.attributes=Catalog.effective_stats(commander)
 	hero.hp = float(hero.attributes.max_hp)
 	hero.max_hp = hero.hp
@@ -126,7 +137,7 @@ func finisher_reason(side: int) -> String:
 	if hero_for(side).hp <= 0: return "主将已退场"
 	if elapsed<INTRO: return "列阵中"
 	if morale[side]+.00001<FINISHER_COST: return "士气 %d / 100 · 击杀积累" % floori(morale[side]+.00001)
-	if hero_for(side).action in ["attack", "cast", "finisher"]: return "等待主将收招"
+	if hero_for(side).action=="finisher": return "终结技施放中"
 	return ""
 
 func use_finisher(side: int) -> bool:
@@ -135,6 +146,11 @@ func use_finisher(side: int) -> bool:
 	var target := _nearest(hero)
 	if target == null: return false
 	morale[side] = maxf(0,morale[side]-FINISHER_COST)
+	if hero.action in ["attack","cast"]:
+		events.append({"kind":"interrupt","source":hero.id,"side":side})
+	hero.walking=false
+	hero.velocity=Vector2.ZERO
+	hero.facing=1 if target.pos.x>=hero.pos.x else -1
 	_begin(hero, target, "finisher")
 	return true
 
@@ -142,10 +158,12 @@ func advance() -> void:
 	if not result.is_empty(): return
 	elapsed += STEP
 	if elapsed < INTRO: return
+	_advance_burns()
 	# Enemy obeys the same kill-earned resource gate; player release stays manual.
 	use_finisher(1)
 	for f in fighters:
 		f.hit_age += STEP
+		f.magic_hit_age += STEP
 		f.walking = false
 		if f.hp <= 0:
 			f.death_age += STEP
@@ -156,7 +174,16 @@ func advance() -> void:
 		f.velocity = f.velocity.move_toward(Vector2.ZERO, STEP * 500)
 		if f.action in ["attack", "cast", "finisher"]:
 			f.age += STEP
-			if not f.applied and f.age >= f.impact:
+			if f.hero_id == "nezha" and f.action == "cast" and not f.released and f.age >= float(kits[f.side].battle.release):
+				f.released = true
+				events.append({"kind":"ring", "source":f.id, "side":f.side, "from":f.cast_origin, "pos":f.cast_target,
+					"facing":f.facing, "life":float(kits[f.side].battle.return_time)-float(kits[f.side].battle.release)})
+			if f.action == "attack" and not f.normal_attack.is_empty():
+				while f.hit_index < f.normal_attack.hits.size() and f.age + .000001 >= float(f.normal_attack.hits[f.hit_index]):
+					_resolve_attack(f, float(f.normal_attack.multipliers[f.hit_index]))
+					f.hit_index += 1
+				f.applied = f.hit_index >= f.normal_attack.hits.size()
+			elif not f.applied and f.age + .000001 >= f.impact:
 				f.applied = true
 				_resolve_attack(f)
 			if f.age >= f.duration: f.action = "idle"
@@ -195,32 +222,106 @@ func _begin(f: Fighter, target: Fighter, kind: String) -> void:
 	f.action = kind
 	f.age = 0
 	f.applied = false
+	f.hit_index = 0
+	f.released = false
 	f.target = target.id
+	f.cast_origin = f.pos
+	f.cast_target = target.pos
 	var ability: Dictionary=kits[f.side].ultimate if kind=="finisher" else kits[f.side].battle
 	f.impact = float(ability.windup) if kind!="attack" else .32
 	f.duration = f.impact + (0.55 if kind != "attack" else 0.36)
+	if not f.normal_attack.is_empty() and kind == "attack":
+		f.impact = float(f.normal_attack.hits[0])
+		f.duration = float(f.normal_attack.duration)
+	elif f.hero_id == "nezha":
+		f.duration = float(ability.duration)
+		if kind == "cast":
+			var direction := (target.pos - f.pos).normalized()
+			if direction == Vector2.ZERO: direction = Vector2(f.facing, 0)
+			f.cast_target = f.pos + direction * float(ability.range)
 	f.cooldown = f.duration + (0.4 if f.hero else 0.7)
 	if kind == "cast": f.skill_clock = float(ability.cooldown)
 	if kind != "attack": events.append({"kind": "windup", "source": f.id, "pos": f.pos, "side": f.side})
 
-func _resolve_attack(f: Fighter) -> void:
+func _resolve_attack(f: Fighter, hit_multiplier: float = 1.0) -> void:
 	var target: Fighter = fighters[f.target]
 	if f.action == "attack":
 		stats.attacks += 1
 		# Damage belongs to the contact frame and still requires live reach.
 		if target.hp > 0 and f.pos.distance_to(target.pos) <= (174.0 if f.hero else 112.0):
-			_damage(f,target,Catalog.damage(f.attributes,target.attributes,"physical"),"hit")
+			_damage(f,target,Catalog.damage(f.attributes,target.attributes,"physical",hit_multiplier),"hit")
+			_resolve_splash(f,target,hit_multiplier)
+			f.normal_hits += 1
+			if f.hero_id == "nezha" and f.normal_hits % int(f.normal_attack.burn_every_hits) == 0:
+				apply_burn(f, target)
 		return
 	var finisher := f.action == "finisher"
 	stats["finishers" if finisher else "skills"] += 1
-	var center := target.pos
+	var center := f.cast_target if f.hero_id == "nezha" else target.pos
 	var ability: Dictionary=kits[f.side].ultimate if finisher else kits[f.side].battle
-	events.append({"kind": "finisher" if finisher else "skill", "source": f.id, "pos": center, "side": f.side})
+	events.append({"kind": "finisher" if finisher else "skill", "source": f.id, "pos": center, "side": f.side, "ability":ability.id})
 	for enemy: Fighter in sides[1-f.side]:
-		if enemy.hp > 0 and enemy.pos.distance_to(center) <= float(ability.radius):
-			_damage(f,enemy,Catalog.damage(f.attributes,enemy.attributes,ability.damage_type,float(ability.multiplier)),"finisher_hit" if finisher else "skill_hit")
+		if enemy.hp <= 0: continue
+		var in_area := enemy.pos.distance_to(center) <= float(ability.radius)
+		if f.hero_id == "nezha" and not finisher:
+			var segment := center - f.cast_origin
+			var projection := (enemy.pos-f.cast_origin).dot(segment) / maxf(1.0,segment.length_squared())
+			var closest := f.cast_origin + segment * clampf(projection,0,1)
+			in_area = projection >= 0 and projection <= 1 and enemy.pos.distance_to(closest) <= float(ability.width)
+		if not in_area: continue
+		var multiplier := float(ability.multiplier)
+		if finisher and f.hero_id == "nezha":
+			var stacks := burn_stacks(enemy, f.id)
+			multiplier += mini(stacks,int(ability.detonation_cap)) * float(ability.detonation_per_stack)
+			enemy.burns.erase(f.id)
+			if stacks > 0: events.append({"kind":"detonate", "pos":enemy.pos, "side":f.side, "source":f.id, "target":enemy.id, "stacks":stacks})
+		_damage(f,enemy,Catalog.damage(f.attributes,enemy.attributes,ability.damage_type,multiplier),"finisher_hit" if finisher else "skill_hit", ability.damage_type)
+		if not finisher and f.hero_id == "nezha": apply_burn(f, enemy)
 
-func _damage(source: Fighter, target: Fighter, amount: float, kind: String) -> void:
+func burn_stacks(target: Fighter, source_id: int = -1) -> int:
+	if source_id >= 0: return int(target.burns.get(source_id, {}).get("stacks", 0))
+	var total := 0
+	for burn in target.burns.values(): total += int(burn.stacks)
+	return total
+
+func apply_burn(source: Fighter, target: Fighter) -> void:
+	if target.hp <= 0 or source.side == target.side or source.hero_id != "nezha": return
+	var spec: Dictionary = Catalog.DATA.heroes.nezha.burn
+	var burn: Dictionary = target.burns.get(source.id, {"stacks":0, "tick":float(spec.interval)})
+	burn.stacks = mini(int(spec.max_stacks), int(burn.stacks) + 1)
+	burn.remaining = float(spec.duration)
+	burn.damage = Catalog.damage(source.attributes,target.attributes,"magic",float(spec.multiplier_per_stack))
+	target.burns[source.id] = burn
+
+func _advance_burns() -> void:
+	for target in fighters:
+		if target.hp <= 0:
+			target.burns.clear()
+			continue
+		for source_id in target.burns.keys():
+			if target.hp <= 0: break
+			var burn: Dictionary = target.burns[source_id]
+			burn.remaining -= STEP
+			burn.tick -= STEP
+			if float(burn.tick) <= .000001 and float(burn.remaining) >= -.000001:
+				burn.tick += float(Catalog.DATA.heroes.nezha.burn.interval)
+				_damage(fighters[int(source_id)],target,float(burn.damage)*int(burn.stacks),"burn_hit","magic")
+			if float(burn.remaining) <= .000001: target.burns.erase(source_id)
+
+func _resolve_splash(source: Fighter, primary: Fighter, hit_multiplier: float) -> void:
+	if not source.hero: return
+	var passive: Dictionary=kits[source.side].passive
+	if passive.id!="three_heads_six_arms": return
+	# Resolve directly through damage: secondary contacts cannot trigger another
+	# attack, burn counter or splash. A killing primary blow still splashes.
+	for enemy: Fighter in sides[1-source.side]:
+		if enemy.id==primary.id or enemy.hp<=0: continue
+		if enemy.pos.distance_squared_to(primary.pos)>pow(float(passive.splash_radius),2): continue
+		var amount:=Catalog.damage(source.attributes,enemy.attributes,"physical",hit_multiplier*float(passive.splash_multiplier))
+		_damage(source,enemy,amount,"splash_hit")
+		stats["splash_hits"]=int(stats.get("splash_hits",0))+1
+
+func _damage(source: Fighter, target: Fighter, amount: float, kind: String, damage_type: String = "physical") -> void:
 	if target.hp<=0 or source.side==target.side: return
 	var before:=ceili(target.people*target.hp/target.max_hp) if not target.hero else 0
 	var actual := minf(target.hp, amount)
@@ -228,12 +329,15 @@ func _damage(source: Fighter, target: Fighter, amount: float, kind: String) -> v
 	var defeated:=before-ceili(target.people*target.hp/target.max_hp) if not target.hero else 0
 	kills[source.side]+=defeated
 	morale[source.side]=minf(100,morale[source.side]+defeated*float(Catalog.DATA.morale.per_kill))
-	target.hit_age = 0
-	target.velocity = (target.pos - source.pos).normalized() * (110.0 if kind != "hit" else 24.0)
+	if kind != "burn_hit":
+		target.hit_age = 0
+		target.velocity = (target.pos - source.pos).normalized() * (24.0 if kind in ["hit","splash_hit"] else 110.0)
+	if damage_type == "magic" and target.magic_hit_age >= .4: target.magic_hit_age = 0
 	if target.hp <= 0:
 		target.action = "fall"
 		target.age = 0
-	events.append({"kind": kind, "pos": target.pos, "side": source.side, "amount": roundi(actual), "target": target.id})
+		target.burns.clear()
+	events.append({"kind": kind, "pos": target.pos, "side": source.side, "source":source.id, "amount": roundi(actual), "target": target.id, "damage_type":damage_type})
 
 func _resolve_bodies() -> void:
 	# Symmetric circle separation for allies AND enemies, including heroes.

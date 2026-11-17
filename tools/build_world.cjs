@@ -15,10 +15,10 @@ wuyue:{label:'吴越',g:[1,1],c:[['建业',428,513,94,61],['吴郡',360,292],['�
 };
 const editable=path.join(root,'data/annotations.json');
 if(fs.existsSync(editable))Object.assign(regionDefs,JSON.parse(fs.readFileSync(editable,'utf8')));
-const R=64, SQ=Math.sqrt(3),MIN=-3584,MAX=7680;
+const R=80, SQ=Math.sqrt(3),MIN=-3584,MAX=7680, GRID_Y_SCALE=Math.SQRT1_2;
 const toW=(r,p)=>[Math.round(r.g[0]*3584+p[0]*4.096),Math.round(r.g[1]*3584+p[1]*4.096)];
-function hex(p){let q=(p[0]/SQ-p[1]/3)/R,r=p[1]*2/3/R,s=-q-r;let Q=Math.round(q),T=Math.round(r),S=Math.round(s);let a=Math.abs(Q-q),b=Math.abs(T-r),c=Math.abs(S-s);if(a>b&&a>c)Q=-T-S;else if(b>c)T=-Q-S;return[Q,T];}
-function world(q,r){return [R*SQ*(q+r*.5),R*1.5*r]}; const key=h=>h.join(',');
+function hex(p){const y=p[1]/GRID_Y_SCALE;let q=(p[0]/SQ-y/3)/R,r=y*2/3/R,s=-q-r;let Q=Math.round(q),T=Math.round(r),S=Math.round(s);let a=Math.abs(Q-q),b=Math.abs(T-r),c=Math.abs(S-s);if(a>b&&a>c)Q=-T-S;else if(b>c)T=-Q-S;return[Q,T];}
+function world(q,r){return [R*SQ*(q+r*.5),R*1.5*r*GRID_Y_SCALE]}; const key=h=>h.join(',');
 function inside(x,y,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>y)!=(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
 (async()=>{
 const pois=[],mountains=[],regions=[],corridors=[];
@@ -47,23 +47,28 @@ let closed=mask.slice();for(let y=1;y<W-1;y++)for(let x=1;x<W-1;x++){const i=y*W
 function poiAt(p){for(let t of pois){if(t.type==='ferry')continue;if(Math.abs(p[0]-t.position[0])<=t.half_size[0]&&Math.abs(p[1]-t.position[1])<=t.half_size[1])return t;}return null;}
 function terrain(p){if(p[0]<MIN||p[1]<MIN||p[0]>=MAX||p[1]>=MAX)return 3;let t=poiAt(p);if(t)return 0;const x=Math.floor((p[0]-MIN)/8),y=Math.floor((p[1]-MIN)/8);if(mask[y*W+x])return 1;for(let poly of mountains)if(inside(...p,poly)){if(corridors.some(c=>lineDist(p,...c)<105))return 0;return 2;}return 0;}
 const cells=[],index=new Map();
-for(let r=-38;r<=81;r++)for(let q=-110;q<=110;q++){const p=world(q,r);if(p[0]<MIN+25||p[0]>MAX-25||p[1]<MIN+25||p[1]>MAX-25)continue;let t=terrain(p); // sample corners too, keeping shoreline and mountain silhouettes conservative
- if(t===0&&!poiAt(p)){for(let k=0;k<6;k++){const a=(k*60-30)*Math.PI/180;const s=terrain([p[0]+Math.cos(a)*R*.47,p[1]+Math.sin(a)*R*.47]);if(s===1||s===2){t=s;break;}}}
+for(let r=Math.floor(MIN/(R*1.5*GRID_Y_SCALE))-1;r<=Math.ceil(MAX/(R*1.5*GRID_Y_SCALE))+1;r++)for(let q=Math.floor(MIN/(R*SQ)-r*.5)-1;q<=Math.ceil(MAX/(R*SQ)-r*.5)+1;q++){const p=world(q,r);if(p[0]<MIN+25||p[0]>MAX-25||p[1]<MIN+25||p[1]>MAX-25)continue;let t=terrain(p); // sample projected corners against the original unscaled artwork
+ if(t===0&&!poiAt(p)){for(let k=0;k<6;k++){const a=(k*60-30)*Math.PI/180;const s=terrain([p[0]+Math.cos(a)*R*.47,p[1]+Math.sin(a)*R*.47*GRID_Y_SCALE]);if(s===1||s===2){t=s;break;}}}
  let owner=poiAt(p);let c={q,r,t,p:owner?owner.id:'',n:[]};index.set(key([q,r]),cells.length);cells.push(c);}
 const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
 function segmentClear(a,b){for(let k=0;k<=12;k++){const t=k/12;if(terrain([a[0]*(1-t)+b[0]*t,a[1]*(1-t)+b[1]*t])!==0)return false;}return true;}
 for(const c of cells){if(c.t)continue;const a=world(c.q,c.r);for(const d of dirs){let ni=index.get(key([c.q+d[0],c.r+d[1]]));if(ni===undefined||cells[ni].t)continue;const nc=cells[ni];if(segmentClear(a,world(nc.q,nc.r))){ c.n.push(ni); const guard = new Set(); const b=world(nc.q,nc.r); for(let k=0;k<=12;k++){let t=k/12;let poi=poiAt([a[0]*(1-t)+b[0]*t,a[1]*(1-t)+b[1]*t]);if(poi)guard.add(poi.id);} if(guard.size){c.g ||= {}; c.g[ni]=[...guard];} }}}
 // Land bank endpoints are selected from actually connected land, never placed in the river.
 for(const p of pois){p.cells=[];for(let i=0;i<cells.length;i++)if(cells[i].p===p.id)p.cells.push(i);if(p.type==='ferry'){
- p.banks=p.bank_positions.map(bp=>{let best=-1,score=Infinity;for(let i=0;i<cells.length;i++){let c=cells[i];if(c.t||c.p||c.n.length<2)continue;let wp=world(c.q,c.r),d=Math.hypot(wp[0]-bp[0],wp[1]-bp[1]);if(d<score){score=d;best=i;}}return best;});
+ // Keep each endpoint on its authored side when a larger cell cannot fit near the river.
+ const midpoint=p.bank_positions[0].map((v,j)=>(v+p.bank_positions[1][j])/2);
+ p.banks=p.bank_positions.map(bp=>{let best=-1,score=Infinity;for(let i=0;i<cells.length;i++){let c=cells[i];if(c.t||c.p||c.n.length<2)continue;let wp=world(c.q,c.r);if((wp[0]-midpoint[0])*(bp[0]-midpoint[0])+(wp[1]-midpoint[1])*(bp[1]-midpoint[1])<=0)continue;let d=Math.hypot(wp[0]-bp[0],wp[1]-bp[1]);if(d<score){score=d;best=i;}}if(best<0)throw Error('Missing land bank: '+p.id);return best;});
  for(let b of p.banks){if(cells[b].p)throw Error('Duplicate ferry bank');cells[b].p=p.id;p.cells.push(b);}
  } }
 const units=[{id:'nezha',name:'哪吒',title:'先锋 · 虎贲营',position:toW(regionDefs.wanluo,[505,360]),soldiers:5200,max_ap:6},{id:'vanguard',name:'南路军',title:'锐士 · 白河营',position:toW(regionDefs.wanluo,[452,810]),soldiers:3600,max_ap:6},{id:'scouts',name:'北路军',title:'轻骑 · 孟津营',position:toW(regionDefs.wanluo,[574,162]),soldiers:2400,max_ap:8}];
 for(let u of units){let h=hex(u.position);let ci=index.get(key(h));if(ci===undefined||cells[ci].t||cells[ci].p){ci=cells.reduce((best,c,i)=>!c.t&&!c.p&&c.n.length>=3&&Math.hypot(...world(c.q,c.r).map((v,j)=>v-u.position[j]))<best.d?{i,d:Math.hypot(...world(c.q,c.r).map((v,j)=>v-u.position[j]))}:best,{i:0,d:Infinity}).i;}u.cell=ci;u.position=world(cells[ci].q,cells[ci].r);}
-const output={version:1,art_revision:'outpaint-v5-nine-regions',radius:R,bounds:[MIN,MIN,MAX-MIN,MAX-MIN],regions,pois,cells,units,mountains};
-fs.writeFileSync(root+'/data/world.json',JSON.stringify(output));fs.writeFileSync(root+'/data/annotations.json',JSON.stringify(regionDefs,null,2));
+const output={version:3,grid_revision:3,grid_y_scale:GRID_Y_SCALE,art_revision:'outpaint-v5-nine-regions',radius:R,bounds:[MIN,MIN,MAX-MIN,MAX-MIN],regions,pois,cells,units,mountains};
+fs.writeFileSync(root+'/data/world.json',JSON.stringify(output));
+if(!process.argv.includes('--navigation-only')) {
+fs.writeFileSync(root+'/data/annotations.json',JSON.stringify(regionDefs,null,2));
 const overlay=Buffer.alloc(W*W*4);for(let y=0;y<W;y++)for(let x=0;x<W;x++){let t=terrain([MIN+x*8,MIN+y*8]),i=(y*W+x)*4;overlay[i]=t===2?237:20;overlay[i+1]=t===2?84:160;overlay[i+2]=t===2?45:255;overlay[i+3]=t===1||t===2?130:0;}
 await sharp(overlay,{raw:{width:W,height:W,channels:4}}).png().toFile(root+'/data/terrain_mask.png');
 await sharp(root+'/assets/maps/overview.jpg').resize(W,W).composite([{input:overlay,raw:{width:W,height:W,channels:4}}]).jpeg({quality:85}).toFile(root+'/previews/navigation-audit.jpg');
+}
 console.log(JSON.stringify({cells:cells.length,land:cells.filter(c=>!c.t).length,water:cells.filter(c=>c.t===1).length,mountain:cells.filter(c=>c.t===2).length,pois:pois.length,counts:Object.fromEntries(['city','pass','village','ferry'].map(t=>[t,pois.filter(p=>p.type===t).length])),units},null,2));
 })();

@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-17",
+  "engine": "Godot 4.6.3",
+  "renderer": "Compatibility / llvmpipe",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "base_commit": "da468ea8e4710a1b3ac8ffb589c0acb5f3ee1837",
+  "runtime_integrated": true,
+  "wind_fire_wheels": false,
+  "checks": {
+    "nezha_rules_and_atlas": {
+      "checks": 511,
+      "failures": [],
+      "report": "previews/nezha/runtime/rules-report.json"
+    },
+    "battle_rules": {
+      "checks": 37,
+      "failures": [],
+      "report": "previews/battle/rules-report.json"
+    },
+    "skill_rules": {
+      "checks": 111,
+      "failures": [],
+      "report": "previews/skills/rules-report.json"
+    },
+    "battle_layout": {
+      "checks": 4277,
+      "failures": [],
+      "report": "previews/battle/layout-report.json"
+    },
+    "battle_input_and_campaign": {
+      "checks": 15,
+      "failures": [],
+      "report": "previews/nezha/runtime/battle/runtime-report.json"
+    },
+    "map_input_and_cast": {
+      "checks": 14,
+      "failures": [],
+      "report": "previews/nezha/runtime/map/ui-report.json"
+    },
+    "navigation": {
+      "checks": 59999,
+      "failures": [],
+      "report": "previews/navigation-tests.json"
+    }
+  },
+  "source_sha256": {
+    "scripts/nezha_art.gd": "dd8acea3aae959d10b343465357251172989800c7f33c8f3b8ab967af4b423b6",
+    "scripts/battle_rules.gd": "7788acbb203d5282928c5f2ad627d31cd0bf01e115214e69c1dbddf3e6688f76",
+    "scripts/battle_view.gd": "3a8044b133dabc1f2961603bf420879ccfd8ff58649d053437a6766e8d648aa1",
+    "scripts/game.gd": "41b8daab854503215f10b723c7fc3aed5efce2d36a82244471e73ca2fa781df1",
+    "scripts/map_layer.gd": "5c17c2f93374bc6787133bd67e45945ff7b25555281321ce58e4889ad62c8b3c",
+    "scripts/hud.gd": "c7d3a49c114f7ed3246a4a44e27413c4918cb4c06f8d589d01aabd161fd57c3e",
+    "data/unit_catalog.json": "74d86472834ac2c2d29376d7714d183ccab65d644cc49e741e3de0ca7cffd11a",
+    "data/nezha_art_v2.json": "749730f344a54ba488ad40933962722a0bee4819480ca1f4c5ec0f338a176ab9"
+  },
+  "performance": "Functional window regression only; dedicated GPU 60 FPS acceptance not performed."
+}

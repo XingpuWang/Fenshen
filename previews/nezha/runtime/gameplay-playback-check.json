@@ -1,0 +1,43 @@
+{
+  "browser": "156.0.8078.79",
+  "metadata": {
+    "duration": 33.8,
+    "width": 1920,
+    "height": 1080,
+    "codecSupport": "probably"
+  },
+  "playback": {
+    "time": 1.017175,
+    "frames": 35,
+    "audioBytes": 395,
+    "error": null
+  },
+  "seeks": [
+    {
+      "requested": 4.15,
+      "current": 4.15,
+      "readyState": 4,
+      "error": null
+    },
+    {
+      "requested": 12.55,
+      "current": 12.55,
+      "readyState": 4,
+      "error": null
+    },
+    {
+      "requested": 14.5,
+      "current": 14.5,
+      "readyState": 4,
+      "error": null
+    },
+    {
+      "requested": 19.3,
+      "current": 19.3,
+      "readyState": 4,
+      "error": null
+    }
+  ],
+  "ended": true,
+  "pageErrors": []
+}

@@ -1,0 +1,25 @@
+{
+	"checks": 15,
+	"failures": [],
+	"fps_average": 33.5597286223138,
+	"renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+	"result": {
+		"elapsed": 23.2833333333333,
+		"enemy_morale": 63,
+		"enemy_remaining": 0,
+		"kills": [
+			4200,
+			4821
+		],
+		"morale": 43,
+		"player_remaining": 379,
+		"player_won": true,
+		"reason": "敌阵溃散",
+		"stats": {
+			"attacks": 224,
+			"collisions": 338991,
+			"finishers": 5,
+			"skills": 6
+		}
+	}
+}

@@ -1,0 +1,19 @@
+{
+	"artifact_slots": 4,
+	"checks": 100,
+	"failures": [],
+	"formation_slots": 3,
+	"heroes": 3,
+	"resolutions": [
+		[
+			1920,
+			1080
+		],
+		[
+			1280,
+			720
+		]
+	],
+	"skill_tooltips": 12,
+	"sparse_rosters_preserved": true
+}

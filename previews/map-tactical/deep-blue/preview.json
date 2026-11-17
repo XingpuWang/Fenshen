@@ -1,0 +1,12 @@
+{
+  "change": "Deep-blue reachable hex fill and stronger blue borders",
+  "fill": "#17479c",
+  "fill_opacity": {
+    "center": 0.62,
+    "gradient": 0.055
+  },
+  "border": "#164586",
+  "source_sha256": "9b68081447f7dc6026564e4b02f8db43c34e64913a3d4f1e97e9978bec1df7f8",
+  "verification": "Actual Godot viewport captured after selecting a hero and planning a legal five-point march",
+  "screenshot": "tactical-route.png"
+}

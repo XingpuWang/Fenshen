@@ -1,0 +1,47 @@
+{
+	"balance_overrides": false,
+	"destination": 6106,
+	"fps": 30,
+	"markers": [
+		{
+			"frame": 7,
+			"name": "部队方阵、英雄头像与实时兵力",
+			"seconds": 0.233333333333333
+		},
+		{
+			"frame": 69,
+			"name": "点击南宫适头像选中部队",
+			"seconds": 2.3
+		},
+		{
+			"frame": 130,
+			"name": "斜俯视六边格与行军路线",
+			"seconds": 4.33333333333333
+		},
+		{
+			"frame": 175,
+			"name": "真实行军与移动动作",
+			"seconds": 5.83333333333333
+		},
+		{
+			"frame": 264,
+			"name": "放大查看方阵与圆形头像",
+			"seconds": 8.8
+		},
+		{
+			"frame": 324,
+			"name": "隐藏基础网格",
+			"seconds": 10.8
+		}
+	],
+	"projection_y": 0.70710678118,
+	"remaining_ap": 3,
+	"resolution": [
+		1920,
+		1080
+	],
+	"saved_campaign": false,
+	"seconds": 13.4,
+	"source": "actual Godot viewport / Movie Maker",
+	"start": "unchanged new campaign"
+}

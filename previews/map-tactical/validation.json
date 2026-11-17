@@ -1,0 +1,115 @@
+{
+  "summary": "Original map art stays at its original aspect and scale. Only the independently tessellated hex grid is projected. Gold chevrons follow actual navigation routes.",
+  "grid_y_scale": 0.7071067811865476,
+  "grid_cells": 16748,
+  "map_art_and_annotations_unchanged": true,
+  "current_save_schema": 6,
+  "legacy_save_schemas": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "legacy_position_migration": "original map coordinate to nearest legal unoccupied land within 192 world units; reject invalid positions atomically",
+  "checks": {
+    "grid_and_save_migration": {
+      "cells": 16748,
+      "checks": 5740,
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "legacy_schemas": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "presentation_runtime": {
+      "captures": 6,
+      "checks": 95,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "grid_y_scale": 0.707106781186548,
+      "map_aspect_unchanged": true
+    },
+    "navigation_runtime": {
+      "captures": 9,
+      "checks": 20,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+    },
+    "skills_runtime": {
+      "checks": 14,
+      "failures": [],
+      "resolution": [
+        1920,
+        1080
+      ]
+    },
+    "navigation_rules": {
+      "checks": 86495,
+      "counts": {
+        "city": 40,
+        "ferry": 25,
+        "pass": 27,
+        "village": 33
+      },
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "initial_reachable_cells": 123
+    },
+    "economy_rules": {
+      "checks": 77,
+      "engine": "4.6.3-stable (official)",
+      "failures": []
+    },
+    "skills_rules": {
+      "checks": 111,
+      "failures": [],
+      "heroes": 5,
+      "morale_cost": 100,
+      "morale_per_kill": 0.1,
+      "morale_start": 50,
+      "skill_slots": 4
+    }
+  },
+  "all_passed": true,
+  "total_checks": 92552,
+  "preview_video": {
+    "path": "previews/map-tactical/map-tactical-preview.mp4",
+    "sha256": "6962b1ab893b3f5b12a7ba66f68691a76767ac7f5ba6555ef1a29e910b93d2f8",
+    "metadata": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "color_space": "bt709",
+          "avg_frame_rate": "30/1"
+        }
+      ],
+      "format": {
+        "duration": "14.033333",
+        "size": "2364193"
+      }
+    }
+  },
+  "source_sha256": {
+    "scripts/game.gd": "35a8503a68046b4b9a92efb67ce56368371724e5f5b969c331097a57720c0334",
+    "scripts/world_model.gd": "78a69776ec73fb8d3d963452eb80b08a253779ee30724ab5c20e3f013700ac87",
+    "scripts/map_tactics.gd": "c9ad42658298eadb025c1919c1f35e67604d654b5a70e84b0c57a029f8b811bb",
+    "scripts/map_layer.gd": "8cc3c79b09d9555b6c6c5719cadcbd1e97c41431705cfbf1b1ff465dd4d2c410",
+    "scripts/map_army.gd": "c4b646813d4bf2131dc6c2b761522d1263517495c5775a4d3cce2dbc4360a891",
+    "shaders/hex_grid.gdshader": "c7b6d7c89a0bfc13f7bdb94e6be66dc514568c4db50b15d8ab71b73450cb90b8",
+    "tools/build_world.cjs": "90d876a6b443dca3c53c2abc1c9f75a7949654ff18bec2cdb665990e7b2d9e6f",
+    "data/world.json": "e260ad61d3c65a1978645a0d0e64f12b4ee6aca606a0a3aaf2f5df4648b2ba29",
+    "data/legacy_grid_v1.json": "864761c9ce516d4c6e9c7afd33d20fb1b3938aeb1dcec7d18252c762719da7c3"
+  }
+}

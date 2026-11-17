@@ -1,0 +1,107 @@
+{
+	"balance_overrides": false,
+	"battle_speed": 1,
+	"burn_seen": true,
+	"capture_fps": 30,
+	"demo_start": "legal land adjacent to an enemy settlement",
+	"engine": "4.6.3-stable (official)",
+	"frames": 1013,
+	"map_damage": 680,
+	"markers": [
+		{
+			"frame": 0,
+			"name": "大地图 · 哪吒头像与四技能",
+			"seconds": 0.0
+		},
+		{
+			"frame": 45,
+			"name": "火莲焚阵 · 目标范围",
+			"seconds": 1.5
+		},
+		{
+			"frame": 90,
+			"name": "火莲焚阵 · 结印与火柱",
+			"seconds": 3.0
+		},
+		{
+			"frame": 176,
+			"name": "阵前演武 · 双方列阵",
+			"seconds": 5.86666666666667
+		},
+		{
+			"frame": 370,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 12.3333333333333
+		},
+		{
+			"frame": 378,
+			"name": "灼烧 · 持续伤害",
+			"seconds": 12.6
+		},
+		{
+			"frame": 424,
+			"name": "火尖枪 · 普攻连刺",
+			"seconds": 14.1333333333333
+		},
+		{
+			"frame": 550,
+			"name": "士气满额 · R 释放终结技",
+			"seconds": 18.3333333333333
+		},
+		{
+			"frame": 576,
+			"name": "三昧真火 · 火莲引爆",
+			"seconds": 19.2
+		},
+		{
+			"frame": 605,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 20.1666666666667
+		},
+		{
+			"frame": 780,
+			"name": "乾坤圈 · 投出与回收",
+			"seconds": 26.0
+		},
+		{
+			"frame": 884,
+			"name": "战斗结算",
+			"seconds": 29.4666666666667
+		},
+		{
+			"frame": 968,
+			"name": "返回大地图",
+			"seconds": 32.2666666666667
+		}
+	],
+	"ordinary_attack_seen": true,
+	"resolution": [
+		1920,
+		1080
+	],
+	"result": {
+		"elapsed": 23.6333333333333,
+		"enemy_morale": 83,
+		"enemy_remaining": 779,
+		"kills": [
+			1421,
+			2400
+		],
+		"morale": 89,
+		"player_remaining": 0,
+		"player_won": false,
+		"reason": "我军溃退",
+		"stats": {
+			"attacks": 200,
+			"collisions": 150296,
+			"finishers": 3,
+			"skills": 6
+		}
+	},
+	"saved_campaign": false,
+	"seconds": 33.7666666666667,
+	"simulation_hz": 60,
+	"source": "actual Godot game viewport / Movie Maker",
+	"ultimate_impacts": 1,
+	"ultimate_releases": 1
+}

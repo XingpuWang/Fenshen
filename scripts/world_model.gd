@@ -17,14 +17,19 @@ var regions: Array
 var by_hex: Dictionary = {}
 var by_poi: Dictionary = {}
 var radius: float = 64.0
+var grid_y_scale: float=1.0
 var bounds := Rect2(-3584,-3584,11264,11264)
 var turn: int = 1
 var revision: int = 0
 var captured: int = 0
 var crossed: int = 0
+var test_scenario:=false
+var test_city_id:=""
 
 func _init(setup_campaign: bool = true) -> void:
 	data = JSON.parse_string(FileAccess.get_file_as_string("res://data/world.json"))
+	radius=float(data.radius)
+	grid_y_scale=float(data.get("grid_y_scale",1.0))
 	theme = JSON.parse_string(FileAccess.get_file_as_string("res://data/fengshen.json"))
 	cells = data.cells
 	pois = data.pois
@@ -67,11 +72,87 @@ func _init(setup_campaign: bool = true) -> void:
 		units[2].title = "西岐先锋 · 北巡关津"
 	economy = Economy.new(pois,theme)
 
+func setup_chaoge_test() -> void:
+	# An isolated, repeatable scenario. The campaign definition and saves stay intact.
+	test_scenario=true
+	for poi in pois:
+		if poi.name=="朝歌": test_city_id=poi.id; break
+	assert(not test_city_id.is_empty(),"Chaoge must exist on the real map")
+	var city: Dictionary=by_poi[test_city_id]
+	var desired:=Vector2(city.position[0],city.position[1])+Vector2(0,500)
+	var first:=-1
+	var second:=-1
+	var best:=INF
+	for a in cells.size():
+		if not walkable(a) or not str(cells[a].p).is_empty(): continue
+		if center(a).distance_squared_to(desired)>900*900: continue
+		for candidate in cells[a].n:
+			var b:=int(candidate)
+			if not walkable(b,"shang") or not str(cells[b].p).is_empty() or center(b).x<=center(a).x: continue
+			if not cells[a].get("g",{}).get(str(b),[]).is_empty(): continue
+			var score: float=((center(a)+center(b))*.5).distance_squared_to(desired)
+			if score<best: best=score; first=a; second=b
+	assert(first>=0 and second>=0,"Chaoge needs two adjacent legal land tiles")
+	units=[]
+	for i in 2:
+		var id: String=["nezha","wenzhong"][i]
+		var unit: Dictionary={"id":id,"hero_id":id,"name":Catalog.DATA.heroes[id].name,"title":["西岐先锋","殷商太师"][i],"faction":["player","shang"][i],"cell":[first,second][i],"soldiers":2400,"max_soldiers":2400,"effects":[],"action_done":false,"guarding":false,"morale":50}
+		unit.stats=Catalog.canonical_stats(Catalog.profile(unit).stats)
+		unit.max_ap=Catalog.movement(unit)
+		unit.ap=unit.max_ap
+		unit.troops=BattleRules.roster(int(unit.soldiers))
+		units.append(unit)
+
+func faction(unit: Dictionary) -> String:
+	return str(unit.get("faction","player"))
+
+func faction_for_unit(id: String) -> String:
+	for unit in units:
+		if unit.id==id: return faction(unit)
+	return "player"
+
+func field_battle_reason(unit: Dictionary,enemy: Dictionary) -> String:
+	if not pending_battle.is_empty(): return "交战中"
+	if not units.has(unit) or not units.has(enemy) or faction(unit)==faction(enemy): return "请选择敌方部队"
+	if int(unit.soldiers)<=0 or int(enemy.soldiers)<=0: return "部队已退场，结束回合后可重新测试"
+	if int(unit.ap)<1 or unit.action_done: return "本轮行动已结束"
+	if not cells[int(unit.cell)].n.has(int(enemy.cell)) and not cells[int(unit.cell)].n.has(float(enemy.cell)): return "需先行军到敌军相邻陆地"
+	return ""
+
+func begin_field_battle(unit: Dictionary,enemy: Dictionary) -> Dictionary:
+	if not field_battle_reason(unit,enemy).is_empty(): return {}
+	pending_battle={"kind":"field","test_scenario":test_scenario,"unit_id":unit.id,"enemy_unit_id":enemy.id,"origin":int(unit.cell),"enemy_origin":int(enemy.cell),"player":unit.duplicate(true),"enemy":enemy.duplicate(true),"title":"朝歌 · 阵前交锋"}
+	return pending_battle.duplicate(true)
+
+func finish_field_battle(result: Dictionary) -> bool:
+	var attacker: Dictionary={}
+	var defender: Dictionary={}
+	for unit in units:
+		if unit.id==pending_battle.unit_id: attacker=unit
+		if unit.id==pending_battle.enemy_unit_id: defender=unit
+	if attacker.is_empty() or defender.is_empty() or int(attacker.cell)!=pending_battle.origin or int(defender.cell)!=pending_battle.enemy_origin: return false
+	for key in ["player_remaining","enemy_remaining","morale","enemy_morale"]:
+		var maximum:=100 if key in ["morale","enemy_morale"] else int(pending_battle.player.soldiers if key=="player_remaining" else pending_battle.enemy.soldiers)
+		if not Economy.integer(result.get(key),0,maximum): return false
+	if not result.get("player_won") is bool or (result.player_won and int(result.player_remaining)<=0): return false
+	for i in 2:
+		var unit: Dictionary=[attacker,defender][i]
+		unit.soldiers=int(result["player_remaining" if i==0 else "enemy_remaining"])
+		unit.troops=BattleRules.roster(unit.soldiers)
+		unit.morale=int(result["morale" if i==0 else "enemy_morale"])
+		unit.guarding=false
+	attacker.ap=0
+	attacker.action_done=true
+	pending_battle.clear()
+	revision+=1
+	return true
+
 func center(id: int) -> Vector2:
 	var c: Dictionary = cells[id]
-	return radius * Vector2(sqrt(3.0)*(float(c.q)+float(c.r)*0.5),1.5*float(c.r))
+	return radius * Vector2(sqrt(3.0)*(float(c.q)+float(c.r)*0.5),1.5*float(c.r)*grid_y_scale)
 
 func hex_at(p: Vector2) -> Vector2i:
+	p.y/=grid_y_scale
 	var q := (p.x/sqrt(3.0)-p.y/3.0)/radius
 	var r := (p.y*2.0/3.0)/radius
 	var s := -q-r
@@ -117,14 +198,15 @@ func ferry_between(a: int,b: int) -> String:
 	return ""
 
 func edge_cost(a: int,b: int, unit_id: String = "") -> int:
-	if not walkable(a) or not walkable(b) or occupied(b,unit_id): return -1
+	var owner:=faction_for_unit(unit_id)
+	if not walkable(a,owner) or not walkable(b,owner) or occupied(b,unit_id): return -1
 	if cells[a].n.has(float(b)) or cells[a].n.has(b):
 		var guards: Array = cells[a].get("g",{}).get(str(b),[])
 		for pid in guards:
-			if by_poi[pid].owner != "player": return -1
+			if by_poi[pid].owner != owner: return -1
 		return 1
 	var fid := ferry_between(a,b)
-	if not fid.is_empty() and by_poi[fid].owner=="player": return 2
+	if not fid.is_empty() and by_poi[fid].owner==owner: return 2
 	return -1
 
 func neighbors(a: int, uid: String = "") -> Array:
@@ -134,7 +216,7 @@ func neighbors(a: int, uid: String = "") -> Array:
 	var pid: String = cells[a].p
 	if not pid.is_empty():
 		var p: Dictionary = by_poi[pid]
-		if p.type=="ferry" and p.owner=="player":
+		if p.type=="ferry" and p.owner==faction_for_unit(uid):
 			var b: int = int(p.banks[1]) if int(p.banks[0])==a else int(p.banks[0])
 			if edge_cost(a,b,uid)>0: result.append(b)
 	return result
@@ -206,6 +288,7 @@ func begin_battle(unit: Dictionary, poi: Dictionary) -> Dictionary:
 
 func finish_battle(result: Dictionary) -> bool:
 	if pending_battle.is_empty(): return false
+	if pending_battle.get("kind","")=="field": return finish_field_battle(result)
 	var unit: Dictionary = {}
 	for u in units:
 		if u.id == pending_battle.unit_id: unit = u
@@ -239,6 +322,9 @@ func next_turn() -> void:
 	economy.next_turn(by_poi)
 	turn+=1
 	for u in units:
+		if test_scenario:
+			u.soldiers=int(u.max_soldiers)
+			u.troops=BattleRules.roster(u.soldiers)
 		u.effects=u.effects.filter(func(effect: Dictionary)->bool: return int(effect.expires_turn)>turn)
 		u.max_ap=Catalog.movement(u)
 		u.ap=int(u.max_ap)
@@ -267,11 +353,16 @@ func map_skill_targets(unit: Dictionary, target: int) -> Dictionary:
 	result.cells=hex_disk(target,radius_cells)
 	if ability.effect in ["heal","buff"]:
 		for other in units:
+			if faction(other)!=faction(unit): continue
 			if hex_distance(int(other.cell),target)<=radius_cells:
 				if ability.effect!="heal" or int(other.soldiers)<int(other.max_soldiers): result.units.append(other.id)
 	elif ability.effect in ["aoe","debuff"]:
+		for other in units:
+			if faction(other)!=faction(unit) and int(other.soldiers)>0 and hex_distance(int(other.cell),target)<=radius_cells:
+				result.units.append(other.id)
+		if test_scenario: return result
 		for poi in pois:
-			if poi.owner!="shang": continue
+			if poi.owner not in ["player","shang"] or poi.owner==faction(unit): continue
 			for ci in poi.cells:
 				if hex_distance(int(ci),target)<=radius_cells:
 					if int(garrison(poi).soldiers)>0: result.garrisons.append(poi.id)
@@ -330,6 +421,14 @@ func cast_map_skill(unit: Dictionary, target: int) -> Dictionary:
 					amount+=healed
 				else: add_map_effect(other,ability)
 		"aoe","debuff":
+			for other in units:
+				if not other.id in targets.units: continue
+				if ability.effect=="aoe":
+					var damage:=mini(int(other.soldiers),roundi(Catalog.damage(Catalog.effective_stats(unit),Catalog.effective_stats(other,"halberd"),"magic",float(ability.power))*5))
+					other.soldiers-=damage
+					other.troops=BattleRules.roster(other.soldiers)
+					amount+=damage
+				else: add_map_effect(other,ability)
 			for pid in targets.garrisons:
 				var defender:=garrison(by_poi[pid])
 				if ability.effect=="aoe":
@@ -377,7 +476,7 @@ func save_game(file_path: String = "user://campaign.json") -> Error:
 	for p in pois: owners[p.id]=p.owner
 	var saved_garrisons: Dictionary={}
 	for pid in garrisons: saved_garrisons[pid]=garrison(by_poi[pid])
-	var save={"schema":5,"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units,"economy":economy.serialize(),"garrisons":saved_garrisons}
+	var save={"schema":6,"grid_revision":data.get("grid_revision",1),"art_revision":data.art_revision,"turn":turn,"captured":captured,"crossed":crossed,"owners":owners,"units":units,"economy":economy.serialize(),"garrisons":saved_garrisons}
 	var temp_path: String=file_path+".tmp"
 	var f=FileAccess.open(temp_path,FileAccess.WRITE)
 	if f==null: return FileAccess.get_open_error()
@@ -392,11 +491,15 @@ func load_game(file_path: String = "user://campaign.json") -> bool:
 	if not pending_battle.is_empty(): return false
 	if not FileAccess.file_exists(file_path): return false
 	var saved = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-	if not saved is Dictionary or not Economy.integer(saved.get("schema"),1,5) or saved.get("art_revision","")!=data.art_revision: return false
+	if not saved is Dictionary or not Economy.integer(saved.get("schema"),1,6) or saved.get("art_revision","")!=data.art_revision: return false
+	# Older clients must reject new cell indices rather than read them as grid v1.
+	if int(saved.schema)>=6 and not saved.has("grid_revision"): return false
 	# Validate the complete state before mutating the live campaign.
 	if not saved.get("owners",{}) is Dictionary or not saved.get("units",[]) is Array or saved.units.size()!=units.size(): return false
 	for p in pois:
 		if not saved.owners.get(p.id,"") in ["player","shang","neutral"]: return false
+	if not Economy.integer(saved.get("grid_revision",1),1,int(data.grid_revision)): return false
+	if int(saved.get("grid_revision",1))!=int(data.grid_revision) and not _migrate_legacy_grid(saved): return false
 	for key in ["turn","captured","crossed"]:
 		if not Economy.integer(saved.get(key),1 if key=="turn" else 0,1000000000): return false
 	var used_cells: Array = []
@@ -461,6 +564,45 @@ func load_game(file_path: String = "user://campaign.json") -> bool:
 	captured=int(saved.get("captured",0))
 	crossed=int(saved.get("crossed",0))
 	revision+=1
+	return true
+
+func _migrate_legacy_grid(saved: Dictionary) -> bool:
+	# Old saves store cell indices. Resolve their original artwork coordinates
+	# before selecting nearby legal cells in the independently projected grid.
+	var legacy: Array
+	var legacy_radius:=64.0
+	var legacy_y_scale:=1.0
+	match int(saved.get("grid_revision",1)):
+		1: legacy=JSON.parse_string(FileAccess.get_file_as_string("res://data/legacy_grid_v1.json"))
+		2:
+			var source: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/legacy_grid_v2.json"))
+			legacy=source.cells
+			legacy_radius=float(source.radius)
+			legacy_y_scale=float(source.grid_y_scale)
+		_: return false
+	var used: Array[int]=[]
+	var original_cells: Array[int]=[]
+	for unit in saved.units:
+		if not unit is Dictionary or not Economy.integer(unit.get("cell"),0,legacy.size()-1): return false
+		var old_id:=int(unit.cell)
+		if old_id in original_cells: return false
+		original_cells.append(old_id)
+		var old: Array=legacy[old_id]
+		if int(old[2])!=0 or (not str(old[3]).is_empty() and saved.owners.get(old[3],"")!="player"): return false
+		var position:=legacy_radius*Vector2(sqrt(3.0)*(float(old[0])+float(old[1])*.5),1.5*float(old[1])*legacy_y_scale)
+		var best:=-1
+		var distance:=pow(radius*3.0,2)
+		for ci in cells.size():
+			if int(cells[ci].t)!=0 or ci in used: continue
+			if not str(cells[ci].p).is_empty() and saved.owners.get(cells[ci].p,"")!="player": continue
+			var candidate:=center(ci).distance_squared_to(position)
+			if candidate<distance:
+				best=ci
+				distance=candidate
+		if best<0: return false
+		unit.cell=best
+		used.append(best)
+	saved.grid_revision=int(data.grid_revision)
 	return true
 
 static func heap_push(heap: Array, entry: Array) -> void:

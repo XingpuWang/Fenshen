@@ -14,6 +14,9 @@ func key(code: Key) -> void:
 	e.physical_keycode=code
 	e.pressed=false
 	Input.parse_input_event(e)
+	# Synthetic input must be dispatched before another fixed simulation step
+	# can start an automatic action and invalidate the displayed release window.
+	Input.flush_buffered_events()
 func click(game: Node, point: Vector2) -> void:
 	var e:=InputEventMouseButton.new()
 	e.button_index=MOUSE_BUTTON_LEFT
@@ -53,9 +56,12 @@ func run(game: Node, dir: String) -> void:
 	battle.debug_bodies=false
 	battle.sim=normal_sim
 	var original_id: String=battle.sim.encounter.player.id
+	var original_hero_id: String=battle.sim.hero_for(0).hero_id
 	battle.sim.encounter.player.id="vanguard"
+	battle.sim.hero_for(0).hero_id="nangongshi"
 	await shot(game,dir,"01f-general-full-body")
 	battle.sim.encounter.player.id=original_id
+	battle.sim.hero_for(0).hero_id=original_hero_id
 	game.get_window().size=Vector2i(1280,720)
 	await shot(game,dir,"01b-split-1280")
 	click(game,Vector2(1093,1012))
@@ -73,6 +79,7 @@ func run(game: Node, dir: String) -> void:
 	var captured_charge:=false
 	var captured_cast:=false
 	var captured_ultimate:=false
+	var paused_burn:=false
 	var released:=false
 	var started:=Time.get_ticks_msec()
 	while battle.sim.result.is_empty() and Time.get_ticks_msec()-started<180000:
@@ -85,14 +92,27 @@ func run(game: Node, dir: String) -> void:
 			await shot(game,dir,"03-automatic-cast")
 		if battle.sim.finisher_reason(0).is_empty() and not released:
 			key(KEY_R)
-			released=true
-		if battle.sim.stats.finishers>0 and not captured_ultimate:
+			released=battle.sim.hero_for(0).action=="finisher"
+		if not paused_burn:
+			for target: Rules.Fighter in battle.sim.sides[1]:
+				if target.burns.is_empty(): continue
+				key(KEY_SPACE)
+				await get_tree().process_frame
+				var paused_time: float=battle.sim.elapsed
+				var paused_effects: Array=battle.effects.duplicate(true)
+				var paused_stacks: Dictionary=target.burns.duplicate(true)
+				for i in 5: await get_tree().process_frame
+				check(battle.sim.elapsed==paused_time and target.burns==paused_stacks and battle.effects==paused_effects,"pause freezes burn expiry and active effects as well as simulation")
+				key(KEY_SPACE)
+				paused_burn=true
+				break
+		if battle.effects.any(func(e: Dictionary) -> bool: return e.kind=="finisher" and int(e.side)==0) and not captured_ultimate:
 			captured_ultimate=true
-			await get_tree().create_timer(0.22).timeout
 			await shot(game,dir,"04-morale-finisher")
 			key(KEY_X)
 	check(released and captured_ultimate,"R triggers available finisher and effects")
 	check(captured_cast,"hero automatically casts with visible windup")
+	check(paused_burn,"real combat applies visible burning to enemy units")
 	check(not battle.sim.result.is_empty(),"live battle reaches result")
 	while battle.result_age<1.5: await get_tree().process_frame
 	await shot(game,dir,"05-result")

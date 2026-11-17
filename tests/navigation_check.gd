@@ -29,6 +29,11 @@ func _initialize() -> void:
 			var a=int(p.banks[0])
 			var b=int(p.banks[1])
 			check(a!=b,"distinct ferry banks "+p.id)
+			var bank_a:=Vector2(p.bank_positions[0][0],p.bank_positions[0][1])
+			var bank_b:=Vector2(p.bank_positions[1][0],p.bank_positions[1][1])
+			var midpoint:=(bank_a+bank_b)*.5
+			check((w.center(a)-midpoint).dot(bank_a-midpoint)>0,"first ferry endpoint stays on its authored side "+p.id)
+			check((w.center(b)-midpoint).dot(bank_b-midpoint)>0,"second ferry endpoint stays on its authored side "+p.id)
 			check(w.edge_cost(a,b)==2,"owned ferry costs two "+p.id)
 			p.owner="neutral"
 			check(w.edge_cost(a,b)==-1,"closed ferry blocks "+p.id)

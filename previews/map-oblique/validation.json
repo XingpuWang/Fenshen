@@ -1,0 +1,90 @@
+{
+  "engine": "4.6.3-stable (official)",
+  "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+  "ground_pitch_degrees": 45,
+  "ground_vertical_scale": 0.70710678118,
+  "portrait_and_actor_proportions": "upright with inverse vertical projection",
+  "art_sources": "existing animated soldier atlas; runtime portrait crops of Nezha v2, existing commander and general art",
+  "navigation_fixture": "Neutral pass tests capture and route opening independently of combat balance; no production balance changes.",
+  "checks": {
+    "presentation": {
+      "captures": 6,
+      "checks": 45,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "projection_y": 0.70710678118
+    },
+    "navigation_runtime": {
+      "captures": 9,
+      "checks": 20,
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+    },
+    "skills_runtime": {
+      "checks": 14,
+      "failures": [],
+      "resolution": [
+        1920,
+        1080
+      ]
+    },
+    "nezha_rules": {
+      "burn_cap": 3,
+      "burn_seconds": 4,
+      "checks": 511,
+      "failures": [],
+      "frames": 70,
+      "simulation_hz": 60
+    },
+    "navigation_rules": {
+      "checks": 59999,
+      "counts": {
+        "city": 40,
+        "ferry": 25,
+        "pass": 27,
+        "village": 33
+      },
+      "engine": "4.6.3-stable (official)",
+      "failures": [],
+      "initial_reachable_cells": 122
+    }
+  },
+  "total_checks": 60589,
+  "all_passed": true,
+  "tracked_navigation_data_unchanged": true,
+  "sha256": {
+    "scripts/game.gd": "654f10572c0ccb701c787585e0263c589034efa218606f980e5a9ffdf20e3cb7",
+    "scripts/map_army.gd": "0027491c3da8a2ee32175ae2808bd19c9c26e229cead22600cf42e361f61aca9",
+    "scripts/map_portraits.gd": "299ac624b11d17e893bdbe279dd284e4055647b534a5b25235c4699c36c22277",
+    "scripts/map_layer.gd": "78202d63b42aa7d9d7113f871809d69eb5cf4bfa856a25a2ec86346e05811b89",
+    "scripts/nezha_art.gd": "b92d966d3fd71d8afaa46a897a2390b00c684b45e7d22575ce67bf90839d2438",
+    "shaders/hex_grid.gdshader": "87f35f67e3ab669695939ea6d801e8e52494222c5f64ada2aff2a74b95e16b59",
+    "assets/battle/motion/zhou_upright_v3.png.import": "18dfadad0d6bdb0c566be17686ea319f5f27d9f09adda9c894c2d1942e6ce879",
+    "assets/battle/motion/general_upright_v3.png.import": "2453f72ab9c85a676f2134aec62f53e74566b5347e7188e29159bb8a8b507c4d",
+    "assets/characters/nezha/nezha_fullbody_v2.png.import": "2bb40d9246ba0322f41b3e4f4e1fe86ca33290e60358bc6fba24b01b4aaeb0c7",
+    "assets/units/red_army.png.import": "303932daa63082ee329e0e90de3be5fff9ae48142c615c8e0e9d788f0a985296"
+  },
+  "preview_video": {
+    "path": "previews/map-oblique/map-armies-preview.mp4",
+    "sha256": "285136f4cf91609efc4824b8972c4acebb4e3b0afcd3a7ccd34921130b1ecfd6",
+    "metadata": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuvj420p",
+          "avg_frame_rate": "30/1"
+        }
+      ],
+      "format": {
+        "duration": "13.433333",
+        "size": "2599027"
+      }
+    }
+  }
+}

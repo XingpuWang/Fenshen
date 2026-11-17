@@ -1,0 +1,6 @@
+{
+	"checks": 80,
+	"failures": [],
+	"priority_phases": 8,
+	"scenario": "chaoge_test"
+}

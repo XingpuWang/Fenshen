@@ -1,0 +1,28 @@
+{
+  "assets": [
+    {
+      "asset": "assets/characters/nezha/v3/portrait.png",
+      "generated_source": "/workspace/generated_images/exec-a38c7c98-002b-480d-8cf1-9306bfc054ad.png",
+      "sha256": "50af066a6e78936e5c95fb62675002c66f5f0c2d0d97cc240288956d8a2e5c3e",
+      "source_pixels_unmodified": true
+    },
+    {
+      "asset": "assets/characters/nezha/v3/attack.png",
+      "generated_source": "/workspace/generated_images/exec-2e2ef064-2ad1-4a57-82bc-f707abe953fd.png",
+      "sha256": "ace4519906a72bc8e7894494f6f81d5bf77dc32c0fe9a88e3ffc4277f7eefc49",
+      "source_pixels_unmodified": true
+    },
+    {
+      "asset": "assets/characters/nezha/v3/actions.png",
+      "generated_source": "/workspace/generated_images/exec-e4f9dabc-1582-4526-a7d2-95f35e2d36da.png",
+      "sha256": "ac4daee13c313690cfe29ac45edb05ab172264c2a47ef52cac4ad91a4068a622",
+      "source_pixels_unmodified": true
+    },
+    {
+      "asset": "assets/characters/nezha/v3/three_heads_fx.png",
+      "generated_source": "/workspace/generated_images/exec-ed8ee239-5f23-4dbe-9869-f6ab01a9fe1b.png",
+      "sha256": "1d213a79a926347148719194bc8d2a6880b7cc737db720cb6a69fc6956b1a580",
+      "source_pixels_unmodified": true
+    }
+  ]
+}

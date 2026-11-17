@@ -32,7 +32,7 @@ func _initialize() -> void:
 	defensive=base.duplicate(true)
 	defensive.magic_defense+=100
 	check(Catalog.damage(base,defensive,"magic")<Catalog.damage(base,base,"magic"),"magic defense mitigates spells")
-	check(Catalog.effective_stats({"id":"nezha"}).magic_defense==45,"Nezha passive changes real magic defense")
+	check(Catalog.effective_stats({"id":"nezha"}).magic_defense==30 and Catalog.skill({"id":"nezha"},"passive").id=="three_heads_six_arms","Nezha splash passive replaces the old magic-defense bonus")
 	check(Catalog.effective_stats({"id":"vanguard"},"halberd").physical_defense==38,"army passive reaches infantry")
 	check(Catalog.effective_stats({"id":"scouts"}).max_hp==950,"health passive changes maximum life")
 	var sim:=Rules.new(encounter())
@@ -99,10 +99,10 @@ func _initialize() -> void:
 	var buff_battle:=Rules.new(entry)
 	check(buff_battle.hero_for(0).attributes.physical_attack==base_attack+12 and buff_battle.sides[0][1].attributes.physical_attack==35,"buff is carried into hero and troop simulation")
 	world.pending_battle.clear()
-	var save_path:="/private/tmp/fengshen-skills-save.json"
+	var save_path:="user://fengshen-skills-save.json"
 	check(world.save_game(save_path)==OK,"new skill state saves")
 	var loaded:=World.new()
-	check(loaded.load_game(save_path),"schema 5 restores successfully")
+	check(loaded.load_game(save_path),"current schema restores hero skills successfully")
 	check(loaded.units[0].stats==unit.stats and loaded.units[0].effects==unit.effects and loaded.units[1].action_done,"stats, effects and spent turn survive reload")
 	check(loaded.garrison(loaded.by_poi[poi.id]).soldiers==world.garrison(poi).soldiers,"AOE garrison damage survives reload")
 	world.next_turn()

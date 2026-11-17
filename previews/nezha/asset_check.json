@@ -1,0 +1,88 @@
+{
+  "source_images_modified": false,
+  "alpha_edge_threshold": 160,
+  "frames": 70,
+  "warnings": [],
+  "sheets": {
+    "idle": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.707
+    },
+    "run": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.6122
+    },
+    "attack": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.6516
+    },
+    "qiankun": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.7152
+    },
+    "samadhi": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.7553
+    },
+    "fire_field": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.709
+    },
+    "recovery": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.7046
+    },
+    "combat_fx": {
+      "size": [
+        1254,
+        1254
+      ],
+      "frames": 16,
+      "fully_transparent_fraction": 0.435
+    },
+    "samadhi_fx": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.7364
+    },
+    "fire_field_fx": {
+      "size": [
+        1536,
+        1024
+      ],
+      "frames": 6,
+      "fully_transparent_fraction": 0.4987
+    }
+  }
+}

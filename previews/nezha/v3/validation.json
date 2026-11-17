@@ -1,0 +1,66 @@
+{
+  "engine": "Godot 4.6.3",
+  "art_version": 3,
+  "checks": 5209,
+  "failures": [],
+  "reports": [
+    {
+      "path": "previews/nezha/v3/rules-report.json",
+      "checks": 568,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v3/panel/runtime-report.json",
+      "checks": 100,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v3/map-regression/runtime-report.json",
+      "checks": 102,
+      "failures": []
+    },
+    {
+      "path": "previews/nezha/v3/map-skills/ui-report.json",
+      "checks": 14,
+      "failures": []
+    },
+    {
+      "path": "previews/battle/rules-report.json",
+      "checks": 37,
+      "failures": []
+    },
+    {
+      "path": "previews/battle/layout-report.json",
+      "checks": 4277,
+      "failures": []
+    },
+    {
+      "path": "previews/skills/rules-report.json",
+      "checks": 111,
+      "failures": []
+    }
+  ],
+  "verified": [
+    "4 skill slots including passive; 4 artifact slots",
+    "3 fixed formation rows preserve holes",
+    "independent warm portrait and chibi actor atlases",
+    "16 attack poses; contacts at 0.270 and 0.465 seconds",
+    "35% physical splash around primary, radius 140, no chain/friendly fire",
+    "both Nezha sides, casualty morale and no duplicate kills",
+    "existing burn, ring, ultimate and map skill behavior",
+    "1920x1080 and 1280x720 input and tooltip layout",
+    "map aspect unchanged; radius 80 and hex pitch retained"
+  ],
+  "gameplay": {
+    "art_version": 3,
+    "attack_frames": 16,
+    "balance_overrides": false,
+    "ordinary_attack_seen": true,
+    "passive_spirit_seen": true,
+    "splash_seen": true,
+    "ultimate_impacts": 1,
+    "map_damage": 680,
+    "saved_campaign": false,
+    "splash_hits": 16
+  }
+}
