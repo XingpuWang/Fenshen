@@ -4,6 +4,14 @@ extends RefCounted
 static var textures: Dictionary = {}
 static var source_fallbacks: Array[String] = []
 
+static func _source_changed(path: String, imported_path: String) -> bool:
+	# In a checkout opened directly after git pull, the old .ctex can still exist.
+	if FileAccess.get_modified_time(path) < FileAccess.get_modified_time(imported_path): return false
+	var digest_path := imported_path.get_basename() + ".md5"
+	if not FileAccess.file_exists(digest_path): return false
+	var manifest := FileAccess.get_file_as_string(digest_path)
+	return manifest.contains("source_md5=") and not manifest.contains('source_md5="' + FileAccess.get_md5(path) + '"')
+
 static func get_texture(path: String) -> Texture2D:
 	if textures.has(path): return textures[path]
 	var settings := ConfigFile.new()
@@ -11,6 +19,8 @@ static func get_texture(path: String) -> Texture2D:
 	var imported_path: String = settings.get_value("remap", "path", "") if has_settings else ""
 	var imported_ready := not imported_path.is_empty() and FileAccess.file_exists(imported_path)
 	var source_available := FileAccess.file_exists(path)
+	if imported_ready and source_available and _source_changed(path, imported_path):
+		imported_ready = false
 	var texture: Texture2D
 	# Exported builds use Godot's resource remaps and need no original PNG.
 	if imported_ready or not source_available:

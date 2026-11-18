@@ -4,23 +4,23 @@
   "sheets": {
     "actions": {
       "size": [
-        1536,
-        1024
+        1792,
+        1088
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.6751,
-      "sha256": "ece4d113fdba7218a59f4cd88b592aded87e1e6e8d60e0794a2d73b445b208c9"
+      "fully_transparent_fraction": 0.803,
+      "sha256": "f930393f2eef2ef3333ff01259394152bffe0bc480f2890c8aa106f922165fec"
     },
     "attack": {
       "size": [
-        1536,
-        1024
+        1792,
+        1088
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.6767,
-      "sha256": "522a0b1aaf80dc5f9926b3cce115d70e7c3d19b301d9603f90c78ccb9b2a5cb1"
+      "fully_transparent_fraction": 0.813,
+      "sha256": "496c5cfbe825e7a2432e69fe987a8c3f40bc6ec023b2c8587b0c58c56ac66c0c"
     },
     "qiankun": {
       "size": [

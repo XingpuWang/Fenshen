@@ -147,6 +147,7 @@ func _initialize() -> void:
 	var largest_step:=0.0
 	var peak_zoom:=1.0
 	var spells:={}
+	var impact_exposure: Array[float]=[]
 	for i in 155:
 		view.sim.advance()
 		view.advance_effects(Rules.STEP)
@@ -157,11 +158,26 @@ func _initialize() -> void:
 		for fx in view.effects:
 			if fx.kind=="finisher" and fx.age==0:
 				spells[fx.ability]=fx
+				impact_exposure.append(view.cinema.exposure_pulse)
+	check(impact_exposure.size()==2 and impact_exposure.min()>.9 and impact_exposure.max()<=1.0 and view.cinema.exposure_pulse==0.0,"each ultimate peaks on the hit and restores daylight after overlapping casts")
 	check(peak_zoom>1.04 and peak_zoom<=1.076 and largest_step<8 and view.scale==Vector2.ONE,"overlapping ultimates share a bounded smooth camera and return to the tactical view")
 	check(spells.has("samadhi") and spells.has("nine_thunders"),"both simultaneous impacts keep their own visual cue")
 	for fx in spells.values():
 		var center:=view.ground(fx.pos)
 		check(fx.weapon!=center and fx.branches.size()<=2,"each cue freezes its impact-time source and limited secondary targets")
+	# The ring sweeps a line. Its endpoint may coincide with its only victim or hit nobody.
+	var ring := {"kind":"skill","source":hero.id,"ability":"qiankun","pos":hero.cast_target}
+	view.sim.events.clear()
+	View.HeroCues.capture(view,ring)
+	check(ring.branches.is_empty(),"a missed ring creates no impact marks")
+	view.sim.events.append({"kind":"skill_hit","source":hero.id,"pos":hero.cast_target})
+	View.HeroCues.capture(view,ring)
+	check(ring.branches==[view.ground(hero.cast_target)],"a single hit right at the ring endpoint still gets a painted impact")
+	for side in [-1,1]:
+		var hand := Vector2(900,420)
+		var caught := hand+Vector2(side*8,7)
+		var tip := hand+Vector2(side*125,28)
+		check(View.SpellPaint.ring_point(hand,tip,caught,0,side).is_equal_approx(hand) and View.SpellPaint.ring_point(hand,tip,caught,1,side).is_equal_approx(caught),"ring wake starts and ends at the mirrored hand")
 	view.free()
 	var report:={"checks":checks,"failures":failures,"scenario":"chaoge_test","priority_phases":8}
 	DirAccess.make_dir_recursive_absolute("res://previews/chaoge-test")

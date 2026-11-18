@@ -6,12 +6,14 @@ var checks := 0
 var output := "user://art-loading"
 var expect_fallback := false
 var expect_troop_fallback := false
+var expect_spell_fallback := false
 
 func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview-dir="): output = arg.trim_prefix("--preview-dir=")
 		if arg == "--expect-source-fallback": expect_fallback = true
 		if arg == "--expect-troop-fallback": expect_troop_fallback = true
+		if arg == "--expect-spell-fallback": expect_spell_fallback = true
 	call_deferred("run")
 
 func check(ok: bool, label: String) -> void:
@@ -69,7 +71,27 @@ func run() -> void:
 			var frame = wen.frame_number(clip,i)
 			check(frame.texture != null and frame.texture.get_width() >= frame.source.end.x,"Wen Zhong %s frame %d loads without import cache" % [clip,i])
 	var textures = load("res://scripts/runtime_textures.gd")
+	var spells = load("res://scripts/divine_spell_art.gd")
+	var spell_sheets := {"res://assets/battle/hero_fx/lotus.png": spells.lotus,
+		"res://assets/battle/hero_fx/thunder.png": spells.thunder}
+	for path: String in spell_sheets:
+		var sheet: Texture2D = spell_sheets[path]
+		check(sheet != null, "painted spell sheet loads: " + path)
+		if sheet == null: continue
+		var image := sheet.get_image()
+		var width := image.get_height()
+		check(image.get_width() == width * 4, "four square spell cels in " + path)
+		var signatures := {}
+		for i in 4:
+			var cel := image.get_region(Rect2i(i * width, 0, width, width))
+			var visible := cel.get_used_rect()
+			check(visible.has_area() and Rect2i(1,1,width-2,width-2).encloses(visible), "spell cel has art and a transparent gutter")
+			signatures[hash(cel.get_data())] = true
+		check(signatures.size() == 4, "four distinct painted spell stages")
 	var fallbacks: Array = textures.source_fallbacks.duplicate()
+	for path: String in spell_sheets:
+		check(fallbacks.has(path) == expect_spell_fallback, "spell uses the available source or import")
+		fallbacks.erase(path)
 	var army_art=load("res://scripts/army_art.gd")
 	for faction in ["zhou","shang"]:
 		for kind in ["archer","cavalry"]:

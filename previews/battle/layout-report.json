@@ -13,8 +13,8 @@
 	"max_actors": 122,
 	"standard_body_heights": {
 		"cavalry": 137.0,
-		"hero": 180.0,
+		"hero": 205.0,
 		"soldier": 108.0,
-		"wenzhong": 194.0
+		"wenzhong": 219.0
 	}
 }

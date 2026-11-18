@@ -1,5 +1,5 @@
 {
-	"checks": 80,
+	"checks": 137,
 	"failures": [],
 	"priority_phases": 8,
 	"scenario": "chaoge_test"

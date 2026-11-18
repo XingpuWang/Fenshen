@@ -14,6 +14,8 @@ BASE = "assets/characters/wenzhong/v1/"
 OUT = ROOT / "previews/wenzhong/v1"
 SHEETS = ["actions", "attack", "thunder_whip", "nine_thunders",
           "attack_fx", "thunder_whip_fx", "nine_thunders_fx", "thunder_seal_fx"]
+# Crown-to-sole scale of the resting guard, independent of the height of a raised baton.
+BODY_HEIGHT = {"actions": 262, "attack": 360, "thunder_whip": 240, "nine_thunders": 246}
 
 
 def main():
@@ -50,16 +52,24 @@ def main():
                     px = col*cw+cw*.5
                     py = row*ch+ch*(.5 if key == "attack_fx" else .84)
                 else:
-                    # Authored pelvis roots, independent of which boot is planted.
-                    px = col*cw+200
-                    py = y+solid[1]+solid[3]
-                    if key == "actions" and row == 1: py = row*ch+248
+                    sole = solid[1] + solid[3]
+                    py = y + sole
+                    if key == "actions":
+                        # Running alternates the planted leg. Keep the body on one axis
+                        # and register the passing poses to the ground under the stride.
+                        px = col*cw + 200
+                        if row == 1: py = y + 262
+                    else:
+                        # Both boots remain planted through the swings. Their midpoint
+                        # follows the stance without drifting toward hair, cape or weapons.
+                        boots = np.flatnonzero((tile[max(0, sole-round(ch*.06)):sole] >= 160).any(axis=0))
+                        px = x + (int(boots[0])+int(boots[-1]))*.5
                 frames.append(dict(source=[x,y,xs[col+1]-x,ys[row+1]-y],
                                    pivot=[round(px-x,2),round(py-y,2)], visible=visible, solid=solid))
                 hashes.append(hashlib.sha256(pixels[y:ys[row+1], x:xs[col+1]].tobytes()).hexdigest())
         assert len(set(hashes)) == 16, (key, "repeated frames")
         data["sheets"][key] = dict(path=path, size=[w,h], columns=4, rows=4,
-                                   body_height=ch if key.endswith("_fx") else 240,
+                                   body_height=BODY_HEIGHT.get(key, ch),
                                    facing="right", frames=frames)
         report["sheets"][key] = dict(size=[w,h], frames=16, unique_frames=16,
                                      fully_transparent_fraction=round(transparent,4),

@@ -12,6 +12,7 @@ static var BG: Texture2D = Textures.get_texture("res://assets/battle/chaoge_aren
 const ArmyArt = preload("res://scripts/army_art.gd")
 const ImpactArt = preload("res://scripts/battle_impact_art.gd")
 const HeroCues = preload("res://scripts/battle_cinematics.gd")
+const SpellPaint = preload("res://scripts/divine_spell_art.gd")
 var cinema := HeroCues.new()
 static var TEXTURES: Dictionary = ArmyArt.TEXTURES
 const CREAM = Color("fff0d2")
@@ -25,8 +26,8 @@ const FEET_AREA := Rect2(160,438,1600,364)
 const ACTOR_SAFE_AREA := Rect2(20,170,1880,650)
 const SOLDIER_HEIGHT := 108.0
 const CAVALRY_HEIGHT := 137.0
-const HERO_HEIGHT := 180.0
-const WENZHONG_HEIGHT := 194.0
+const HERO_HEIGHT := 205.0
+const WENZHONG_HEIGHT := 219.0
 class SpriteFrame:
 	var source: Rect2
 	var rect: Rect2
@@ -84,7 +85,7 @@ func setup(encounter: Dictionary) -> void:
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	get_window().mouse_exited.connect(_clear_hover)
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	battle_hud=BattleHud.new()
 	battle_hud.battle=self
 	battle_hud.top_level=true
@@ -142,7 +143,7 @@ func advance_effects(dt: float) -> void:
 			effects=effects.filter(func(fx: Dictionary)->bool: return not (fx.get("source",-1)==event.source and fx.kind in ["ring","windup"]))
 			continue
 		var e := event.duplicate()
-		if e.kind in ["skill","finisher"] and e.get("ability","") in ["samadhi","nine_thunders","thunder_whip"]:
+		if e.kind in ["skill","finisher"] and e.get("ability","") in ["qiankun","samadhi","nine_thunders","thunder_whip"]:
 			HeroCues.capture(self,e)
 		e.age = 0.0
 		e.life = e.get("life",1.4 if e.kind in ["skill", "finisher"] else 0.7)
@@ -435,8 +436,11 @@ func _fighter(f: Rules.Fighter) -> void:
 	if key == "nezha":
 		var pose := nezha_pose(f)
 		var height := HERO_HEIGHT*perspective
+		HeroCues.draw_caster(self,f,at,height)
 		if f.hp>0 and f.action=="attack" and sim.kits[f.side].passive.id=="three_heads_six_arms":
-			NezhaArt.draw(self,"three_heads_fx",f.age,at-Vector2(0,height*.47),height*1.22,f.facing,Color(1,1,1,.82))
+			# Leave a gap around the forward hand and the spear. The avatar rises behind the rear shoulder.
+			var shoulder := at - Vector2(.30 * f.facing, .63) * height
+			NezhaArt.draw(self,"three_heads_fx",f.age,shoulder,height*1.16,f.facing)
 		NezhaArt.draw(self,pose.clip,float(pose.time),at,height,f.facing,color)
 		if f.hp > 0 and f.action == "attack":
 			for event in NezhaArt.DATA.clips.attack.events:
@@ -447,11 +451,12 @@ func _fighter(f: Rules.Fighter) -> void:
 	elif key == "wenzhong":
 		var pose := wenzhong_pose(f)
 		var height := WENZHONG_HEIGHT*perspective
+		HeroCues.draw_caster(self,f,at,height)
 		WenzhongArt.draw(self,pose.clip,float(pose.time),at,height,f.facing,color)
 		if f.hp > 0 and f.action == "attack":
 			var time := f.age-WenzhongArt.event_time("attack","arc_start")
 			if time >= 0 and time < WenzhongArt.duration("attack_fx"):
-				WenzhongArt.draw(self,"attack_fx",time,at+Vector2(.47*f.facing,-.58)*height,height*.72,f.facing)
+				WenzhongArt.draw(self,"attack_fx",time,at+Vector2(.782*f.facing,-.464)*height,height*.72,f.facing)
 	else:
 		var pose:=animation(f)
 		var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
@@ -566,14 +571,19 @@ func _effect(e: Dictionary) -> void:
 		var start := ground(e.from)+Vector2(float(e.facing)*.29,-.66)*height
 		var catch_at := ground(e.from)+Vector2(float(e.facing)*.13,-.53)*height
 		var end := ground(e.pos)-Vector2(0,70)
-		var arc:=sin(t*PI)
-		var position := (start.lerp(end,arc) if t<.5 else catch_at.lerp(end,arc))-Vector2(0,arc*18)
-		NezhaArt.draw(self,"ring_fx",e.age,position,78,int(e.facing))
+		var position := SpellPaint.ring_wake(self,start,end,catch_at,t,int(e.facing))
+		HeroCues.glow(self,position,Vector2(70,48),Color(1,.56,.12,.49))
+		NezhaArt.draw(self,"ring_fx",e.age,position,83,int(e.facing))
 		return
 	if e.kind in ["skill","finisher"] and e.get("ability","") in ["qiankun","samadhi"]:
 		var burst:=NezhaArt.event_time("samadhi_fx","lotus_burst")
+		if e.ability=="samadhi" and e.has("weapon"): HeroCues.draw_fire_strike(self,e,at)
 		if e.ability == "samadhi" and float(e.age)+burst < NezhaArt.duration("samadhi_fx"):
-			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),290,1,Color(1,.96,.85,.90))
+			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),199,1,Color(1,.94,.77,.61))
+		elif e.ability=="qiankun" and e.has("branches") and e.age<.25:
+			var fade := 1.0-smoothstep(.05,.25,e.age)
+			for point in e.branches:
+				SpellPaint.stamp(self,SpellPaint.lotus,1.7+smoothstep(0,.23,e.age)*1.3,point-Vector2(0,36),Vector2(68,64),.91*fade,int(e.facing))
 		return
 	if e.kind == "detonate":
 		if e.age < .3: NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),90)
@@ -582,12 +592,12 @@ func _effect(e: Dictionary) -> void:
 		var clip: String=str(e.ability)+"_fx"
 		var time := float(e.age)+WenzhongArt.event_time(clip,"impact")
 		if time < WenzhongArt.duration(clip):
-			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),255 if e.ability=="nine_thunders" else 180,1,Color(.93,.88,1,.78))
+			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),197 if e.ability=="nine_thunders" else 126,1,Color(.88,.91,1,.58))
 		if e.has("weapon"): HeroCues.draw_lightning(self,e,at)
 		return
 	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit", "arrow_hit", "charge_hit"]:
-		if e.kind == "skill_hit" and sim.fighters[int(e.source)].hero_id == "nezha" and e.age < .21:
-			NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),65)
+		if e.kind == "skill_hit" and sim.fighters[int(e.source)].hero_id == "nezha" and e.age < .14:
+			HeroCues.glow(self,e.strike,Vector2(28,15)*(1.0+e.age*2.0),Color(1,.66,.24,.65*(1.0-e.age/.14)))
 		if e.kind=="charge_hit":
 			var depth:=lerpf(.88,1.03,clampf((e.origin.y+25.0)/765.0,0,1))
 			ImpactArt.draw_hoof_dust(self,ground(e.origin),e.facing,e.age,depth)
@@ -613,11 +623,15 @@ func _draw_nezha_windups() -> void:
 		var at := ground(hero.cast_target)
 		var radius := float(sim.kits[side].ultimate.radius)
 		draw_set_transform(at,0,Vector2(FEET_AREA.size.x/1920.0,FEET_AREA.size.y/765.0))
-		draw_circle(Vector2.ZERO,radius,Color(1,.42,.1,.07))
-		draw_arc(Vector2.ZERO,radius,0,TAU,64,Color(1,.68,.3,.45),2)
+		draw_circle(Vector2.ZERO,radius,Color(1,.39,.09,.055))
+		var rise := smoothstep(.05,.55,hero.age)
+		for i in 6:
+			var start := i*PI/3.0
+			draw_arc(Vector2.ZERO,radius,start,start+lerpf(.13,.96,rise),24,Color(1,.75,.37,.44*rise),2,true)
 		draw_set_transform(Vector2.ZERO)
+		SpellPaint.lotus_windup(self,at,hero.age/hero.impact,hero.facing)
 		var time := hero.age-(hero.impact-NezhaArt.event_time("samadhi_fx","lotus_burst"))
-		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),290,1,Color(1,.96,.85,.9))
+		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),199,1,Color(1,.94,.77,.61))
 		var height:=HERO_HEIGHT*lerpf(.88,1.03,clampf((hero.pos.y+25.0)/765.0,0,1))
 		HeroCues.draw_lotus_ribbon(self,hero,ground(hero.pos),at,height)
 
@@ -627,10 +641,10 @@ func _draw_wenzhong_windups() -> void:
 		if hero.hero_id != "wenzhong" or hero.hp <= 0 or hero.action not in ["cast","finisher"] or hero.age >= hero.impact: continue
 		var clip := "nine_thunders_fx" if hero.action=="finisher" else "thunder_whip_fx"
 		var time := hero.age-(hero.impact-WenzhongArt.event_time(clip,"impact"))
-		if time < 0: continue
-		# Wen Zhong's existing skill resolves at the live target position.
 		var at := ground(sim.fighters[hero.target].pos)
-		WenzhongArt.draw(self,clip,time,at+Vector2(0,4),255 if hero.action=="finisher" else 180,1,Color(.93,.88,1,.78))
+		var strong := hero.action=="finisher"
+		SpellPaint.thunder_windup(self,at,hero.age/hero.impact,strong,hero.facing)
+		if time >= 0: WenzhongArt.draw(self,clip,time,at+Vector2(0,4),197 if strong else 126,1,Color(.88,.91,1,.58))
 
 func _draw_result() -> void:
 	draw_rect(Rect2(0, 82, 1920, 754), Color(0.10, 0.06, 0.09, 0.5))

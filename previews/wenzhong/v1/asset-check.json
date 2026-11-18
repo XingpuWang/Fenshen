@@ -4,23 +4,23 @@
   "sheets": {
     "actions": {
       "size": [
-        1536,
-        1024
+        1448,
+        1086
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.7095,
-      "sha256": "4747ece640e17c990b8e615cf42ff1dbe9be508722123c41be6cc770cd42a5ab"
+      "fully_transparent_fraction": 0.5021,
+      "sha256": "69adda889f77dd64f383761dc55e116125042eb4409ea8a5d22ff36b302efc92"
     },
     "attack": {
       "size": [
-        1536,
-        1024
+        2112,
+        1616
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.5251,
-      "sha256": "399a1b80c677f2ec502ce124da6c9289ded0daab6276a5d1d1e410ff624ee772"
+      "fully_transparent_fraction": 0.4954,
+      "sha256": "b13045f91fc08b98d43050f957cda3607bf0ca80d533a51c79c44c91956f4c1e"
     },
     "thunder_whip": {
       "size": [
@@ -29,8 +29,8 @@
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.6836,
-      "sha256": "6031c0e2077c091a7f237da7ac06c47e42b4a8aef499e9a90d07c22122a1c71f"
+      "fully_transparent_fraction": 0.5301,
+      "sha256": "5f00b84489a6ace1cb42b0e9d292b8a1ce0f31f859224f396008643b817efbb6"
     },
     "nine_thunders": {
       "size": [
@@ -39,8 +39,8 @@
       ],
       "frames": 16,
       "unique_frames": 16,
-      "fully_transparent_fraction": 0.6067,
-      "sha256": "90400aec7ec6281d1518e3162ea040c2816f2b6f505793eb4aceb3efd082682b"
+      "fully_transparent_fraction": 0.4631,
+      "sha256": "337fc3e30e66d22b4e78d8aa7ff6bc85fcbf54552f27a47f2f78b2758c8ce7aa"
     },
     "attack_fx": {
       "size": [

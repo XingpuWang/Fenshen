@@ -167,6 +167,21 @@ func _initialize() -> void:
 		var contact: float=Rules.Catalog.DATA.heroes.nezha.normal_attack.hits[i]
 		check(Art.frame_index("attack",contact)==[5,9][i],"contact resolves on the extended spear frame")
 		check(is_equal_approx(contact,float(Art.DATA.clips.attack.events[i].at_ms)/1000),"weapon flare and actual damage share contact time")
+		var contact_frame := Art.frame_index("attack",contact)
+		var extension := Art.frame_number("attack",contact_frame)
+		var windup := Art.frame_number("attack",contact_frame-1)
+		var reach := extension.visible.end.x-extension.pivot.x
+		var windup_reach := windup.visible.end.x-windup.pivot.x
+		var socket: Array = Art.DATA.clips.attack.events[i].socket
+		check(reach-windup_reach>15,"each spear contact visibly extends out of the preceding pose")
+		check(absf(reach-float(socket[0])*extension.body_height)<4,"spear spark starts at the illustrated point")
+		check(absf(extension.visible.end.y-extension.pivot.y)<=2,"striking boot stays on the contact plane")
+	var guard := Art.frame_number("idle",0)
+	for clip in ["qiankun","samadhi"]:
+		var opening := Art.frame_number(clip,0)
+		var guard_height := (guard.pivot.y-guard.visible.position.y)/guard.body_height
+		var opening_height := (opening.pivot.y-opening.visible.position.y)/opening.body_height
+		check(absf(guard_height-opening_height)<.07,"guard and cast share a consistent standing height: "+clip)
 	check(Art.frame_index("idle",Art.duration("idle"))==0,"idle loops at exact duration")
 	check(Art.frame_index("defeat",99)==3,"defeat holds the final frame")
 	var view:=View.new()

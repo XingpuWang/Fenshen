@@ -29,6 +29,18 @@ func fixture(side: int=0) -> Rules:
 
 func _initialize() -> void:
 	Art.prepare()
+	for sheet in ["actions","attack","thunder_whip","nine_thunders"]:
+		var metadata: Dictionary=Art.DATA.sheets[sheet]
+		var texture: Texture2D=Art.sheets[sheet][0].texture
+		check(texture.get_size()==Vector2(metadata["size"][0],metadata["size"][1]),"loaded actor artwork matches its registered dimensions: "+sheet)
+		var settings:=ConfigFile.new()
+		check(settings.load("res://"+metadata.path+".import")==OK and settings.get_value("params","mipmaps/generate",false),"small-scale actor filtering has mipmaps: "+sheet)
+	var guard:=Art.frame_number("idle",0)
+	var guard_height:=guard.visible.size.y / guard.body_height
+	for clip in ["attack","thunder_whip","nine_thunders","thunder_seal"]:
+		for endpoint in [0,15]:
+			var f:=Art.frame_number(clip,endpoint)
+			check(absf(f.visible.size.y/f.body_height-guard_height)<.07,"action enters and leaves the resting guard at matching scale: "+clip)
 	var count:=0
 	for clip in Art.DATA.clips:
 		var entry: Dictionary=Art.DATA.clips[clip]
@@ -39,6 +51,8 @@ func _initialize() -> void:
 			check(f.texture!=null and Rect2(Vector2.ZERO,f.texture.get_size()).encloses(f.source),"frame stays within source texture: "+clip)
 			check(f.source.size.x>0 and f.source.size.y>0 and f.visible.size.x>0 and f.visible.size.y>0,"frame has visible artwork: "+clip)
 			if str(clip).ends_with("_fx"): continue
+			if clip not in ["run","hit","defeat"]:
+				check(absf(f.visible.end.y-f.pivot.y)<f.body_height*.015,"grounded soles stay registered through the full action: "+clip)
 			for point in [Vector2(55,-25),Vector2(1865,-25),Vector2(55,740),Vector2(1865,740)]:
 				var at:=View.FEET_AREA.position+Vector2(point.x/1920,(point.y+25)/765)*View.FEET_AREA.size
 				var height:=View.WENZHONG_HEIGHT*lerpf(.88,1.03,clampf((point.y+25)/765,0,1))
