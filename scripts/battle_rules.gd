@@ -197,9 +197,11 @@ func _spawn(side: int, count: int) -> void:
 	commander.troops = slots
 	var troops: Array[Fighter] = []
 	var mounted := 0
+	var companies := 0
 	for slot_index in slots.size():
 		var slot: Dictionary = slots[slot_index]
 		var people := int(slot.get("count", 0))
+		if people > 0: companies += 1
 		for model in ceili(people / float(PEOPLE_PER_MODEL)):
 			var f := Fighter.new()
 			f.slot = slot_index
@@ -217,6 +219,11 @@ func _spawn(side: int, count: int) -> void:
 				f.radius = 36.0
 			troops.append(f)
 	var points := _deployment_points(troops.size())
+	# Deep companies have less ground behind the rearmost rank. Tight files
+	# keep their spacing rather than pushing neighbouring soldiers together.
+	var rear_space := clampf((points.back().x - GROUND_MIN.x) / 256.0, 0.0, 1.0) if not points.is_empty() else 0.0
+	var file_spacing := points[1].y - points[0].y if points.size() > 1 else 94.0
+	var flank_space := clampf((file_spacing - 66.0) / 28.0, 0.0, 1.0)
 	var flanks := points.duplicate()
 	flanks.sort_custom(func(a: Vector2, b: Vector2) -> bool:
 		return a.x + absf(a.y - 350.0) > b.x + absf(b.y - 350.0))
@@ -225,16 +232,33 @@ func _spawn(side: int, count: int) -> void:
 	# Cavalry have open lanes on the wings. Halberdiers take the forward
 	# positions and archers the rear, independently of the order of roster slots.
 	for kind in ["cavalry", "halberd", "archer"]:
+		var file_index := 0
 		for f in troops:
 			if f.troop_type != kind: continue
 			f.pos = flanks.pop_front() if f.charge_ready else points.pop_front()
+			if companies > 1: f.pos = _stagger_company(f.pos, kind, side, file_index, rear_space, flank_space)
 			if side == 1: f.pos.x = 1920.0 - f.pos.x
+			file_index += 1
 			var index := sides[side].size() - 1
 			f.id = fighters.size()
 			f.cooldown = (index % 7) * 0.07
 			f.stride = index * 0.053
 			fighters.append(f)
 			sides[side].append(f)
+
+func _stagger_company(point: Vector2, kind: String, side: int, file_index: int, room: float, flank_space: float) -> Vector2:
+	# Echelon the actual ground slots. The bow line stands behind the pikes;
+	# the nearest cavalry wing starts further forward and meets first.
+	var depth := (point.y - 350.0) / 350.0
+	if kind == "archer":
+		point.x -= (112.0 + 40.0 * (file_index % 2) * flank_space) * room
+		point.y += (20.0 - 26.0 * depth) * flank_space
+	elif kind == "cavalry":
+		point.x += (35.0 + 42.0 * depth) * room
+	else:
+		point.y -= 75.0 * depth * flank_space
+	point.x += (1.0 if side == 0 else -1.0) * 99.0 * depth * room
+	return point.clamp(GROUND_MIN, GROUND_MAX)
 
 func _deployment_points(models: int) -> Array[Vector2]:
 	var points: Array[Vector2] = []
@@ -480,6 +504,7 @@ func _release_arrow(f: Fighter, target: Fighter) -> void:
 	arrow.destination = (target.pos + lead).clamp(GROUND_MIN, GROUND_MAX)
 	arrow.duration = maxf(0.12, f.pos.distance_to(arrow.destination) / ARROW_SPEED)
 	arrows.append(arrow)
+	events.append({"kind":"bow_release", "source":f.id, "side":f.side, "pos":arrow.origin})
 	stats["arrows"] = int(stats.get("arrows", 0)) + 1
 
 func _advance_arrows() -> void:
@@ -490,7 +515,7 @@ func _advance_arrows() -> void:
 		arrows.remove_at(i)
 		var target := arrow.target
 		if target.hp <= 0 or target.pos.distance_to(arrow.destination) > target.radius + 15.0: continue
-		_damage(arrow.source, target, Catalog.damage(arrow.source.attributes, target.attributes, "physical"), "arrow_hit")
+		_damage(arrow.source, target, Catalog.damage(arrow.source.attributes, target.attributes, "physical"), "arrow_hit", "physical", arrow.destination)
 		arrow.source.normal_hits += 1
 		stats["arrow_hits"] = int(stats.get("arrow_hits", 0)) + 1
 
@@ -701,7 +726,7 @@ func _resolve_splash(source: Fighter, primary: Fighter, hit_multiplier: float) -
 		_damage(source,enemy,amount,"splash_hit")
 		stats["splash_hits"]=int(stats.get("splash_hits",0))+1
 
-func _damage(source: Fighter, target: Fighter, amount: float, kind: String, damage_type: String = "physical") -> void:
+func _damage(source: Fighter, target: Fighter, amount: float, kind: String, damage_type: String = "physical", contact: Vector2 = Vector2.INF) -> void:
 	if target.hp<=0 or source.side==target.side: return
 	var before:=target.survivors()
 	var actual := minf(target.hp, amount)
@@ -718,7 +743,10 @@ func _damage(source: Fighter, target: Fighter, amount: float, kind: String, dama
 		target.action = "fall"
 		target.age = 0
 		target.burns.clear()
-	events.append({"kind": kind, "pos": target.pos, "side": source.side, "source":source.id, "amount": roundi(actual) if target.hero else defeated, "target": target.id, "damage_type":damage_type})
+	if contact == Vector2.INF:
+		contact = target.pos + target.pos.direction_to(source.pos) * target.radius * .55
+	events.append({"kind": kind, "pos":target.pos, "contact":contact, "origin":source.pos, "facing":source.facing,
+		"side":source.side, "source":source.id, "amount":roundi(actual) if target.hero else defeated, "target":target.id, "damage_type":damage_type})
 
 func _resolve_bodies() -> void:
 	# Symmetric circle separation for allies AND enemies, including heroes.

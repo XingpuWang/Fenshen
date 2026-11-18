@@ -77,6 +77,48 @@ func visible_health_ratio(screen: Image, side: int) -> float:
 		if pixel.g>pixel.r*1.05 and pixel.g>pixel.b*1.1: green+=1
 	return float(green)/width
 
+func ring_luminance(screen: Image, radius: float) -> float:
+	# The lower-right arc is clear of the R badge and the cloud at the foot of the ring.
+	var light := 0.0
+	for i in 19:
+		var point := Hud.RING_CENTER + Vector2.from_angle(.1 + i*.045) * radius
+		light += screen.get_pixelv(Vector2i(point.round())).get_luminance()
+	return light / 19.0
+
+func check_finisher_cues(battle: Control) -> void:
+	var morale: Array = battle.sim.morale.duplicate()
+	battle.sim.morale[0] = Rules.FINISHER_COST-1
+	battle.sim.morale[1] = 0.0
+	await draw_frame(battle)
+	var charging := root.get_texture().get_image()
+	shot("wen-charging")
+	battle.sim.morale[1] = Rules.FINISHER_COST
+	hover(Hud.RING_CENTER)
+	await draw_frame(battle)
+	var hovered := root.get_texture().get_image()
+	for radius in [Hud.RING_RADIUS, Hud.RING_RADIUS+8]:
+		check(absf(ring_luminance(charging,radius)-ring_luminance(hovered,radius))<.02,"hover and enemy morale leave the charging ring dim")
+	hover(Vector2(1300,600))
+	battle.sim.morale[0] = Rules.FINISHER_COST
+	await draw_frame(battle)
+	var ready := root.get_texture().get_image()
+	var full := ring_luminance(ready,Hud.RING_RADIUS)
+	check(full > ring_luminance(charging,Hud.RING_RADIUS)+.065,"ring brightens when the player's own ultimate becomes available")
+	var glow: Array[float] = [ring_luminance(ready,Hud.RING_RADIUS+8)]
+	for i in 3:
+		await create_timer(Hud.READY_PULSE_MS / 4000.0).timeout
+		await draw_frame(battle)
+		glow.append(ring_luminance(root.get_texture().get_image(),Hud.RING_RADIUS+8))
+	check(glow.max()-glow.min()>.025,"ready ring breathes while the combat simulation is held still")
+	key(KEY_SPACE)
+	await draw_frame(battle)
+	shot("wen-paused")
+	check(full > ring_luminance(root.get_texture().get_image(),Hud.RING_RADIUS)+.065,"pausing dims the ring even at full morale")
+	key(KEY_R)
+	check(battle.paused and battle.sim.morale[0]==Rules.FINISHER_COST,"paused R preserves the fully charged ultimate")
+	key(KEY_SPACE)
+	battle.sim.morale.assign(morale)
+
 func leave_battle() -> void:
 	game.queue_free()
 	# Allow the audio mixer and deferred scene deletion to finish before the next encounter.
@@ -118,6 +160,7 @@ func run() -> void:
 	await draw_frame(battle)
 	shot("wen-1080")
 	check(root.get_texture().get_size()==Vector2(1920,1080),"native 1080p view renders")
+	await check_finisher_cues(battle)
 	while battle.sim.result.is_empty():
 		var hero:=battle.sim.hero_for(0) as Rules.Fighter
 		if battle.sim.finisher_reason(0).is_empty() and hero.action in ["cast","attack"]: break
@@ -147,6 +190,8 @@ func run() -> void:
 	await draw_frame(battle)
 	shot("nezha-1080")
 	while battle.sim.finisher_reason(0)!="" and battle.sim.result.is_empty(): step(battle)
+	await draw_frame(battle)
+	shot("nezha-ready")
 	click(Hud.RING_CENTER)
 	check(battle.sim.hero_for(0).action=="finisher" and battle.sim.morale[0]==0,"clicking ring center releases Nezha's ultimate")
 	await leave_battle()

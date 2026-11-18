@@ -122,6 +122,8 @@ func battle_checks() -> Dictionary:
 		check(furthest_archer<=rearmost_infantry,"archers start behind the halberds for both facings")
 	var peak:=0
 	var chargers:={}
+	var first_wing_time:=[INF,INF]
+	var first_wing_contact:=[Vector2.ZERO,Vector2.ZERO]
 	for i in 5000:
 		sim.advance()
 		peak=maxi(peak,sim.arrows.size())
@@ -129,9 +131,16 @@ func battle_checks() -> Dictionary:
 			if e.kind=="charge_hit":
 				check(not chargers.has(e.source),"one impact per cavalry model during the entire battle")
 				chargers[e.source]=true
+				var contact: Vector2=sim.fighters[e.source].pos.lerp(sim.fighters[e.target].pos,.5)
+				var wing:=0 if contact.y>350.0 else 1
+				if is_inf(first_wing_time[wing]):
+					first_wing_time[wing]=sim.elapsed
+					first_wing_contact[wing]=contact
 		sim.events.clear()
 		if not sim.result.is_empty(): break
 	check(not sim.result.is_empty() and sim.stats.charges==8 and chargers.size()==8,"both wings complete all eight distinct opening charges in the live scenario")
+	check(first_wing_time[1]-first_wing_time[0]>=.1,"the foreground cavalry wing makes real contact before the far wing")
+	check(first_wing_contact[0].x-first_wing_contact[1].x>100.0,"the two opening collisions land on distinct parts of the battlefield")
 	check(peak>1 and int(sim.stats.arrow_hits)>0 and sim.stats.arrows>=sim.stats.arrow_hits,"multiple physical arrows fly simultaneously and resolve independently")
 	var again:=Rules.new(encounter)
 	for i in 5000:

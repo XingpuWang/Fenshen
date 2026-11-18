@@ -136,6 +136,32 @@ func _initialize() -> void:
 	view.sim.use_finisher(0)
 	view.advance_effects(0)
 	check(not view.effects.any(func(e: Dictionary)->bool: return e.kind=="ring") and view.effects.any(func(e: Dictionary)->bool: return e.kind=="hit"),"interruption removes cancelled projectile visuals but preserves settled hit feedback")
+	view.effects.clear()
+	# Keep the test armies in combat through both impact frames.
+	for fighter in view.sim.fighters:
+		fighter.hp=5000
+		fighter.max_hp=5000
+	view.sim.morale[1]=100
+	check(view.sim.use_finisher(1) and hero.age==0,"opposing ultimate can start immediately while the first camera cue is active")
+	var previous_point:=Vector2(960,500)
+	var largest_step:=0.0
+	var peak_zoom:=1.0
+	var spells:={}
+	for i in 155:
+		view.sim.advance()
+		view.advance_effects(Rules.STEP)
+		peak_zoom=maxf(peak_zoom,view.scale.x)
+		var point:=view.get_transform()*Vector2(960,500)
+		largest_step=maxf(largest_step,point.distance_to(previous_point))
+		previous_point=point
+		for fx in view.effects:
+			if fx.kind=="finisher" and fx.age==0:
+				spells[fx.ability]=fx
+	check(peak_zoom>1.04 and peak_zoom<=1.076 and largest_step<8 and view.scale==Vector2.ONE,"overlapping ultimates share a bounded smooth camera and return to the tactical view")
+	check(spells.has("samadhi") and spells.has("nine_thunders"),"both simultaneous impacts keep their own visual cue")
+	for fx in spells.values():
+		var center:=view.ground(fx.pos)
+		check(fx.weapon!=center and fx.branches.size()<=2,"each cue freezes its impact-time source and limited secondary targets")
 	view.free()
 	var report:={"checks":checks,"failures":failures,"scenario":"chaoge_test","priority_phases":8}
 	DirAccess.make_dir_recursive_absolute("res://previews/chaoge-test")

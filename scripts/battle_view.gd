@@ -7,17 +7,21 @@ const NezhaArt = preload("res://scripts/nezha_art.gd")
 const WenzhongArt = preload("res://scripts/wenzhong_art.gd")
 const FONT = preload("res://assets/fonts/ShanheSerif.otf")
 const SANS = preload("res://assets/fonts/ShanheSans.otf")
-const BG = preload("res://assets/battle/fortress_amber.webp")
+const Textures = preload("res://scripts/runtime_textures.gd")
+static var BG: Texture2D = Textures.get_texture("res://assets/battle/chaoge_arena.png")
 const ArmyArt = preload("res://scripts/army_art.gd")
+const ImpactArt = preload("res://scripts/battle_impact_art.gd")
+const HeroCues = preload("res://scripts/battle_cinematics.gd")
+var cinema := HeroCues.new()
 static var TEXTURES: Dictionary = ArmyArt.TEXTURES
 const CREAM = Color("fff0d2")
 const GOLD = Color("e6b46e")
 const MUTED = Color("c9b49a")
 const INK = Color("271c22")
 const TEAM = [Color("e99b64"), Color("baa0da")]
-# 1920x1080 design-space contract. Backdrop ground starts at y≈425 after framing.
-const BACKDROP := Rect2(-48,-240,2016,1134)
-const FEET_AREA := Rect2(160,500,1600,300)
+# The new plate includes the entire foreground. The furthest fence ends at source y=390/941.
+const BACKDROP := Rect2(-64,-62,2048,1152)
+const FEET_AREA := Rect2(160,438,1600,364)
 const ACTOR_SAFE_AREA := Rect2(20,170,1880,650)
 const SOLDIER_HEIGHT := 108.0
 const CAVALRY_HEIGHT := 137.0
@@ -26,6 +30,7 @@ const WENZHONG_HEIGHT := 194.0
 class SpriteFrame:
 	var source: Rect2
 	var rect: Rect2
+	var cloth: ArrayMesh
 var draw_frames: Dictionary={}
 var frame_catalog: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json"))
 var sim: Rules
@@ -39,7 +44,9 @@ var hovered := ""
 var debug_bodies := false
 var returning := false
 var audio: Array[AudioStreamPlayer] = []
-var sound_cooldown := 0.0
+var last_sound := {}
+var show_damage_numbers := true
+var floating_numbers: Array[Dictionary]=[]
 var total_frames := 0
 var wall_time := 0.0
 var result_age := 0.0
@@ -66,6 +73,8 @@ func _init() -> void:
 			var src: Array=frame.source
 			compiled.source=Rect2(src[0],src[1],src[2],src[3])
 			compiled.rect=Rect2(-Vector2(frame.pivot[0],frame.pivot[1])*ratio,compiled.source.size*ratio)
+			if str(key).ends_with("_cavalry") and frames.size()>=43:
+				compiled.cloth=ImpactArt.recovery_mesh(compiled.rect,compiled.source,TEXTURES[key].get_size(),ArmyArt.native_facing(key),frames.size())
 			frames.append(compiled)
 		draw_frames[key]=frames
 
@@ -78,12 +87,13 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	battle_hud=BattleHud.new()
 	battle_hud.battle=self
+	battle_hud.top_level=true
 	add_child(battle_hud)
 	battle_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if DisplayServer.get_name() != "headless":
-		for name in ["drum", "clash", "fire", "thunder"]:
+		for name in ["drum", "clash", "fire", "thunder", "bow_release", "arrow_impact", "charge_impact"]:
 			var player := AudioStreamPlayer.new()
-			player.stream = load("res://assets/battle/" + name + ".wav")
+			player.stream = _battle_sound("res://assets/battle/" + name + ".wav")
 			player.volume_db = -17
 			player.max_polyphony = 2
 			add_child(player)
@@ -107,6 +117,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func advance_effects(dt: float) -> void:
+	cinema.advance(self,dt)
 	if not sim.result.is_empty():
 		result_age += dt
 		for f in sim.fighters:
@@ -118,37 +129,108 @@ func advance_effects(dt: float) -> void:
 					f.age += dt
 					if f.age >= f.duration or f.action == "charge_run": f.action = "idle"
 				f.walking=false
-	sound_cooldown -= dt
+	for n in floating_numbers: n.age+=dt
+	floating_numbers=floating_numbers.filter(func(n: Dictionary)->bool: return n.age<n.life)
 	for effect in effects: effect.age += dt
 	effects = effects.filter(func(e: Dictionary) -> bool: return e.age < e.life)
 	for event in sim.events:
+		if event.kind=="bow_release":
+			_troop_audio(4,.085)
+			continue
 		if event.kind=="interrupt":
 			# Preserve already resolved damage labels, remove cancelled cast visuals.
 			effects=effects.filter(func(fx: Dictionary)->bool: return not (fx.get("source",-1)==event.source and fx.kind in ["ring","windup"]))
 			continue
 		var e := event.duplicate()
+		if e.kind in ["skill","finisher"] and e.get("ability","") in ["samadhi","nine_thunders","thunder_whip"]:
+			HeroCues.capture(self,e)
 		e.age = 0.0
 		e.life = e.get("life",1.4 if e.kind in ["skill", "finisher"] else 0.7)
 		if e.kind in ["hit","skill_hit","finisher_hit","burn_hit","splash_hit","arrow_hit","charge_hit"]:
-			var font_size:=20 if e.kind in ["burn_hit","splash_hit"] else (26 if e.kind in ["hit","arrow_hit","charge_hit"] else 34)
-			var key:=Vector2i(int(e.amount),font_size)
-			if not damage_labels.has(key):
-				if damage_labels.size()>=256: damage_labels.clear()
-				var line:=TextLine.new()
-				line.add_string(str(e.amount),SANS,font_size)
-				damage_labels[key]=line
-			e.label=damage_labels[key]
+			var target: Rules.Fighter=sim.fighters[int(e.target)]
+			var hit_ground: Vector2=e.contact
+			e.strike=ground(hit_ground)-Vector2(0,_chest_height(target,hit_ground.y))
+			_queue_damage_number(e,target)
+			e.life=.39 if e.kind=="charge_hit" else .22
 		effects.append(e)
 		if e.kind in ["skill", "finisher"]:
 			var source: Rules.Fighter=sim.fighters[int(e.source)]
 			_audio(3 if source.hero_id=="wenzhong" else (2 if source.hero_id=="nezha" else 2+int(e.side)))
-		elif e.kind in ["hit","charge_hit"] and sound_cooldown <= 0:
-			_audio(1)
-			sound_cooldown = 0.15
+		elif e.kind=="charge_hit": _troop_audio(6,.12)
+		elif e.kind=="arrow_hit": _troop_audio(5,.09)
+		elif e.kind=="hit": _troop_audio(1,.15)
 	sim.events.clear()
 
 func _audio(index: int) -> void:
 	if not audio.is_empty(): audio[index].play()
+
+static func _battle_sound(path: String) -> AudioStream:
+	# A source checkout can have the new WAV before its local import is ready.
+	if FileAccess.file_exists(path) and not ResourceLoader.has_cached(path):
+		var settings:=ConfigFile.new()
+		if settings.load(path+".import")!=OK or not FileAccess.file_exists(settings.get_value("remap","path","")):
+			return AudioStreamWAV.load_from_buffer(FileAccess.get_file_as_bytes(path))
+	return load(path) as AudioStream
+
+func _troop_audio(index: int, spacing: float) -> void:
+	if sim.elapsed-float(last_sound.get(index,-10.0))<spacing: return
+	last_sound[index]=sim.elapsed
+	_audio(index)
+
+func _chest_height(target: Rules.Fighter, depth_y: float) -> float:
+	var height:=WENZHONG_HEIGHT if target.hero_id=="wenzhong" else HERO_HEIGHT
+	if not target.hero: height=CAVALRY_HEIGHT if target.troop_type=="cavalry" else SOLDIER_HEIGHT
+	return height*.53*lerpf(.88,1.03,clampf((depth_y+25.0)/765.0,0,1))
+
+func _number_line(amount: int, font_size: int) -> TextLine:
+	var key:=Vector2i(amount,font_size)
+	if not damage_labels.has(key):
+		if damage_labels.size()>=256: damage_labels.clear()
+		var line:=TextLine.new()
+		line.add_string(str(amount),SANS,font_size)
+		damage_labels[key]=line
+	return damage_labels[key]
+
+func _queue_damage_number(event: Dictionary, target: Rules.Fighter) -> void:
+	if event.amount<=0: return
+	var source: Rules.Fighter=sim.fighters[int(event.source)]
+	var ordinary: bool=event.kind in ["hit","arrow_hit","charge_hit"]
+	var anchor:=ground(event.pos)-Vector2(0,_chest_height(target,event.pos.y)*1.84)
+	# A group is anchored to its first hit. Later events cannot extend the time or distance window.
+	var group:=target.slot if ordinary and not target.hero and not source.hero else -1
+	if group>=0:
+		for i in range(floating_numbers.size()-1,-1,-1):
+			var n:=floating_numbers[i]
+			if n.age>.18: break
+			if n.slot!=group or n.kind!=event.kind or n.side!=event.side: continue
+			var gap: Vector2=(anchor-n.anchor)/Vector2(95,51)
+			if gap.length_squared()>1: continue
+			n.amount+=int(event.amount)
+			n.line=_number_line(n.amount,n.font_size)
+			return
+	var font_size:=20 if event.kind in ["burn_hit","splash_hit"] else (25 if ordinary else 32)
+	var color: Color=TEAM[int(event.side)]
+	if event.kind=="charge_hit": color=Color("ffe1a0")
+	if event.kind=="burn_hit": color=Color("ff9758")
+	if event.kind=="splash_hit": color=Color("efcb80")
+	floating_numbers.append({"kind":event.kind,"side":event.side,"slot":group,"age":0.0,"life":.64,
+		"anchor":anchor,"amount":int(event.amount),"font_size":font_size,"color":color,"line":_number_line(event.amount,font_size)})
+
+func _draw_damage_numbers() -> void:
+	if not show_damage_numbers: return
+	for n in floating_numbers:
+		var t: float=n.age/n.life
+		var tint: Color=n.color
+		tint.a=1-smoothstep(.45,1,t)
+		var edge:=INK
+		edge.a=tint.a
+		var line: TextLine=n.line
+		# At a head-on clash the two targets can project onto the same spot.
+		var outward := 1 if n.side==0 else -1
+		var drift:=Vector2(outward*(15+9*t),-31*t)
+		var baseline: Vector2=n.anchor+drift-Vector2(line.get_size().x*.5,line.get_line_ascent())
+		line.draw_outline(get_canvas_item(),baseline,4,edge)
+		line.draw(get_canvas_item(),baseline,tint)
 
 func _clear_hover() -> void:
 	hovered = ""
@@ -171,6 +253,9 @@ func handle_input(event: InputEvent) -> void:
 			KEY_R: activate("finisher")
 			KEY_ENTER, KEY_KP_ENTER: activate("return")
 			KEY_F3: debug_bodies = not debug_bodies
+			KEY_F4:
+				show_damage_numbers = not show_damage_numbers
+				queue_redraw()
 
 func activate(id: String) -> void:
 	match id:
@@ -181,7 +266,7 @@ func activate(id: String) -> void:
 		"speed":
 			if sim.result.is_empty(): speed = 2 if speed == 1 else 1
 		"finisher":
-			if not paused: sim.use_finisher(0)
+			if not paused and sim.use_finisher(0): queue_redraw()
 		"return":
 			if not sim.result.is_empty() and result_age>=1.35 and not returning:
 				returning = true
@@ -211,7 +296,10 @@ func bar(rect: Rect2, value: float, color: Color) -> void:
 	draw_rect(rect, Color(1, 0.83, 0.6, 0.35), false, 1)
 
 func ground(p: Vector2) -> Vector2:
-	return FEET_AREA.position+Vector2(p.x/1920.0,(p.y+25.0)/765.0)*FEET_AREA.size
+	var depth := (p.y - Rules.GROUND_MIN.y) / (Rules.GROUND_MAX.y - Rules.GROUND_MIN.y)
+	var across := (p.x / 1920.0 - .5) * lerpf(.94, 1.0, clampf(depth, 0, 1))
+	return Vector2(FEET_AREA.get_center().x + across * FEET_AREA.size.x,
+		FEET_AREA.position.y + depth * FEET_AREA.size.y)
 
 func sprite_key(f: Rules.Fighter) -> String:
 	if not f.hero: return ArmyArt.troop_key(army_faction(f.side), f.troop_type)
@@ -276,20 +364,16 @@ func _draw() -> void:
 	hits.clear()
 	draw_rect(Rect2(0,0,1920,1080),INK)
 	draw_texture_rect(BG, BACKDROP, false)
-	# Continue the foreground underneath the floating cards, preserving the actors' ground plane.
-	var skirt_y := FEET_AREA.position.y - 24
-	var texture_y := (skirt_y-BACKDROP.position.y)/BACKDROP.size.y*BG.get_height()
-	draw_texture_rect_region(BG,Rect2(BACKDROP.position.x,skirt_y,BACKDROP.size.x,1080-skirt_y),
-		Rect2(0,texture_y,BG.get_width(),BG.get_height()-texture_y))
-	draw_polygon(PackedVector2Array([Vector2(0,695),Vector2(1920,695),Vector2(1920,910),Vector2(0,910)]),
-		PackedColorArray([Color("321b2400"),Color("321b2400"),Color("391e269a"),Color("391e269a")]))
-	draw_polygon(PackedVector2Array([Vector2(0,910),Vector2(1920,910),Vector2(1920,1080),Vector2(0,1080)]),
-		PackedColorArray([Color("391e269a"),Color("391e269a"),Color("311924f0"),Color("311924f0")]))
-	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.3, 0.12, 0.08, 0.05))
+	# Subtly shade only the strip behind the cards; keep the fighting ground sunlit.
+	draw_polygon(PackedVector2Array([Vector2(0,790),Vector2(1920,790),Vector2(1920,1080),Vector2(0,1080)]),
+		PackedColorArray([Color("28212c00"),Color("28212c00"),Color("28212c8a"),Color("28212c8a")]))
 	# Warm motes stay subtle and never hide action silhouettes.
 	for i in 22:
 		var p := Vector2(fmod(i * 157.0 + sim.elapsed * (13 + i % 5), 1920), 230 + fmod(i * 89.0 + sin(sim.elapsed + i) * 15, 520))
 		draw_circle(p, 1.4, Color(1, 0.87, 0.58, 0.45))
+	cinema.draw_atmosphere(self)
+	for effect in effects:
+		if effect.has("branches"): HeroCues.draw_ground(self,effect)
 	_draw_nezha_windups()
 	_draw_wenzhong_windups()
 	var ordered: Array[Vector2]=[]
@@ -299,6 +383,10 @@ func _draw() -> void:
 	for entry in ordered: _fighter(sim.fighters[int(entry.y)])
 	_draw_arrows()
 	for effect in effects: _effect(effect)
+	_draw_damage_numbers()
+	# Keep the header, result and skill announcement in the same design coordinates as the HUD.
+	draw_set_transform_matrix(get_transform().affine_inverse())
+	_draw_spell_name()
 	if sim.elapsed < Rules.INTRO: _divider()
 	_draw_header()
 	if sim.elapsed >= Rules.INTRO and sim.elapsed < Rules.INTRO + 1.2:
@@ -332,13 +420,17 @@ func _fighter(f: Rules.Fighter) -> void:
 	if f.hp <= 0 and f.death_age > 1.4: return
 	var at := ground(f.pos)
 	var alpha := 1.0 if f.hp > 0 else 1.0 - smoothstep(0.6, 1.4, f.death_age)
-	draw_set_transform(at, 0, Vector2(FEET_AREA.size.x/1920.0,FEET_AREA.size.y/765.0))
-	draw_circle(Vector2.ZERO, f.radius, Color(0.16, 0.09, 0.07, 0.30 * alpha))
-	if debug_bodies:
-		draw_arc(Vector2.ZERO, f.radius, 0, TAU, 32, TEAM[f.side], 2)
-	draw_set_transform(Vector2.ZERO)
-	var key:=sprite_key(f)
 	var perspective:=lerpf(.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
+	var shadow_size:=Vector2(1.55,1.28) if f.troop_type=="cavalry" else (Vector2(1.28,1.15) if f.hero else Vector2.ONE)
+	ImpactArt.draw_shadow(self,at,shadow_size*perspective,alpha)
+	if f.action=="charge_run" and f.walking:
+		var phase:=fposmod(f.stride*3.7,1)
+		ImpactArt.dust_puff(self,at+Vector2(-f.facing*(30+30*phase),-2-7*phase)*perspective,Vector2(22+18*phase,8+9*phase)*perspective,(1-phase)*.52)
+	if debug_bodies:
+		draw_set_transform(at, 0, Vector2(FEET_AREA.size.x/1920.0,FEET_AREA.size.y/765.0))
+		draw_arc(Vector2.ZERO, f.radius, 0, TAU, 32, TEAM[f.side], 2)
+		draw_set_transform(Vector2.ZERO)
+	var key:=sprite_key(f)
 	var color := Color(1, 0.94, 0.86, alpha) if f.hit_age < 0.09 else Color(1, 1, 1, alpha)
 	if key == "nezha":
 		var pose := nezha_pose(f)
@@ -365,7 +457,10 @@ func _fighter(f: Rules.Fighter) -> void:
 		var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
 		var flip := f.facing != ArmyArt.native_facing(key)
 		draw_set_transform(at,0,Vector2(-perspective if flip else perspective,perspective))
-		draw_texture_rect_region(TEXTURES[key],frame.rect,frame.source,color)
+		if frame.cloth!=null:
+			draw_mesh(frame.cloth,TEXTURES[key],Transform2D.IDENTITY,color)
+		else:
+			draw_texture_rect_region(TEXTURES[key],frame.rect,frame.source,color)
 		draw_set_transform(Vector2.ZERO)
 	var stacks := sim.burn_stacks(f)
 	if f.hp > 0 and stacks > 0 and sim.result.is_empty():
@@ -393,10 +488,7 @@ func arrow_screen_point(arrow: Rules.Arrow, t: float) -> Vector2:
 	var source_depth := lerpf(.88, 1.03, clampf((arrow.origin.y + 25.0) / 765.0, 0, 1))
 	var bow_x := 50.0 if army_faction(arrow.source.side) == "shang" else 44.0
 	var start := ground(arrow.origin) + Vector2(bow_x * arrow.facing, -78.0) * source_depth
-	var target_height := WENZHONG_HEIGHT if arrow.target.hero_id == "wenzhong" else HERO_HEIGHT
-	if not arrow.target.hero: target_height = CAVALRY_HEIGHT if arrow.target.troop_type == "cavalry" else SOLDIER_HEIGHT
-	var target_depth := lerpf(.88, 1.03, clampf((arrow.destination.y + 25.0) / 765.0, 0, 1))
-	var end := ground(arrow.destination) - Vector2(0, target_height * target_depth * .53)
+	var end := ground(arrow.destination) - Vector2(0, _chest_height(arrow.target,arrow.destination.y))
 	var lift := clampf(arrow.origin.distance_to(arrow.destination) * .14, 12.0, 82.0)
 	return start.lerp(end, t) - Vector2(0, 4.0 * lift * t * (1.0 - t))
 
@@ -418,33 +510,50 @@ func _draw_arrows() -> void:
 
 func _divider() -> void:
 	var alpha := 1.0 - smoothstep(2.3, Rules.INTRO, sim.elapsed)
-	# Two separately framed halves become a single continuous arena on charge.
-	draw_rect(Rect2(951, 76, 18, 765), Color(0.12, 0.07, 0.09, alpha))
-	for x in [950, 956, 964, 970]: draw_line(Vector2(x, 76), Vector2(x, 841), Color(0.9, 0.7, 0.4, alpha), 2)
-	var points := PackedVector2Array([Vector2(960, 297), Vector2(1028, 365), Vector2(960, 433), Vector2(892, 365)])
-	draw_colored_polygon(points, Color(0.18, 0.1, 0.12, alpha))
-	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[3], points[0]]), Color(0.95, 0.77, 0.46, alpha), 3, true)
-	text("战", Vector2(960, 387), 48, Color(1, 0.9, 0.7, alpha), true)
-	text(army_name(0)+" · 列阵", Vector2(460, 238), 32, INK, true)
-	text(army_name(1)+" · 列阵", Vector2(1460, 238), 32, INK, true)
+	var points := PackedVector2Array([Vector2(960,101),Vector2(994,135),Vector2(960,169),Vector2(926,135)])
+	draw_colored_polygon(points,Color(.17,.12,.15,.88*alpha))
+	draw_polyline(PackedVector2Array([points[0],points[1],points[2],points[3],points[0]]),Color(.91,.77,.55,.85*alpha),2,true)
+	text("战",Vector2(960,148),32,Color(1,.9,.73,alpha),true)
+	for side in 2:
+		var x := 833.0 if side == 0 else 1087.0
+		var title := army_name(side)+" · 列阵"
+		var width := FONT.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,25).x
+		var point := Vector2(x-width*.5,145)
+		draw_string_outline(FONT,point,title,HORIZONTAL_ALIGNMENT_LEFT,-1,25,4,Color(.17,.12,.15,.85*alpha))
+		draw_string(FONT,point,title,HORIZONTAL_ALIGNMENT_LEFT,-1,25,Color(.99,.93,.80,alpha))
 
 func notice(value: String, rect: Rect2, font_size: int) -> void:
 	battle_hud.paint(self,BattleHud.BANNER,rect)
 	text(value,rect.get_center()+Vector2(0,font_size*.34),font_size,CREAM,true)
 
 func _draw_header() -> void:
-	draw_rect(Rect2(0, 0, 1920, 82), Color(0.14, 0.09, 0.10, 0.96))
-	draw_line(Vector2(0, 81), Vector2(1920, 81), GOLD, 2)
-	text("封 神  /  阵 前 演 武" if sim.encounter.get("exhibition", false) else "封 神  /  两 军 接 战", Vector2(34, 50), 25, GOLD)
-	text(sim.encounter.title, Vector2(960, 49), 30, CREAM, true)
+	draw_rect(Rect2(0,0,1920,65),Color(.14,.10,.13,.90))
+	draw_line(Vector2(0,65),Vector2(1920,65),Color(.76,.62,.42,.64),1.5)
+	text("封 神  /  阵 前 演 武" if sim.encounter.get("exhibition",false) else "封 神  /  两 军 接 战",Vector2(34,42),23,MUTED)
+	text(sim.encounter.title,Vector2(960,43),28,CREAM,true)
 	var phase := "列阵  %d" % maxi(1, ceili(Rules.INTRO - sim.elapsed)) if sim.elapsed < Rules.INTRO else "交战  %04.1f 秒" % (sim.elapsed - Rules.INTRO)
-	text(phase, Vector2(1886, 49) - Vector2(FONT.get_string_size(phase,HORIZONTAL_ALIGNMENT_LEFT,-1,22).x,0), 22, MUTED)
+	text(phase, Vector2(1886,42)-Vector2(FONT.get_string_size(phase,HORIZONTAL_ALIGNMENT_LEFT,-1,22).x,0),22,MUTED)
 
 func skill_name(side: int) -> String:
 	return str(sim.kits[side].battle.name)
 
 func finisher_name(side: int) -> String:
 	return str(sim.kits[side].ultimate.name)
+
+func _draw_spell_name() -> void:
+	var newest: Rules.Fighter
+	for side in 2:
+		var hero := sim.hero_for(side)
+		if hero.action=="finisher" and hero.hp>0 and (newest==null or hero.age<newest.age):
+			newest=hero
+	if newest!=null:
+		notice(finisher_name(newest.side),Rect2(725,117,470,72),32)
+		return
+	for i in range(effects.size()-1,-1,-1):
+		var cue:=effects[i]
+		if cue.kind=="skill" and cue.age<.6:
+			notice(skill_name(cue.side),Rect2(725,117,470,72),32)
+			break
 
 func _effect(e: Dictionary) -> void:
 	var at := ground(e.pos)
@@ -464,9 +573,7 @@ func _effect(e: Dictionary) -> void:
 	if e.kind in ["skill","finisher"] and e.get("ability","") in ["qiankun","samadhi"]:
 		var burst:=NezhaArt.event_time("samadhi_fx","lotus_burst")
 		if e.ability == "samadhi" and float(e.age)+burst < NezhaArt.duration("samadhi_fx"):
-			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),520)
-		if e.age < .6:
-			notice(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Rect2(725,117,470,72),32)
+			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),290,1,Color(1,.96,.85,.90))
 		return
 	if e.kind == "detonate":
 		if e.age < .3: NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),90)
@@ -475,29 +582,17 @@ func _effect(e: Dictionary) -> void:
 		var clip: String=str(e.ability)+"_fx"
 		var time := float(e.age)+WenzhongArt.event_time(clip,"impact")
 		if time < WenzhongArt.duration(clip):
-			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),460 if e.ability=="nine_thunders" else 285)
-		if e.age < .6:
-			notice(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Rect2(725,117,470,72),32)
+			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),255 if e.ability=="nine_thunders" else 180,1,Color(.93,.88,1,.78))
+		if e.has("weapon"): HeroCues.draw_lightning(self,e,at)
 		return
 	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit", "arrow_hit", "charge_hit"]:
-		if e.kind == "charge_hit": color = Color(1,.77,.35,1.0-t)
-		if e.kind == "burn_hit": color = Color(1,.55,.2,1.0-t)
-		if e.kind == "splash_hit": color = Color(1,.83,.35,1.0-t)
 		if e.kind == "skill_hit" and sim.fighters[int(e.source)].hero_id == "nezha" and e.age < .21:
 			NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),65)
-		at += Vector2(0, -95 - 60 * t)
-		# Reuse the shaped line for the entire floating-number lifetime. TextLine
-		# draws from its top-left; subtract ascent to preserve our baseline anchor.
-		var label: TextLine=e.label
-		var top_left:=at-Vector2(0,label.get_line_ascent())
-		label.draw_outline(get_canvas_item(),top_left,5,INK)
-		label.draw(get_canvas_item(),top_left,color)
-		# Impact sparks are a short contact flash; only the damage number floats
-		# for the full lifetime. Dense melee need not redraw hundreds of old rays.
-		if e.age<.16 and e.kind != "burn_hit":
-			for i in 4:
-				var v := Vector2.from_angle(i * TAU / 4 + 0.3)
-				draw_line(at + v * 6, at + v * (12 + t * 35), color, 2, true)
+		if e.kind=="charge_hit":
+			var depth:=lerpf(.88,1.03,clampf((e.origin.y+25.0)/765.0,0,1))
+			ImpactArt.draw_hoof_dust(self,ground(e.origin),e.facing,e.age,depth)
+		if e.kind in ["hit","charge_hit","arrow_hit"] and e.age<(.155 if e.kind=="charge_hit" else .105):
+			ImpactArt.draw_spark(self,e.strike,e.age,e.facing,e.kind=="charge_hit")
 	elif e.kind in ["skill", "finisher"]:
 		var strong: bool = e.kind == "finisher"
 		var extent := (410.0 if strong else 230.0) * sin(minf(1, t * 2) * PI * 0.5)
@@ -510,8 +605,6 @@ func _effect(e: Dictionary) -> void:
 			for i in 5:
 				var p := at + Vector2((i - 2) * extent * 0.35, -260)
 				draw_polyline(PackedVector2Array([p, p + Vector2(-20, 90), p + Vector2(26, 70), p + Vector2(0, 230)]), color, 4, true)
-		if t < 0.65:
-			notice(finisher_name(e.side) if strong else skill_name(e.side),Rect2(725,117,470,72),32)
 
 func _draw_nezha_windups() -> void:
 	for side in 2:
@@ -524,7 +617,9 @@ func _draw_nezha_windups() -> void:
 		draw_arc(Vector2.ZERO,radius,0,TAU,64,Color(1,.68,.3,.45),2)
 		draw_set_transform(Vector2.ZERO)
 		var time := hero.age-(hero.impact-NezhaArt.event_time("samadhi_fx","lotus_burst"))
-		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),520)
+		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),290,1,Color(1,.96,.85,.9))
+		var height:=HERO_HEIGHT*lerpf(.88,1.03,clampf((hero.pos.y+25.0)/765.0,0,1))
+		HeroCues.draw_lotus_ribbon(self,hero,ground(hero.pos),at,height)
 
 func _draw_wenzhong_windups() -> void:
 	for side in 2:
@@ -535,7 +630,7 @@ func _draw_wenzhong_windups() -> void:
 		if time < 0: continue
 		# Wen Zhong's existing skill resolves at the live target position.
 		var at := ground(sim.fighters[hero.target].pos)
-		WenzhongArt.draw(self,clip,time,at+Vector2(0,4),460 if hero.action=="finisher" else 285)
+		WenzhongArt.draw(self,clip,time,at+Vector2(0,4),255 if hero.action=="finisher" else 180,1,Color(.93,.88,1,.78))
 
 func _draw_result() -> void:
 	draw_rect(Rect2(0, 82, 1920, 754), Color(0.10, 0.06, 0.09, 0.5))

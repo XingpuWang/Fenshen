@@ -9,8 +9,12 @@ const Wenzhong = preload("res://scripts/wenzhong_art.gd")
 const FONT = preload("res://assets/fonts/ShanheSerif.otf")
 const PALE := Color("fff0d8")
 const GOLD := Color("f0cd98")
-const RULE := Color("ac815b9e")
+const SECONDARY := Color("cbb89e")
+const RULE := Color("a882647d")
 const SHADOW := Color("342026")
+const LACQUER_TINT := Color("b3a6a9")
+const TRIM_TINT := Color("baada7")
+const RESTING_TRIM := Color("908783")
 
 # Source regions in the painted atlas. Portrait and skill frames have open centers.
 const PURPLE_CARD := Rect2(10,68,699,216)
@@ -31,6 +35,7 @@ const AUTO := Rect2(765,830,130,130)
 const ULTIMATE := Rect2(963,786,166,169)
 const RING_CENTER := Vector2(1046,869.6)
 const RING_RADIUS := 72.5
+const READY_PULSE_MS := 2800
 const R_BADGE := Rect2(1098,806,42,40)
 const STRIP := Rect2(687,997,527,66)
 
@@ -70,9 +75,9 @@ func _draw() -> void:
 	_draw_card(1)
 	for x in [716,1184]:
 		var points := PackedVector2Array([Vector2(x,861),Vector2(x+1,904),Vector2(x,948),Vector2(x-1,904)])
-		draw_colored_polygon(points,Color("ebbd8399"))
+		draw_colored_polygon(points,Color("cba47680"))
 		points=PackedVector2Array([Vector2(x,898),Vector2(x+4,904),Vector2(x,910),Vector2(x-4,904),Vector2(x,898)])
-		draw_polyline(points,GOLD,1.2,true)
+		draw_polyline(points,SECONDARY,1.2,true)
 	_draw_abilities()
 	_draw_playback()
 	if battle.sim.result.is_empty(): _draw_hint()
@@ -95,17 +100,17 @@ func _draw_card(side: int) -> void:
 	var card: Rect2 = CARDS[side]
 	var plate := PURPLE_CARD if purple else RED_CARD
 	# Compress the lower cloud / lotus border so the stats sit on clear lacquer.
-	paint(self,Rect2(plate.position,Vector2(plate.size.x,56)),Rect2(card.position,Vector2(card.size.x,53)))
-	paint(self,Rect2(plate.position+Vector2(0,56),Vector2(plate.size.x,plate.size.y-120)),Rect2(card.position+Vector2(0,53),Vector2(card.size.x,card.size.y-97)))
-	paint(self,Rect2(plate.position.x,plate.end.y-64,plate.size.x,64),Rect2(card.position.x,card.end.y-44,card.size.x,44))
-	var frame := Rect2(card.position+Vector2(23,20),Vector2(164,208))
+	paint(self,Rect2(plate.position,Vector2(plate.size.x,56)),Rect2(card.position,Vector2(card.size.x,53)),LACQUER_TINT)
+	paint(self,Rect2(plate.position+Vector2(0,56),Vector2(plate.size.x,plate.size.y-120)),Rect2(card.position+Vector2(0,53),Vector2(card.size.x,card.size.y-97)),LACQUER_TINT)
+	paint(self,Rect2(plate.position.x,plate.end.y-64,plate.size.x,64),Rect2(card.position.x,card.end.y-44,card.size.x,44),LACQUER_TINT)
+	var frame := Rect2(card.position+Vector2(20,18),Vector2(169,213))
 	# Slight overlap under the painted inner lip prevents a seam at fractional scales.
-	var inner := Rect2(frame.position+Vector2(19,19),Vector2(133,175))
+	var inner := Rect2(frame.position+Vector2(20,20),Vector2(137,178))
 	match hero.hero_id:
-		"nezha": Nezha.draw_portrait(self,inner,"battle")
-		"wenzhong": Wenzhong.draw_portrait(self,inner,"battle")
+		"nezha": Nezha.draw_portrait(self,inner,"map_panel")
+		"wenzhong": Wenzhong.draw_portrait(self,inner,"map_panel")
 		_: Commander.portrait(self,hero.hero_id,inner)
-	paint(self,PURPLE_PORTRAIT if purple else RED_PORTRAIT,frame)
+	paint(self,PURPLE_PORTRAIT if purple else RED_PORTRAIT,frame,TRIM_TINT)
 
 	var x := card.position.x + 195
 	var right := card.end.x - 28
@@ -115,24 +120,27 @@ func _draw_card(side: int) -> void:
 	var split := x + name_width + 17
 	draw_line(Vector2(split,846),Vector2(split,865),RULE,1.5)
 	draw_string(FONT,Vector2(split+16,866),str(unit.get("title",battle.army_name(side)+"主将")),
-		HORIZONTAL_ALIGNMENT_LEFT,right-split-26,21,GOLD)
-	label("生命",Vector2(x,904),22,GOLD)
+		HORIZONTAL_ALIGNMENT_LEFT,right-split-26,21,SECONDARY)
+	label("生命",Vector2(x,904),22,SECONDARY)
 	var ratio := clampf(hero.hp / hero.max_hp,0,1)
-	var track := Rect2(x+61,883,right-x-145,22)
-	paint(self,HEALTH_TRACK,track)
+	var track := Rect2(x+61,882,right-x-145,24)
+	paint(self,HEALTH_TRACK,track,TRIM_TINT)
 	if ratio > 0:
 		var fill := track.grow(-3)
 		fill.size.x *= ratio
 		paint(self,HEALTH_FILL,fill)
-	draw_string(FONT,Vector2(right-77,904),"%d%%" % ceili(ratio*100),HORIZONTAL_ALIGNMENT_RIGHT,65,22,PALE)
-	var alive := sim.remaining(side)
-	label("兵力",Vector2(x,935),22,GOLD)
-	label("%d / %d" % [alive,sim.initial[side]],Vector2(x+67,935),23,PALE)
+	draw_string(FONT,Vector2(right-77,904),"%d%%" % ceili(ratio*100),HORIZONTAL_ALIGNMENT_RIGHT,65,25,PALE)
+	var alive := str(sim.remaining(side))
+	var count_at := Vector2(x+63,936)
+	label("兵力",Vector2(x,935),22,SECONDARY)
+	label(alive,count_at,29,PALE)
+	var count_width := FONT.get_string_size(alive,HORIZONTAL_ALIGNMENT_LEFT,-1,29).x
+	label("/ %d" % sim.initial[side],count_at+Vector2(count_width+8,0),21,SECONDARY)
 	_draw_formation(sim.remaining_roster(side), Rect2(x-3,946,right-x-5,59))
-	label("士气",Vector2(x,1029),21,GOLD)
+	label("士气",Vector2(x,1029),21,SECONDARY)
 	label("%d / %d" % [floori(sim.morale[side]+.00001),Rules.FINISHER_COST],Vector2(x+61,1029),22,PALE)
 	draw_line(Vector2(x+180,1012),Vector2(x+180,1031),RULE,1.5)
-	label("击杀",Vector2(x+199,1029),21,GOLD)
+	label("击杀",Vector2(x+199,1029),21,SECONDARY)
 	label(str(sim.kills[side]),Vector2(x+260,1029),22,PALE)
 	hits.append({"id":"commander_%d" % side,"rect":card,"enabled":false})
 
@@ -195,8 +203,8 @@ func _draw_abilities() -> void:
 		var source: Rect2 = automatic.source
 		var fit := source.size * minf(square.size.x/source.size.x,square.size.y/source.size.y)
 		draw_texture_rect_region(automatic.texture,Rect2(square.get_center()-fit*.5,fit),source)
-	paint(self,GOLD_SQUARE,AUTO,Color("fff1cc") if battle.hovered=="auto" else Color.WHITE)
-	paint(self,PLAQUE,Rect2(849,818,74,39))
+	paint(self,GOLD_SQUARE,AUTO,Color("d6c7b4") if battle.hovered=="auto" else TRIM_TINT)
+	paint(self,PLAQUE,Rect2(849,818,74,39),TRIM_TINT)
 	label("自动",Vector2(886,845),20,PALE,true)
 	_caption(ability.name,Vector2(AUTO.get_center().x,985),25)
 	hits.append({"id":"auto","rect":AUTO.merge(Rect2(849,818,74,39)),"enabled":false})
@@ -217,20 +225,24 @@ func _draw_abilities() -> void:
 		if ready:
 			draw_colored_polygon(disc,Color.WHITE,circle_uv,art.texture)
 		else:
-			draw_colored_polygon(disc,Color("b7b0c0"),resting_uv,_resting_icon(ultimate.id,art))
-	paint(self,RING,ULTIMATE)
+			draw_colored_polygon(disc,Color("99929d"),resting_uv,_resting_icon(ultimate.id,art))
+	paint(self,RING,ULTIMATE,Color.WHITE if ready else RESTING_TRIM)
 	var fraction := clampf(sim.morale[0]/Rules.FINISHER_COST,0,1)
-	if fraction > 0:
+	if ready:
+		# A wall-clock pulse keeps the ready cue at a steady cadence at either battle speed.
+		var pulse := .5 - .5 * cos(TAU * (Time.get_ticks_msec() % READY_PULSE_MS) / READY_PULSE_MS)
+		draw_arc(RING_CENTER,RING_RADIUS+8,0,TAU,96,Color(accent,.10+.12*pulse),8,true)
+		draw_arc(RING_CENTER,RING_RADIUS+8,0,TAU,96,Color(GOLD,.53+.26*pulse),2,true)
+		draw_arc(RING_CENTER,RING_RADIUS,0,TAU,96,accent.darkened(.23),8,true)
+		draw_arc(RING_CENTER,RING_RADIUS-1,0,TAU,96,accent,4,true)
+	elif fraction > 0:
 		var end := -PI*.5 + TAU*fraction
-		draw_arc(RING_CENTER,RING_RADIUS,-PI*.5,end,maxi(2,ceili(fraction*96)),accent.darkened(.30),8,true)
-		draw_arc(RING_CENTER,RING_RADIUS-1,-PI*.5,end,maxi(2,ceili(fraction*96)),accent,4,true)
-		draw_circle(RING_CENTER+Vector2.from_angle(end)*RING_RADIUS,2.4,PALE,true,-1,true)
-	if ready or battle.hovered == "finisher":
-		draw_arc(RING_CENTER,RING_RADIUS+9,0,TAU,90,Color(GOLD,.82 if ready else .4),2,true)
-	paint(self,KEYCAP,R_BADGE)
-	label("R",Vector2(R_BADGE.get_center().x,R_BADGE.position.y+29),23,PALE,true)
+		var progress := Color("918491") if purple else Color("988278")
+		draw_arc(RING_CENTER,RING_RADIUS,-PI*.5,end,maxi(2,ceili(fraction*96)),progress,3.5,true)
+	paint(self,KEYCAP,R_BADGE,Color.WHITE if ready else RESTING_TRIM)
+	label("R",Vector2(R_BADGE.get_center().x,R_BADGE.position.y+29),23,PALE if ready else SECONDARY,true)
 	_caption(ultimate.name,Vector2(RING_CENTER.x,968),26)
-	_caption("%d / %d" % [floori(sim.morale[0]+.00001),Rules.FINISHER_COST],Vector2(RING_CENTER.x,991),20,GOLD)
+	_caption("%d / %d" % [floori(sim.morale[0]+.00001),Rules.FINISHER_COST],Vector2(RING_CENTER.x,991),20,GOLD if ready else SECONDARY)
 	hits.append({"id":"finisher","rect":ULTIMATE,"center":RING_CENTER,"radius":RING_RADIUS+9,"enabled":true})
 	hits.append({"id":"finisher","rect":R_BADGE,"enabled":true})
 
@@ -257,7 +269,7 @@ func _caption(value: String, center: Vector2, size: int, tint := PALE) -> void:
 	draw_string(FONT,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,size,tint)
 
 func _draw_playback() -> void:
-	paint(self,JADE_STRIP,STRIP)
+	paint(self,JADE_STRIP,STRIP,TRIM_TINT)
 	var x := STRIP.get_center().x
 	var y := STRIP.get_center().y
 	draw_line(Vector2(x,y-13),Vector2(x,y+13),RULE,1.5)

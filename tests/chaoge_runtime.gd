@@ -163,6 +163,11 @@ func run() -> void:
 	# A focused input fixture verifies R interrupts an active action in the real view.
 	# Resource is set only here for this deterministic UI test, not in game code.
 	await key(KEY_SPACE)
+	var halted_at: float=battle.sim.elapsed
+	await key(KEY_F4)
+	check(not battle.show_damage_numbers and battle.paused and is_equal_approx(battle.sim.elapsed,halted_at),"hide floating numbers while paused without advancing combat")
+	await key(KEY_F4)
+	check(battle.show_damage_numbers,"restore damage numbers through the battle input path")
 	var hero=battle.sim.hero_for(0)
 	var enemy=battle.sim.hero_for(1)
 	battle.sim.elapsed=battle.Rules.INTRO+.1

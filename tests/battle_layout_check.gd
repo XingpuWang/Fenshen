@@ -56,8 +56,8 @@ func _initialize() -> void:
 	check(ProjectSettings.get_setting("application/run/max_fps")==60 and is_equal_approx(Rules.STEP,1.0/60.0),"60fps presentation cap and 60Hz combat simulation")
 	var view:=View.new()
 	view.setup({"title":"layout","player":{"id":"nezha","name":"哪吒","soldiers":6000,"troops":Rules.mixed_roster(6000),"morale":80},"enemy":{"id":"wenzhong","name":"闻仲","soldiers":6000,"troops":Rules.mixed_roster(6000),"morale":75}})
-	# Land horizon measured at source y=560 of the 941px background, including camera framing.
-	var land_top:=View.BACKDROP.position.y+560.0/941.0*View.BACKDROP.size.y
+	# The furthest foreground fence in the painted plate ends by source y=390.
+	var land_top:=View.BACKDROP.position.y+390.0/View.BG.get_height()*View.BACKDROP.size.y
 	check(View.FEET_AREA.position.y-16>land_top,"all feet and shadows stay below the actual backdrop land horizon")
 	for key in view.frame_catalog:
 		var entry: Dictionary=view.frame_catalog[key]
@@ -98,7 +98,8 @@ func _initialize() -> void:
 		for f in view.sim.fighters:
 			check(View.FEET_AREA.grow(0.1).has_point(view.ground(f.pos)),"live crowd feet stay on the land rectangle")
 	view.free()
-	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":frames_checked,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[160,500,1600,300],"standard_body_heights":{"soldier":View.SOLDIER_HEIGHT,"cavalry":View.CAVALRY_HEIGHT,"hero":View.HERO_HEIGHT,"wenzhong":View.WENZHONG_HEIGHT}}
+	var area:=View.FEET_AREA
+	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":frames_checked,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[area.position.x,area.position.y,area.size.x,area.size.y],"standard_body_heights":{"soldier":View.SOLDIER_HEIGHT,"cavalry":View.CAVALRY_HEIGHT,"hero":View.HERO_HEIGHT,"wenzhong":View.WENZHONG_HEIGHT}}
 	FileAccess.open("res://previews/battle/layout-report.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("BATTLE_LAYOUT "+JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)
