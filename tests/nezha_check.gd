@@ -176,6 +176,11 @@ func _initialize() -> void:
 		check(reach-windup_reach>15,"each spear contact visibly extends out of the preceding pose")
 		check(absf(reach-float(socket[0])*extension.body_height)<4,"spear spark starts at the illustrated point")
 		check(absf(extension.visible.end.y-extension.pivot.y)<=2,"striking boot stays on the contact plane")
+	var attack_cues: Array = Art.DATA.clips.attack.events
+	check(float(attack_cues[1].socket[1])-float(attack_cues[0].socket[1])>.15,"second strike lands visibly below the first")
+	var reload := Art.frame_number("attack",7)
+	var reload_reach := (reload.visible.end.x-reload.pivot.x)/reload.body_height
+	check(minf(attack_cues[0].socket[0],attack_cues[1].socket[0])-reload_reach>.24,"spear draws back far enough between the two thrusts")
 	var guard := Art.frame_number("idle",0)
 	for clip in ["qiankun","samadhi"]:
 		var opening := Art.frame_number(clip,0)

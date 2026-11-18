@@ -40,6 +40,8 @@ var paused := false
 var speed := 1
 var accumulator := 0.0
 var effects: Array[Dictionary] = []
+var troop_impacts: Dictionary = {}
+var spear_marks: Dictionary = {}
 var hits: Array[Dictionary] = []
 var hovered := ""
 var debug_bodies := false
@@ -48,6 +50,8 @@ var audio: Array[AudioStreamPlayer] = []
 var last_sound := {}
 var show_damage_numbers := true
 var floating_numbers: Array[Dictionary]=[]
+var passive_splash_at := PackedFloat64Array([-INF,-INF])
+var passive_spear_beat := PackedInt32Array([0,0])
 var total_frames := 0
 var wall_time := 0.0
 var result_age := 0.0
@@ -80,7 +84,10 @@ func _init() -> void:
 		draw_frames[key]=frames
 
 func setup(encounter: Dictionary) -> void:
+	troop_impacts.clear()
+	spear_marks.clear()
 	sim = Rules.new(encounter)
+	passive_splash_at.fill(-INF)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -118,7 +125,6 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func advance_effects(dt: float) -> void:
-	cinema.advance(self,dt)
 	if not sim.result.is_empty():
 		result_age += dt
 		for f in sim.fighters:
@@ -132,9 +138,18 @@ func advance_effects(dt: float) -> void:
 				f.walking=false
 	for n in floating_numbers: n.age+=dt
 	floating_numbers=floating_numbers.filter(func(n: Dictionary)->bool: return n.age<n.life)
-	for effect in effects: effect.age += dt
+	for effect in effects:
+		effect.age += dt
+		if effect.age>=ImpactArt.RECOIL_TIME:
+			if effect.has("recoil") and is_same(troop_impacts.get(effect.target),effect):
+				troop_impacts.erase(effect.target)
+			if effect.has("spear_beat") and is_same(spear_marks.get(effect.target),effect):
+				spear_marks.erase(effect.target)
 	effects = effects.filter(func(e: Dictionary) -> bool: return e.age < e.life)
 	for event in sim.events:
+		if event.kind == "splash_hit" and event.has("spear_beat"):
+			passive_splash_at[event.side] = sim.elapsed + result_age
+			passive_spear_beat[event.side] = event.spear_beat
 		if event.kind=="bow_release":
 			_troop_audio(4,.085)
 			continue
@@ -151,6 +166,16 @@ func advance_effects(dt: float) -> void:
 			var target: Rules.Fighter=sim.fighters[int(e.target)]
 			var hit_ground: Vector2=e.contact
 			e.strike=ground(hit_ground)-Vector2(0,_chest_height(target,hit_ground.y))
+			if e.kind!="burn_hit":
+				var direction:=ground(e.pos)-ground(e.get("splash_origin",e.origin))
+				e.incoming=direction.normalized() if direction.length_squared()>.01 else Vector2(e.facing,0)
+				if e.has("spear_beat"): spear_marks[target.id]=e
+				if not target.hero:
+					e.recoil=ImpactArt.recoil_strength(e)
+					var previous: Dictionary=troop_impacts.get(target.id,{})
+					# A light arrow arriving immediately after a lance cannot hide the larger reaction.
+					if previous.is_empty() or previous.age>=.09 or e.recoil>=previous.recoil:
+						troop_impacts[target.id]=e
 			_queue_damage_number(e,target)
 			e.life=.39 if e.kind=="charge_hit" else .22
 		effects.append(e)
@@ -160,6 +185,7 @@ func advance_effects(dt: float) -> void:
 		elif e.kind=="charge_hit": _troop_audio(6,.12)
 		elif e.kind=="arrow_hit": _troop_audio(5,.09)
 		elif e.kind=="hit": _troop_audio(1,.15)
+	cinema.advance(self,dt)
 	sim.events.clear()
 
 func _audio(index: int) -> void:
@@ -376,12 +402,14 @@ func _draw() -> void:
 	for effect in effects:
 		if effect.has("branches"): HeroCues.draw_ground(self,effect)
 	_draw_nezha_windups()
-	_draw_wenzhong_windups()
+	_draw_wenzhong_windups(false)
 	var ordered: Array[Vector2]=[]
 	for f in sim.fighters:
 		if f.hp>0 or f.death_age<=1.4: ordered.append(Vector2(f.pos.y,f.id))
 	ordered.sort()
 	for entry in ordered: _fighter(sim.fighters[int(entry.y)])
+	_draw_wenzhong_windups(true)
+	_draw_nezha_fire_line()
 	_draw_arrows()
 	for effect in effects: _effect(effect)
 	_draw_damage_numbers()
@@ -437,17 +465,16 @@ func _fighter(f: Rules.Fighter) -> void:
 		var pose := nezha_pose(f)
 		var height := HERO_HEIGHT*perspective
 		HeroCues.draw_caster(self,f,at,height)
-		if f.hp>0 and f.action=="attack" and sim.kits[f.side].passive.id=="three_heads_six_arms":
-			# Leave a gap around the forward hand and the spear. The avatar rises behind the rear shoulder.
-			var shoulder := at - Vector2(.30 * f.facing, .63) * height
-			NezhaArt.draw(self,"three_heads_fx",f.age,shoulder,height*1.16,f.facing)
+		if f.hp > 0 and f.action == "attack":
+			_draw_splash_apparition(f,at,height)
 		NezhaArt.draw(self,pose.clip,float(pose.time),at,height,f.facing,color)
 		if f.hp > 0 and f.action == "attack":
 			for event in NezhaArt.DATA.clips.attack.events:
-				var age := (f.age-float(event.at_ms)/1000.0)*1.75
+				var age := (f.age-float(event.at_ms)/1000.0)*2.15
 				if age < 0 or age >= NezhaArt.duration("spear_fx"): continue
 				var offset := Vector2(event.socket[0]*f.facing,event.socket[1])*height
-				NezhaArt.draw(self,"spear_fx",age,at+offset,height*.4,f.facing,Color.WHITE,float(event.rotation)*f.facing)
+				var tip_scale := .27 if event.event == "second_jab" else .20
+				NezhaArt.draw(self,"spear_fx",age,at+offset,height*tip_scale,f.facing,Color.WHITE,float(event.rotation)*f.facing)
 	elif key == "wenzhong":
 		var pose := wenzhong_pose(f)
 		var height := WENZHONG_HEIGHT*perspective
@@ -459,14 +486,31 @@ func _fighter(f: Rules.Fighter) -> void:
 				WenzhongArt.draw(self,"attack_fx",time,at+Vector2(.782*f.facing,-.464)*height,height*.72,f.facing)
 	else:
 		var pose:=animation(f)
+		var reaction: Dictionary=troop_impacts.get(f.id,{})
+		var reacting:=not reaction.is_empty() and float(reaction.age)<ImpactArt.RECOIL_TIME
+		if reacting and f.hp>0 and f.action=="attack" and reaction.has("spear_beat"):
+			# Show the victim bracing unless its own weapon is on the contact drawing.
+			if reaction.age<.085 and absf(f.age-f.impact)>.075:
+				pose=Vector2i(0 if reaction.age<.035 else 1,2)
 		var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
 		var flip := f.facing != ArmyArt.native_facing(key)
-		draw_set_transform(at,0,Vector2(-perspective if flip else perspective,perspective))
+		if reacting:
+			var height:=CAVALRY_HEIGHT if f.troop_type=="cavalry" else SOLDIER_HEIGHT
+			draw_set_transform_matrix(ImpactArt.recoil_transform(at,perspective,flip,height,reaction))
+			if reaction.age<.065:
+				var flash: float=(1.0-smoothstep(.018,.065,reaction.age))*minf(1.0,reaction.recoil/13.0)
+				color=Color(1+.29*flash,1+.11*flash,1-.13*flash,alpha)
+		else:
+			draw_set_transform(at,0,Vector2(-perspective if flip else perspective,perspective))
 		if frame.cloth!=null:
 			draw_mesh(frame.cloth,TEXTURES[key],Transform2D.IDENTITY,color)
 		else:
 			draw_texture_rect_region(TEXTURES[key],frame.rect,frame.source,color)
 		draw_set_transform(Vector2.ZERO)
+	# A nearer combatant must occlude the mark on the victim's armour.
+	if spear_marks.has(f.id):
+		var mark: Dictionary=spear_marks[f.id]
+		ImpactArt.draw_spear_contact(self,mark.strike+(at-ground(mark.pos)),mark.incoming,mark.age,mark.spear_beat,mark.kind=="splash_hit")
 	var stacks := sim.burn_stacks(f)
 	if f.hp > 0 and stacks > 0 and sim.result.is_empty():
 		NezhaArt.draw(self,"burn_fx",sim.elapsed+f.id*.07,at+Vector2(0,3),48+stacks*6,1,Color(1,1,1,.9))
@@ -488,6 +532,18 @@ func _fighter(f: Rules.Fighter) -> void:
 			bar(Rect2(at.x - 64, label_at.y + 9, 128, 7), f.age / f.impact, GOLD)
 	elif f.hp < f.max_hp and f.hp > 0:
 		bar(Rect2(at + Vector2(-19, 8), Vector2(38, 3)), f.hp / f.max_hp, TEAM[f.side])
+
+func _draw_splash_apparition(hero: Rules.Fighter, foot: Vector2, height: float) -> void:
+	var since := sim.elapsed + result_age - passive_splash_at[hero.side]
+	var second := passive_spear_beat[hero.side] == 2
+	var life := .33 if second else .19
+	if since > hero.age + .00001 or since >= life: return
+	# The first contact picks up the faint outline. Only a second splash opens the whole fan.
+	var phase := .28 + since * 1.65 if second else .055 + since * .78
+	var strength := (1.0 - smoothstep(life*.60,life,since)) * (.88 if second else .57)
+	var size := lerpf(.81,1.04,smoothstep(0,.075,since)) if second else .73
+	var base := foot - Vector2(.25*hero.facing,.46) * height
+	NezhaArt.draw(self,"three_heads_fx",phase,base,height*size,hero.facing,Color(1,1,1,strength))
 
 func arrow_screen_point(arrow: Rules.Arrow, t: float) -> Vector2:
 	var source_depth := lerpf(.88, 1.03, clampf((arrow.origin.y + 25.0) / 765.0, 0, 1))
@@ -576,10 +632,7 @@ func _effect(e: Dictionary) -> void:
 		NezhaArt.draw(self,"ring_fx",e.age,position,83,int(e.facing))
 		return
 	if e.kind in ["skill","finisher"] and e.get("ability","") in ["qiankun","samadhi"]:
-		var burst:=NezhaArt.event_time("samadhi_fx","lotus_burst")
 		if e.ability=="samadhi" and e.has("weapon"): HeroCues.draw_fire_strike(self,e,at)
-		if e.ability == "samadhi" and float(e.age)+burst < NezhaArt.duration("samadhi_fx"):
-			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),199,1,Color(1,.94,.77,.61))
 		elif e.ability=="qiankun" and e.has("branches") and e.age<.25:
 			var fade := 1.0-smoothstep(.05,.25,e.age)
 			for point in e.branches:
@@ -589,10 +642,6 @@ func _effect(e: Dictionary) -> void:
 		if e.age < .3: NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),90)
 		return
 	if e.kind in ["skill","finisher"] and e.get("ability","") in ["thunder_whip","nine_thunders"]:
-		var clip: String=str(e.ability)+"_fx"
-		var time := float(e.age)+WenzhongArt.event_time(clip,"impact")
-		if time < WenzhongArt.duration(clip):
-			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),197 if e.ability=="nine_thunders" else 126,1,Color(.88,.91,1,.58))
 		if e.has("weapon"): HeroCues.draw_lightning(self,e,at)
 		return
 	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit", "arrow_hit", "charge_hit"]:
@@ -601,7 +650,7 @@ func _effect(e: Dictionary) -> void:
 		if e.kind=="charge_hit":
 			var depth:=lerpf(.88,1.03,clampf((e.origin.y+25.0)/765.0,0,1))
 			ImpactArt.draw_hoof_dust(self,ground(e.origin),e.facing,e.age,depth)
-		if e.kind in ["hit","charge_hit","arrow_hit"] and e.age<(.155 if e.kind=="charge_hit" else .105):
+		if not e.has("spear_beat") and e.kind in ["hit","charge_hit","arrow_hit"] and e.age<(.155 if e.kind=="charge_hit" else .105):
 			ImpactArt.draw_spark(self,e.strike,e.age,e.facing,e.kind=="charge_hit")
 	elif e.kind in ["skill", "finisher"]:
 		var strong: bool = e.kind == "finisher"
@@ -631,20 +680,34 @@ func _draw_nezha_windups() -> void:
 		draw_set_transform(Vector2.ZERO)
 		SpellPaint.lotus_windup(self,at,hero.age/hero.impact,hero.facing)
 		var time := hero.age-(hero.impact-NezhaArt.event_time("samadhi_fx","lotus_burst"))
-		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,4),199,1,Color(1,.94,.77,.61))
-		var height:=HERO_HEIGHT*lerpf(.88,1.03,clampf((hero.pos.y+25.0)/765.0,0,1))
-		HeroCues.draw_lotus_ribbon(self,hero,ground(hero.pos),at,height)
+		if time >= 0: NezhaArt.draw(self,"samadhi_fx",time,at+Vector2(0,3),148,1,Color(1,.88,.68,.65))
 
-func _draw_wenzhong_windups() -> void:
+func _draw_nezha_fire_line() -> void:
+	for side in 2:
+		var hero := sim.hero_for(side)
+		if hero.hero_id!="nezha" or hero.hp<=0 or hero.action!="finisher" or hero.age>=hero.impact: continue
+		var height:=HERO_HEIGHT*lerpf(.88,1.03,clampf((hero.pos.y+25.0)/765.0,0,1))
+		HeroCues.draw_lotus_ribbon(self,hero,ground(hero.pos),ground(hero.cast_target),height)
+
+func _draw_wenzhong_windups(front: bool) -> void:
 	for side in 2:
 		var hero := sim.hero_for(side)
 		if hero.hero_id != "wenzhong" or hero.hp <= 0 or hero.action not in ["cast","finisher"] or hero.age >= hero.impact: continue
-		var clip := "nine_thunders_fx" if hero.action=="finisher" else "thunder_whip_fx"
-		var time := hero.age-(hero.impact-WenzhongArt.event_time(clip,"impact"))
-		var at := ground(sim.fighters[hero.target].pos)
 		var strong := hero.action=="finisher"
-		SpellPaint.thunder_windup(self,at,hero.age/hero.impact,strong,hero.facing)
-		if time >= 0: WenzhongArt.draw(self,clip,time,at+Vector2(0,4),197 if strong else 126,1,Color(.88,.91,1,.58))
+		var actor := "nine_thunders" if strong else "thunder_whip"
+		var beat := WenzhongArt.frame_index(actor,hero.age)
+		var progress := hero.age/hero.impact
+		var at := ground(sim.fighters[hero.target].pos)
+		if front and beat>=4 and beat<=9:
+			var height := WENZHONG_HEIGHT*lerpf(.88,1.03,clampf((hero.pos.y+25.0)/765.0,0,1))
+			var tip := WenzhongArt.raised_whip_tip(actor,beat,ground(hero.pos),height,hero.facing)
+			HeroCues.draw_whip_charge(self,tip,at,progress,strong)
+		SpellPaint.thunder_windup(self,at,progress,strong,front)
+		if front: continue
+		var clip := actor+"_fx"
+		var time := hero.age-(hero.impact-WenzhongArt.event_time(clip,"impact"))
+		if time >= 0:
+			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),181 if strong else 108,1,Color(.88,.91,1,.27*smoothstep(.61,.94,progress)))
 
 func _draw_result() -> void:
 	draw_rect(Rect2(0, 82, 1920, 754), Color(0.10, 0.06, 0.09, 0.5))

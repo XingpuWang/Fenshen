@@ -159,6 +159,8 @@ func _initialize() -> void:
 			if fx.kind=="finisher" and fx.age==0:
 				spells[fx.ability]=fx
 				impact_exposure.append(view.cinema.exposure_pulse)
+				var lit_ground: Vector2 = view.cinema.impact_positions[fx.side] + View.HeroCues.IMPACT_SHADE_OFFSET
+				check(lit_ground.distance_to(view.ground(fx.pos)) < 1.0 and view.cinema.impact_pulses[fx.side] > .9,"each army's backdrop peaks at its own landing point")
 	check(impact_exposure.size()==2 and impact_exposure.min()>.9 and impact_exposure.max()<=1.0 and view.cinema.exposure_pulse==0.0,"each ultimate peaks on the hit and restores daylight after overlapping casts")
 	check(peak_zoom>1.04 and peak_zoom<=1.076 and largest_step<8 and view.scale==Vector2.ONE,"overlapping ultimates share a bounded smooth camera and return to the tactical view")
 	check(spells.has("samadhi") and spells.has("nine_thunders"),"both simultaneous impacts keep their own visual cue")

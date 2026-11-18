@@ -1,7 +1,49 @@
 extends RefCounted
-## Small ground effects share the arena's upper-left light and the battle clock.
+## Local reactions, contact sparks and ground shadows share the battle clock.
 static var shadow: Texture2D
 static var dust: Texture2D
+const RECOIL_TIME := .19
+
+static func recoil_strength(event: Dictionary) -> float:
+	if event.kind=="splash_hit": return 8.5
+	if event.has("spear_beat"): return 18.0 if event.spear_beat==2 else 14.0
+	match event.kind:
+		"charge_hit","finisher_hit": return 14.0
+		"skill_hit": return 9.0
+		"arrow_hit": return 5.0
+		_: return 6.0
+
+## The sole stays at its simulation ground point. Only the upper silhouette leans away.
+static func recoil_transform(feet: Vector2, depth: float, flip: bool, height: float, event: Dictionary) -> Transform2D:
+	var age:=float(event.age)
+	var impulse:=(.48+.52*smoothstep(0,.031,age))*(1.0-smoothstep(.038,.137,age))
+	impulse-=.14*sin(PI*clampf((age-.101)/(RECOIL_TIME-.101),0,1))
+	var push: Vector2=event.incoming*float(event.recoil)*impulse
+	var compression: float=float(event.recoil)*.24*maxf(0,impulse)
+	return Transform2D(Vector2(-depth if flip else depth,0),
+		Vector2(-push.x/height,1.0-(push.y+compression)/height)*depth,feet)
+
+static func draw_spear_contact(canvas: CanvasItem, at: Vector2, direction: Vector2, age: float, beat: int, splash: bool) -> void:
+	var duration:=.14 if splash else (.18 if beat==2 else .15)
+	if age>=duration: return
+	var t:=age/duration
+	var fade:=1.0-smoothstep(.16,1.0,t)
+	var length:=(11.0 if splash else (30.0 if beat==2 else 23.0))
+	var normal:=direction.orthogonal()
+	var tip:=at+direction*length*(.38+.75*t)
+	var tail:=at-direction*length*(.44-.25*t)
+	var edge:=normal*(1.0 if splash else 2.8)*(1.0-.8*t)
+	var gold:=Color(1,.69,.25,fade)
+	var hot:=Color(1,.97,.79,fade)
+	canvas.draw_colored_polygon(PackedVector2Array([tail,at-edge,tip,at+edge]),gold)
+	canvas.draw_line(tail,tip,hot,1.25 if splash else 2.0,true)
+	for i in (2 if splash else 3):
+		var angle: float=[-.91,.54,-.30][i]
+		var ray:=direction.rotated(angle)
+		var start:=at+ray*length*(.10+.69*t)
+		var end:=start+ray*length*(.64-.46*t)
+		var wing:=ray.orthogonal()*(.9 if splash else 1.65)*(1.0-.71*t)
+		canvas.draw_colored_polygon(PackedVector2Array([start-wing,end,start+wing]),gold if i==1 else hot)
 
 static func draw_shadow(canvas: CanvasItem, at: Vector2, scale: Vector2, alpha: float) -> void:
 	if shadow == null:

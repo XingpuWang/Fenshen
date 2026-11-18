@@ -745,8 +745,15 @@ func _damage(source: Fighter, target: Fighter, amount: float, kind: String, dama
 		target.burns.clear()
 	if contact == Vector2.INF:
 		contact = target.pos + target.pos.direction_to(source.pos) * target.radius * .55
-	events.append({"kind": kind, "pos":target.pos, "contact":contact, "origin":source.pos, "facing":source.facing,
-		"side":source.side, "source":source.id, "amount":roundi(actual) if target.hero else defeated, "target":target.id, "damage_type":damage_type})
+	var hit := {"kind":kind, "pos":target.pos, "contact":contact, "origin":source.pos, "facing":source.facing,
+		"side":source.side, "source":source.id, "amount":roundi(actual) if target.hero else defeated, "target":target.id, "damage_type":damage_type}
+	if source.hero_id=="nezha" and kind in ["hit","splash_hit"]:
+		# Capture the contact before the attacker advances to the next drawing or changes target.
+		hit.spear_beat=clampi(source.hit_index+1,1,2)
+		if kind=="splash_hit" and source.target>=0:
+			hit.splash_origin=fighters[source.target].pos
+			hit.contact=target.pos+target.pos.direction_to(hit.splash_origin)*target.radius*.55
+	events.append(hit)
 
 func _resolve_bodies() -> void:
 	# Symmetric circle separation for allies AND enemies, including heroes.

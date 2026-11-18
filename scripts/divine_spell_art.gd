@@ -85,33 +85,63 @@ static func ring_wake(canvas: CanvasItem, start: Vector2, end: Vector2, back: Ve
 	return ring_point(start,end,back,t,facing)
 
 static func lotus_windup(canvas: CanvasItem, at: Vector2, progress: float, facing: int) -> void:
-	var rise := smoothstep(.03,.90,progress)
-	stamp(canvas,lotus,smoothstep(.42,1,progress)*.95,at,Vector2(236,264).lerp(Vector2(329,275),rise),rise*.80,facing)
+	# Only the seed is visible before the spear finishes the cast.
+	var charge := smoothstep(.80,1.0,progress)
+	stamp(canvas,lotus,0,at,Vector2(92,107),charge*.78,facing)
 
-static func lotus_bloom(canvas: CanvasItem, at: Vector2, age: float, facing: int, front: bool = false) -> void:
-	if age>=.90: return
-	var opening := ease(clampf(age/.115,0,1),.42)
-	var decay := smoothstep(.24,.73,age)
-	var phase := .95+opening*1.05+decay
-	var size := Vector2(329,275).lerp(Vector2(479,458),opening).lerp(Vector2(513,478),decay)
-	stamp(canvas,lotus,phase,at-Vector2(0,12*decay),size,(.93 if front else 1.0)*(1.0-smoothstep(.35,.90,age)),facing,front)
-	if not front: return
-	# Red-gold leaves peel away from the corona as the last painted cel dissolves.
-	var lift := smoothstep(.12,.86,age)
-	var visibility := smoothstep(.08,.2,age)*(1.0-smoothstep(.4,.78,age))
-	for i in 8:
-		var a := -PI+(i+.5)*PI/8.0
-		var shaft := Vector2(cos(a)*facing,sin(a))
-		var distance := 40.0+lift*(117+(i%3)*22)
-		var pos := at+shaft*distance-Vector2(0,25+lift*41)
-		var tip := shaft.rotated(.3*sin(i*.8+lift*3))*(7.0+i%3)
-		var rim := tip.orthogonal()*.28
-		canvas.draw_colored_polygon(PackedVector2Array([pos-tip,pos+rim,pos+tip,pos-rim]),Color(1,.52+.05*(i%3),.14,visibility))
+static func lotus_bloom(canvas: CanvasItem, impact: Vector2, behind_rank: Vector2, age: float, facing: int) -> void:
+	if age>=.82: return
+	# The base grows away from the point of contact, and the corolla opens behind the ranks.
+	var opening := smoothstep(0,.17,age)
+	var retreat := smoothstep(.24,.68,age)
+	var size := Vector2(92,107).lerp(Vector2(463,439),opening).lerp(Vector2(482,454),retreat)
+	var root := impact.lerp(behind_rank,opening)-Vector2(0,7*retreat)
+	stamp(canvas,lotus,2.0*opening+retreat,root,size,1.0-smoothstep(.35,.82,age),facing)
 
-static func thunder_windup(canvas: CanvasItem, at: Vector2, progress: float, strong: bool, facing: int) -> void:
-	var rise := smoothstep(.05,.92,progress)
-	var size := Vector2(229,300) if strong else Vector2(111,130)
-	stamp(canvas,thunder,.6*smoothstep(.58,1.0,progress),at,size*(.78+.22*rise),rise*(.84 if strong else .62),facing)
+# Three isolated brushstrokes from the last painted cel pass in front of the targets.
+# They peel off on the far side of the strike and descend as the spear retracts.
+static func falling_lotus_petals(canvas: CanvasItem, target: Vector2, age: float, facing: int) -> void:
+	if age<.18 or age>.73 or lotus==null: return
+	const FRAGMENTS := [Rect2(933,117,46,80),Rect2(986,182,21,20),Rect2(852,130,18,16)]
+	const SIZES := [Vector2(15,31),Vector2(23,20),Vector2(16,13)]
+	for i in FRAGMENTS.size():
+		var t := (age-.18-i*.055)/.43
+		if t<=0.0 or t>=1.0: continue
+		var drift := sin(t*PI)*8.0 + t*(21.0+i*6.0)
+		var x := (34.0+i*29.0+drift)*facing
+		var y := -86.0-i*13.0-11.0*sin(PI*t)+t*t*(73.0+i*7.0)
+		var alpha := smoothstep(0,.14,t)*(1.0-smoothstep(.58,1.0,t))
+		var size: Vector2 = SIZES[i]*Vector2(.7+.3*absf(cos(2.2*t+i)),1.0)
+		canvas.draw_set_transform(target+Vector2(x,y),facing*(.35*sin(t*4.0+i)-.45*t),Vector2(facing,1))
+		canvas.draw_texture_rect_region(lotus,Rect2(-size*.5,size),FRAGMENTS[i],Color(1,1,1,.90*alpha))
+	canvas.draw_set_transform(Vector2.ZERO)
+
+static func thunder_seal(canvas: CanvasItem, at: Vector2, strong: bool, charge: float, opacity: float, front: bool = false) -> void:
+	if opacity < .01: return
+	var radius := (88.0 if strong else 55.0)*lerpf(1.13,1.0,charge)
+	canvas.draw_set_transform(at,0,Vector2(1,.35))
+	# Leave the middle open so the struck model's feet and shadow stay visible.
+	for i in 3:
+		var start := TAU*i/3.0+.12
+		var end := start+lerpf(.26,1.86,charge)
+		# Only the near edge is visible in front of the formation's boots.
+		if front:
+			end=minf(end,PI-.10)
+			if end<=start: continue
+		canvas.draw_arc(Vector2.ZERO,radius,start,end,26,Color(.20,.14,.46,opacity*.92),6.3,true)
+		canvas.draw_arc(Vector2.ZERO,radius,start,end,26,Color(.65,.72,1,opacity),2.9,true)
+		# An angular thunder meander is legible as a seal even when the centre is occupied.
+		var point := Vector2.from_angle(start)*radius
+		var tangent := Vector2.from_angle(start).orthogonal()
+		var inward := -point.normalized()
+		var mark := PackedVector2Array([point+tangent*6,point+tangent*4+inward*10,
+			point+tangent*14+inward*10,point+tangent*10+inward*20])
+		canvas.draw_polyline(mark,Color(.96,.84,.53,opacity*.95),3.3,true)
+	canvas.draw_set_transform(Vector2.ZERO)
+
+static func thunder_windup(canvas: CanvasItem, at: Vector2, progress: float, strong: bool, front: bool) -> void:
+	var charge := smoothstep(.53,.92,progress)
+	thunder_seal(canvas,at,strong,charge,charge*(.90 if front else .68),front)
 
 static func thunder_bloom(canvas: CanvasItem, at: Vector2, age: float, strong: bool, facing: int, front: bool = false) -> void:
 	var duration := .88 if strong else .50
@@ -119,5 +149,8 @@ static func thunder_bloom(canvas: CanvasItem, at: Vector2, age: float, strong: b
 	var extent := clampf(age/duration,0,1)
 	var opening := ease(clampf(extent/.18,0,1),.42)
 	var phase := .60+opening*1.40+smoothstep(.28,.77,extent)
-	var size := Vector2(330,431) if strong else Vector2(171,201)
-	stamp(canvas,thunder,phase,at,size*(.76+.24*opening),(.88 if front else 1.0)*(1.0-smoothstep(.38,1.0,extent)),facing,front)
+	var size := Vector2(298,358) if strong else Vector2(116,140)
+	# Let the returning stroke light the foreground briefly. Its painted afterglow stays behind the fighters.
+	var opacity := (.56 if front else .76)*(1.0-smoothstep(.21,.91,extent))
+	if front: opacity *= 1.0 - smoothstep(.035,.145,age)
+	stamp(canvas,thunder,phase,at,size*(.76+.24*opening),opacity,facing,front)

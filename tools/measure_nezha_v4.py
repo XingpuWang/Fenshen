@@ -19,6 +19,22 @@ ROOTS = {
 }
 
 
+def spear_contact(alpha, frame, height, time_ms, event):
+    """Locate the drawn point and follow the centerline of its last 40 pixels."""
+    x, y, w, h = frame["source"]
+    visible = alpha[y:y+h, x:x+w] >= 48
+    ys, xs = np.where(visible)
+    tip_x = int(xs.max())
+    tip_y = float(np.median(ys[xs >= tip_x - 2]))
+    columns = np.arange(tip_x - 42, tip_x - 2)
+    centers = [np.median(np.where(visible[:, column])[0]) for column in columns]
+    direction = float(np.arctan(np.polyfit(columns, centers, 1)[0]))
+    px, py = frame["pivot"]
+    return {"at_ms":time_ms, "event":event,
+            "socket":[round((tip_x-px)/height, 4), round((tip_y-py)/height, 4)],
+            "rotation":round(direction, 4)}
+
+
 def main():
     data = copy.deepcopy(json.loads((ROOT / "data/nezha_art_v3.json").read_text()))
     data.update(version=4, revision="战斗小人重绘 / 火尖枪双段连刺 / 乾坤圈与三昧真火16帧",
@@ -69,11 +85,13 @@ def main():
         data["clips"][key].update(sheet=sheet,frames=list(range(16)),durations_ms=times,
                                  events=events,description=description,loop=loop)
 
-    # Measured at the painted red-gold tips on drawings six and ten.
-    clip("attack","attack",data["clips"]["attack"]["durations_ms"],
-         [{"at_ms":270,"event":"jab","socket":[0.846,-0.562],"rotation":-0.079},
-          {"at_ms":465,"event":"second_jab","socket":[0.842,-0.562],"rotation":-0.053}],
-         "16帧提枪、探步、双刺与收势，乾坤圈随双手持枪扣于腰侧，红绫随第二刺回落。")
+    attack = data["sheets"]["attack"]
+    with Image.open(ROOT / attack["path"]) as image:
+        alpha = np.asarray(image.getchannel("A"))
+    hits = [spear_contact(alpha, attack["frames"][i], attack["body_height"], time, name)
+            for i, time, name in [(5,270,"jab"), (9,465,"second_jab")]]
+    clip("attack","attack",data["clips"]["attack"]["durations_ms"],hits,
+         "16帧屈膝收枪、上路直刺、回撤蓄力、低身再刺并收回守势，红绫在枪收回后继续摆动。")
     clip("qiankun","qiankun",[60]*6+[55,60,65,70,80,80,90,60,60,60],
          [{"at_ms":360,"event":"release_ring"},{"at_ms":610,"event":"ring_impact"},{"at_ms":860,"event":"catch_ring"}],
          "16帧蓄势、掷圈、随势、接圈；独立16帧金圈与赤金拖尾随真实飞行往返。")

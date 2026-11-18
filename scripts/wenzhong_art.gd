@@ -4,6 +4,11 @@ const Textures = preload("res://scripts/runtime_textures.gd")
 static var PORTRAIT: Texture2D = Textures.get_texture("res://assets/characters/wenzhong/v1/portrait.png")
 static var DATA: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/wenzhong_art_v1.json"))
 static var sheets: Dictionary = {}
+# Leading whip tip in source-cel pixels while the raised weapon changes angle (cels 4–9).
+const RAISED_TIPS := {
+	"thunder_whip": [Vector2(285,47),Vector2(265,33),Vector2(241,6),Vector2(185,2),Vector2(186,6),Vector2(232,8)],
+	"nine_thunders": [Vector2(321,10),Vector2(317,10),Vector2(305,5),Vector2(266,4),Vector2(258,5),Vector2(235,3)]
+}
 
 class Frame:
 	var texture: Texture2D
@@ -58,6 +63,11 @@ static func frame_number(clip: String, index: int) -> Frame:
 	prepare()
 	var entry: Dictionary = DATA.clips[clip]
 	return sheets[entry.sheet][int(entry.frames[clampi(index,0,entry.frames.size()-1)])]
+
+static func raised_whip_tip(clip: String, index: int, foot: Vector2, height: float, facing: int) -> Vector2:
+	var cel := frame_number(clip,index)
+	var pixel: Vector2 = RAISED_TIPS[clip][index-4]
+	return foot+(pixel-cel.pivot)*(height/cel.body_height)*Vector2(facing,1)
 
 static func draw(canvas: CanvasItem, clip: String, seconds: float, at: Vector2, height: float, facing: int = 1, color: Color = Color.WHITE, aspect: Vector2 = Vector2.ONE) -> void:
 	var f := frame(clip,seconds)
