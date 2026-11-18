@@ -1,6 +1,7 @@
 extends Control
 ## Presentation consumes fixed simulation time: pause/speed also affect sprites and effects.
 signal returned(result: Dictionary)
+const BattleHud = preload("res://scripts/battle_hud.gd")
 const Rules = preload("res://scripts/battle_rules.gd")
 const NezhaArt = preload("res://scripts/nezha_art.gd")
 const WenzhongArt = preload("res://scripts/wenzhong_art.gd")
@@ -29,6 +30,7 @@ class SpriteFrame:
 var draw_frames: Dictionary={}
 var frame_catalog: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json"))
 var sim: Rules
+var battle_hud: BattleHud
 var paused := false
 var speed := 1
 var accumulator := 0.0
@@ -73,7 +75,12 @@ func setup(encounter: Dictionary) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	get_window().mouse_exited.connect(_clear_hover)
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	battle_hud=BattleHud.new()
+	battle_hud.battle=self
+	add_child(battle_hud)
+	battle_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if DisplayServer.get_name() != "headless":
 		for name in ["drum", "clash", "fire", "thunder"]:
 			var player := AudioStreamPlayer.new()
@@ -144,16 +151,20 @@ func advance_effects(dt: float) -> void:
 func _audio(index: int) -> void:
 	if not audio.is_empty(): audio[index].play()
 
+func _clear_hover() -> void:
+	hovered = ""
+
+func hit_at(point: Vector2) -> Dictionary:
+	for hit in hits:
+		if hit.rect.has_point(point): return hit
+	return battle_hud.hit_at(point)
+
 func handle_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		hovered = ""
-		for hit in hits:
-			if hit.rect.has_point(event.position): hovered = hit.id
+		hovered = hit_at(event.position).get("id","")
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		for hit in hits:
-			if hit.rect.has_point(event.position) and hit.enabled:
-				activate(hit.id)
-				break
+		var hit := hit_at(event.position)
+		if hit.get("enabled",false): activate(hit.id)
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
 			KEY_SPACE: activate("pause")
@@ -168,7 +179,8 @@ func activate(id: String) -> void:
 			if sim.result.is_empty():
 				paused = not paused
 				for player in audio: player.stream_paused = paused
-		"speed": speed = 2 if speed == 1 else 1
+		"speed":
+			if sim.result.is_empty(): speed = 2 if speed == 1 else 1
 		"finisher":
 			if not paused: sim.use_finisher(0)
 		"return":
@@ -261,6 +273,15 @@ func _draw() -> void:
 	hits.clear()
 	draw_rect(Rect2(0,0,1920,1080),INK)
 	draw_texture_rect(BG, BACKDROP, false)
+	# Continue the foreground underneath the floating cards, preserving the actors' ground plane.
+	var skirt_y := FEET_AREA.position.y - 24
+	var texture_y := (skirt_y-BACKDROP.position.y)/BACKDROP.size.y*BG.get_height()
+	draw_texture_rect_region(BG,Rect2(BACKDROP.position.x,skirt_y,BACKDROP.size.x,1080-skirt_y),
+		Rect2(0,texture_y,BG.get_width(),BG.get_height()-texture_y))
+	draw_polygon(PackedVector2Array([Vector2(0,695),Vector2(1920,695),Vector2(1920,910),Vector2(0,910)]),
+		PackedColorArray([Color("321b2400"),Color("321b2400"),Color("391e269a"),Color("391e269a")]))
+	draw_polygon(PackedVector2Array([Vector2(0,910),Vector2(1920,910),Vector2(1920,1080),Vector2(0,1080)]),
+		PackedColorArray([Color("391e269a"),Color("391e269a"),Color("311924f0"),Color("311924f0")]))
 	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.3, 0.12, 0.08, 0.05))
 	# Warm motes stay subtle and never hide action silhouettes.
 	for i in 22:
@@ -276,12 +297,10 @@ func _draw() -> void:
 	for effect in effects: _effect(effect)
 	if sim.elapsed < Rules.INTRO: _divider()
 	_draw_header()
-	_draw_team(0)
-	_draw_team(1)
-	_draw_commands()
+	if sim.elapsed >= Rules.INTRO and sim.elapsed < Rules.INTRO + 1.2:
+		text("冲 阵", Vector2(960, 245), 55, INK, true)
 	if paused:
-		panel(Rect2(798, 370, 324, 90), Color(0.12, 0.08, 0.1, 0.9))
-		text("战斗暂停", Vector2(960, 427), 34, CREAM, true)
+		notice("战斗暂停",Rect2(770,371,380,66),32)
 	if not sim.result.is_empty() and result_age>=1.35: _draw_result()
 	if profile_enabled: profile_draw_ms=(Time.get_ticks_usec()-profile_start)/1000.0
 
@@ -366,6 +385,10 @@ func _divider() -> void:
 	text(army_name(0)+" · 列阵", Vector2(460, 238), 32, INK, true)
 	text(army_name(1)+" · 列阵", Vector2(1460, 238), 32, INK, true)
 
+func notice(value: String, rect: Rect2, font_size: int) -> void:
+	battle_hud.paint(self,BattleHud.BANNER,rect)
+	text(value,rect.get_center()+Vector2(0,font_size*.34),font_size,CREAM,true)
+
 func _draw_header() -> void:
 	draw_rect(Rect2(0, 0, 1920, 82), Color(0.14, 0.09, 0.10, 0.96))
 	draw_line(Vector2(0, 81), Vector2(1920, 81), GOLD, 2)
@@ -374,59 +397,11 @@ func _draw_header() -> void:
 	var phase := "列阵  %d" % maxi(1, ceili(Rules.INTRO - sim.elapsed)) if sim.elapsed < Rules.INTRO else "交战  %04.1f 秒" % (sim.elapsed - Rules.INTRO)
 	text(phase, Vector2(1886, 49) - Vector2(FONT.get_string_size(phase,HORIZONTAL_ALIGNMENT_LEFT,-1,22).x,0), 22, MUTED)
 
-func _draw_team(side: int) -> void:
-	var x := 28.0 if side == 0 else 1268.0
-	panel(Rect2(x, 837, 624, 211), Color(0.15, 0.095, 0.11, 0.96), TEAM[side])
-	# Commander illustrations are independent from their battle actor sheets.
-	var portrait_key:=sprite_key(sim.hero_for(side))
-	if portrait_key == "nezha":
-		NezhaArt.draw_portrait(self,Rect2(x+8,849,140,188),"battle")
-	elif portrait_key == "wenzhong":
-		WenzhongArt.draw_portrait(self,Rect2(x+8,849,140,188),"battle")
-	else:
-		var frame: Dictionary=frame_catalog[portrait_key].frames[0]
-		var pixels: Array=frame.opaque
-		var region: Array=frame.source
-		var src:=Rect2(region[0]+pixels[0],region[1]+pixels[1],pixels[2],pixels[3])
-		var ratio:=minf(147.0/src.size.x,188.0/src.size.y)
-		var fitted:=src.size*ratio
-		draw_texture_rect_region(TEXTURES[portrait_key],Rect2(Vector2(x+5+(147-fitted.x)*0.5,1045-fitted.y),fitted),src)
-	var tx := x + 165
-	var data: Dictionary = sim.encounter.player if side == 0 else sim.encounter.enemy
-	var hero := sim.hero_for(side)
-	text(data.name, Vector2(tx, 872), 30, CREAM)
-	text(str(data.get("title",army_name(side)+"主将")), Vector2(tx + 265, 869), 17, TEAM[side])
-	bar(Rect2(tx, 887, 426, 9), hero.hp / hero.max_hp, Color("cbb482"))
-	text("戟兵  %d / %d 人" % [sim.remaining(side), sim.initial[side]], Vector2(tx, 925), 21)
-	bar(Rect2(tx, 935, 426, 7), sim.remaining(side) / float(maxi(1,sim.initial[side])), TEAM[side])
-	var skill: String = skill_name(side)
-	var progress := 1.0 - maxf(0, hero.skill_clock) / float(sim.kits[side].battle.cooldown)
-	if hero.hp <= 0: skill = "主将已退场"
-	elif hero.action in ["cast", "finisher"]:
-		skill = (finisher_name(side) if hero.action == "finisher" else skill) + (" · 读条" if hero.age<hero.impact else " · 收招")
-		progress = minf(1, hero.age / hero.impact)
-	else: skill += " · 自动"
-	text(skill, Vector2(tx, 972), 19, TEAM[side])
-	bar(Rect2(tx, 982, 426, 5), progress, GOLD)
-	text("士气 %d / 100 · 击杀 %d" % [floori(sim.morale[side]+.00001),sim.kills[side]],Vector2(tx,1011),17,GOLD)
-	bar(Rect2(tx,1019,426,5),sim.morale[side]/100.0,TEAM[side])
-	text("被动 · "+str(sim.kits[side].passive.name),Vector2(tx,1041),16,MUTED)
-
 func skill_name(side: int) -> String:
 	return str(sim.kits[side].battle.name)
 
 func finisher_name(side: int) -> String:
 	return str(sim.kits[side].ultimate.name)
-
-func _draw_commands() -> void:
-	panel(Rect2(678, 876, 564, 172), Color(0.15, 0.095, 0.11, 0.96))
-	var reason := sim.finisher_reason(0)
-	button("finisher", Rect2(702, 892, 516, 56), "R  ·  " + finisher_name(0), reason.is_empty() and not paused)
-	text("可释放 · 消耗 100 士气" if reason.is_empty() else reason, Vector2(960, 973), 18, GOLD if reason.is_empty() else MUTED, true)
-	button("pause", Rect2(702, 992, 250, 40), "继续  Space" if paused else "暂停  Space", sim.result.is_empty())
-	button("speed", Rect2(968, 992, 250, 40), "速度  ×%d  X" % speed, sim.result.is_empty())
-	if sim.elapsed >= Rules.INTRO and sim.elapsed < Rules.INTRO + 1.2:
-		text("冲 阵", Vector2(960, 245), 55, INK, true)
 
 func _effect(e: Dictionary) -> void:
 	var at := ground(e.pos)
@@ -448,8 +423,7 @@ func _effect(e: Dictionary) -> void:
 		if e.ability == "samadhi" and float(e.age)+burst < NezhaArt.duration("samadhi_fx"):
 			NezhaArt.draw(self,"samadhi_fx",float(e.age)+burst,at+Vector2(0,4),520)
 		if e.age < .6:
-			panel(Rect2(710,117,500,68),Color(.18,.09,.11,.93),color)
-			text(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Vector2(960,164),36,CREAM,true)
+			notice(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Rect2(725,117,470,72),32)
 		return
 	if e.kind == "detonate":
 		if e.age < .3: NezhaArt.draw(self,"spear_fx",float(e.age)+.14,at-Vector2(0,55),90)
@@ -460,8 +434,7 @@ func _effect(e: Dictionary) -> void:
 		if time < WenzhongArt.duration(clip):
 			WenzhongArt.draw(self,clip,time,at+Vector2(0,4),460 if e.ability=="nine_thunders" else 285)
 		if e.age < .6:
-			panel(Rect2(710,117,500,68),Color(.14,.10,.23,.93),Color("b7b9ff"))
-			text(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Vector2(960,164),36,CREAM,true)
+			notice(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Rect2(725,117,470,72),32)
 		return
 	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit"]:
 		if e.kind == "burn_hit": color = Color(1,.55,.2,1.0-t)
@@ -494,8 +467,7 @@ func _effect(e: Dictionary) -> void:
 				var p := at + Vector2((i - 2) * extent * 0.35, -260)
 				draw_polyline(PackedVector2Array([p, p + Vector2(-20, 90), p + Vector2(26, 70), p + Vector2(0, 230)]), color, 4, true)
 		if t < 0.65:
-			panel(Rect2(710, 117, 500, 68), Color(0.18, 0.09, 0.11, 0.93), color)
-			text(finisher_name(e.side) if strong else skill_name(e.side), Vector2(960, 164), 36, CREAM, true)
+			notice(finisher_name(e.side) if strong else skill_name(e.side),Rect2(725,117,470,72),32)
 
 func _draw_nezha_windups() -> void:
 	for side in 2:
