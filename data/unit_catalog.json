@@ -312,7 +312,7 @@
         "physical_defense": 30,
         "magic_attack": 8,
         "magic_defense": 25,
-        "max_hp": 135,
+        "max_hp": 100,
         "movement": 6
       }
     }

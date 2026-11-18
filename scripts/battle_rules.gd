@@ -6,6 +6,22 @@ const LIMIT := 75.0
 const Catalog=preload("res://scripts/unit_catalog.gd")
 const FINISHER_COST := 100
 const PEOPLE_PER_MODEL := 100
+const GROUND_MIN := Vector2(55, -25)
+const GROUND_MAX := Vector2(1865, 740)
+const INFANTRY_RADIUS := 32.0
+const INFANTRY_SPEED := 160.0
+const INFANTRY_REACH := 92.0
+const SUPPORT_REACH := 145.0
+const CONTACT_TOLERANCE := 20.0
+# The collision disk includes stance and equipment. The thrust must clear the body inside it.
+const TORSO_RADIUS_RATIO := .80
+const LOOK_AHEAD := 82.0
+# Reachable standing positions around an opponent, mirrored for the other army.
+const CONTACT_OFFSETS := [
+	Vector2(-83, 0), Vector2(-55, -64), Vector2(-55, 64),
+	Vector2(0, -83), Vector2(0, 83), Vector2(53, -65), Vector2(53, 65),
+]
+const BYPASS_ANGLES := [PI / 4, PI * 0.40, PI * 0.5]
 const TYPES := {"halberd": {"name": "戟兵", "available": true}, "archer": {"name": "弓兵", "available": false}, "cavalry": {"name": "骑兵", "available": false}}
 
 class Fighter:
@@ -15,6 +31,7 @@ class Fighter:
 	var hero_id := ""
 	var normal_attack: Dictionary = {}
 	var normal_hits := 0
+	var support_strike := false
 	var hit_index := 0
 	var released := false
 	var cast_origin := Vector2.ZERO
@@ -24,7 +41,7 @@ class Fighter:
 	var slot := 0
 	var people := 0
 	var pos := Vector2.ZERO
-	var radius := 32.0
+	var radius := INFANTRY_RADIUS
 	var hp := 100.0
 	var max_hp := 100.0
 	var facing := 1
@@ -39,9 +56,17 @@ class Fighter:
 	var hit_age := 99.0
 	var death_age := 0.0
 	var walking := false
+	var march_origin := Vector2.ZERO
+	var heading := Vector2.ZERO
+	var approach_enemy := -1
+	var approach_offset := Vector2.ZERO
+	var steer_in := 0.0
 	var stride := 0.0
 	var velocity := Vector2.ZERO
 	var attributes: Dictionary={}
+
+	func survivors() -> int:
+		return clampi(ceili(hp), 0, people)
 
 var fighters: Array[Fighter] = []
 var sides: Array[Array] = [[],[]]
@@ -52,6 +77,7 @@ var opening_morale: Array[int] = []
 var morale: Array[float] = []
 var kills: Array[int]=[0,0]
 var kits: Array[Dictionary]=[]
+var next_contact_plan := INTRO
 var result: Dictionary = {}
 var encounter: Dictionary
 var stats := {"attacks": 0, "skills": 0, "finishers": 0, "collisions": 0}
@@ -101,19 +127,28 @@ func _spawn(side: int, count: int) -> void:
 	fighters.append(hero)
 	sides[side].append(hero)
 	var models := ceili(count / float(PEOPLE_PER_MODEL))
-	var rows := 3 if models<=24 else (5 if models<=42 else 7)
-	var columns := ceili(models / float(rows))
-	var spacing := minf(122.0, 570.0 / maxi(1, columns - 1))
+	# Stagger successive ranks so the soldiers behind them can see open ground.
+	var files := clampi(ceili(sqrt(models * 2.5)), 1, 11)
+	var ranks := ceili(models / float(files))
+	var file_spacing := minf(94.0, 660.0 / maxi(1, files - 1))
+	var rank_spacing := minf(94.0, 625.0 / maxi(1, ranks - 1))
 	for i in models:
 		var f := Fighter.new()
 		f.id = fighters.size()
 		f.side = side
 		f.people = mini(PEOPLE_PER_MODEL, count - i * PEOPLE_PER_MODEL)
-		f.pos = Vector2(700 - (i / rows) * spacing, (i % rows) * (600.0 / (rows - 1)) + 20)
+		var rank := i / files
+		var rank_size := mini(files, models - rank * files)
+		var file := i % files + (files - rank_size) / 2
+		var lane := file - (files - 1) * 0.5
+		if ranks > 1:
+			lane += 0.25 if rank % 2 else -0.25
+		f.pos = Vector2(700 - rank * rank_spacing, 350 + lane * file_spacing)
 		if side == 1: f.pos.x = 1920 - f.pos.x
 		f.facing = hero.facing
 		f.attributes=Catalog.effective_stats(commander,"halberd")
-		f.max_hp = float(f.attributes.max_hp) * f.people / PEOPLE_PER_MODEL
+		f.max_hp = float(f.people)
+		f.attributes.max_hp = f.max_hp
 		f.hp = f.max_hp
 		f.cooldown = (i % 7) * 0.07
 		f.stride = i * 0.053
@@ -128,8 +163,7 @@ func hero_for(side: int) -> Fighter:
 func remaining(side: int) -> int:
 	var count := 0
 	for f: Fighter in sides[side]:
-		if not f.hero:
-			count += ceili(f.people * maxf(0, f.hp) / f.max_hp)
+		count += f.survivors()
 	return count
 
 func finisher_reason(side: int) -> String:
@@ -159,6 +193,10 @@ func advance() -> void:
 	elapsed += STEP
 	if elapsed < INTRO: return
 	_advance_burns()
+	if elapsed >= next_contact_plan:
+		_assign_contacts(0)
+		_assign_contacts(1)
+		next_contact_plan = elapsed + 0.40
 	# Enemy obeys the same kill-earned resource gate; player release stays manual.
 	use_finisher(1)
 	for f in fighters:
@@ -170,6 +208,7 @@ func advance() -> void:
 			continue
 		f.cooldown -= STEP
 		if f.hero: f.skill_clock -= STEP
+		else: f.steer_in -= STEP
 		f.pos += f.velocity * STEP
 		f.velocity = f.velocity.move_toward(Vector2.ZERO, STEP * 500)
 		if f.action in ["attack", "cast", "finisher"]:
@@ -192,20 +231,163 @@ func advance() -> void:
 		if target == null: continue
 		var delta := target.pos - f.pos
 		f.facing = 1 if delta.x >= 0 else -1
-		var reach := 150.0 if f.hero else 92.0
-		if f.hero and f.skill_clock <= 0 and delta.length() <= 350:
+		var reach := 150.0 if f.hero else INFANTRY_REACH
+		var distance_squared := delta.length_squared()
+		if f.hero and f.skill_clock <= 0 and distance_squared <= 350.0*350.0:
 			_begin(f, target, "cast")
-		elif delta.length() <= reach:
+		elif distance_squared <= reach*reach:
 			if f.cooldown <= 0: _begin(f, target, "attack")
 		else:
-			# Approach the closest exposed foe; body resolution prevents passing through units.
-			var direction := delta.normalized()
-			f.pos += direction * (190.0 if f.hero else 160.0) * STEP
-			f.walking = true
-			f.stride += STEP
+			_approach(f, target, delta)
 	_resolve_bodies()
+	for f in fighters:
+		if f.walking and not f.hero:
+			var travel := minf(f.march_origin.distance_to(f.pos), INFANTRY_SPEED * STEP)
+			f.walking = travel > .2
+			f.stride += travel / INFANTRY_SPEED
 	if remaining(0) == 0 or remaining(1) == 0 or elapsed >= INTRO + LIMIT:
 		_finish()
+
+# Reserve distinct, unoccupied melee positions. A rear rank can take an open
+# shoulder of a different opponent instead of following the same nearest body.
+func _assign_contacts(side: int) -> void:
+	var points := PackedVector2Array()
+	var enemies := PackedInt32Array()
+	var mirror := Vector2(1 if side == 0 else -1, 1)
+	for enemy: Fighter in sides[1 - side]:
+		if enemy.hp <= 0: continue
+		# Only bodies within one weapon length plus a pair of radii can cover a site.
+		var nearby: Array[Fighter] = []
+		for body in fighters:
+			if body.hp > 0 and body != enemy and enemy.pos.distance_squared_to(body.pos) < 156.0 * 156.0:
+				nearby.append(body)
+		for offset: Vector2 in CONTACT_OFFSETS:
+			var point := enemy.pos + offset * mirror
+			if point != point.clamp(GROUND_MIN, GROUND_MAX): continue
+			if _free_contact(point, nearby):
+				points.append(point)
+				enemies.append(enemy.id)
+	var taken := PackedByteArray()
+	taken.resize(points.size())
+	for f: Fighter in sides[side]:
+		if f.hero or f.hp <= 0 or f.action == "attack": continue
+		if f.target >= 0:
+			var target := fighters[f.target]
+			if target.hp > 0 and f.pos.distance_squared_to(target.pos) <= INFANTRY_REACH * INFANTRY_REACH:
+				continue
+		var best := -1
+		var best_distance := INF
+		for i in points.size():
+			if taken[i]: continue
+			var distance := f.pos.distance_to(points[i])
+			if enemies[i] == f.approach_enemy: distance -= 26.0
+			if distance < best_distance:
+				best = i
+				best_distance = distance
+		f.approach_enemy = -1
+		if best < 0: continue
+		f.approach_enemy = enemies[best]
+		f.approach_offset = points[best] - fighters[f.approach_enemy].pos
+		for i in points.size():
+			if points[best].distance_squared_to(points[i]) < (2.0 * INFANTRY_RADIUS) ** 2:
+				taken[i] = 1
+
+func _free_contact(point: Vector2, nearby: Array[Fighter]) -> bool:
+	for body in nearby:
+		var separation := INFANTRY_RADIUS + body.radius
+		if point.distance_squared_to(body.pos) < separation * separation: return false
+	return true
+
+func _approach(f: Fighter, target: Fighter, delta: Vector2) -> void:
+	var direction := delta.normalized()
+	f.march_origin = f.pos
+	if f.hero:
+		f.pos += direction * 190.0 * STEP
+		f.stride += STEP
+	else:
+		if f.approach_enemy >= 0 and fighters[f.approach_enemy].hp > 0:
+			direction = f.pos.direction_to(fighters[f.approach_enemy].pos + f.approach_offset)
+		if f.steer_in <= 0 or f.heading.dot(direction) < -.25:
+			if f.cooldown <= 0 and delta.length_squared() <= SUPPORT_REACH*SUPPORT_REACH:
+				var support_target := _support_target(f, target)
+				if support_target != null:
+					f.facing = 1 if support_target.pos.x >= f.pos.x else -1
+					_begin(f, support_target, "attack", true)
+					return
+			f.heading = _infantry_heading(f, direction)
+			f.steer_in = (9 + f.id % 4) * STEP
+		f.pos += f.heading * INFANTRY_SPEED * STEP
+	f.walking = true
+
+# A second-rank halberd can reach through a gap beside an engaged ally. A
+# friendly torso on the weapon segment blocks the thrust, including at impact.
+func _thrust_lane(f: Fighter, target: Fighter, require_front: bool) -> bool:
+	var delta := target.pos - f.pos
+	var distance := delta.length()
+	if distance <= .001: return false
+	var direction := delta / distance
+	var has_front := false
+	for body in fighters:
+		if body == f or body == target or body.hp <= 0: continue
+		var offset := body.pos - f.pos
+		var ahead := offset.dot(direction)
+		if ahead <= 0 or ahead >= distance: continue
+		if absf(offset.cross(direction)) < body.radius * TORSO_RADIUS_RATIO: return false
+		if (require_front and body.side == f.side and offset.length_squared() <= 100.0 * 100.0
+				and body.pos.distance_squared_to(target.pos) <= 100.0 * 100.0):
+			has_front = true
+	return has_front or not require_front
+
+func _support_target(f: Fighter, nearest: Fighter) -> Fighter:
+	if _thrust_lane(f, nearest, true): return nearest
+	var best: Fighter
+	var best_distance := SUPPORT_REACH * SUPPORT_REACH
+	for enemy: Fighter in sides[1 - f.side]:
+		if enemy == nearest or enemy.hp <= 0: continue
+		var distance := f.pos.distance_squared_to(enemy.pos)
+		if distance <= best_distance and _thrust_lane(f, enemy, true):
+			best = enemy
+			best_distance = distance
+	return best
+
+# Search short, body-wide paths around the soldiers immediately ahead. The
+# physical separation solver remains authoritative at the end of every step.
+func _infantry_heading(f: Fighter, forward: Vector2) -> Vector2:
+	var nearby: Array[Fighter] = []
+	for ally: Fighter in sides[f.side]:
+		if ally != f and ally.hp > 0 and f.pos.distance_squared_to(ally.pos) < 155.0 * 155.0:
+			nearby.append(ally)
+	var open := _clearance(f, forward, nearby)
+	if open >= LOOK_AHEAD * 0.8: return forward
+	var best := forward if open > 1.0 else Vector2.ZERO
+	var best_score := open + 26.0 + forward.dot(f.heading) * 9.0 if open > 1.0 else -INF
+	var turn := 1 if (f.pos.y > 350) == (forward.x > 0) else -1
+	for angle: float in BYPASS_ANGLES:
+		for turn_sign: int in [turn, -turn]:
+			var candidate := forward.rotated(turn_sign * angle)
+			var clearance := _clearance(f, candidate, nearby)
+			if clearance <= 1.0: continue
+			var score := clearance + candidate.dot(forward) * 26.0 + candidate.dot(f.heading) * 9.0
+			if score > best_score + 0.01:
+				best_score = score
+				best = candidate
+	return best
+
+func _clearance(f: Fighter, direction: Vector2, nearby: Array[Fighter]) -> float:
+	var distance := LOOK_AHEAD
+	if direction.y > .001: distance = minf(distance, (GROUND_MAX.y - f.pos.y) / direction.y)
+	elif direction.y < -.001: distance = minf(distance, (GROUND_MIN.y - f.pos.y) / direction.y)
+	if direction.x > .001: distance = minf(distance, (GROUND_MAX.x - f.pos.x) / direction.x)
+	elif direction.x < -.001: distance = minf(distance, (GROUND_MIN.x - f.pos.x) / direction.x)
+	for ally in nearby:
+		var delta := ally.pos - f.pos
+		var ahead := direction.dot(delta)
+		if ahead <= 0: continue
+		var across := direction.cross(delta)
+		var width := f.radius + ally.radius
+		if absf(across) >= width: continue
+		distance = minf(distance, ahead - sqrt(maxf(0.0, width * width - across * across)))
+	return maxf(0.0, distance)
 
 func _nearest(f: Fighter) -> Fighter:
 	var best: Fighter
@@ -218,8 +400,10 @@ func _nearest(f: Fighter) -> Fighter:
 			best = other
 	return best
 
-func _begin(f: Fighter, target: Fighter, kind: String) -> void:
+func _begin(f: Fighter, target: Fighter, kind: String, support := false) -> void:
 	f.action = kind
+	f.support_strike = support
+	f.steer_in = 0.0
 	f.age = 0
 	f.applied = false
 	f.hit_index = 0
@@ -248,7 +432,9 @@ func _resolve_attack(f: Fighter, hit_multiplier: float = 1.0) -> void:
 	if f.action == "attack":
 		stats.attacks += 1
 		# Damage belongs to the contact frame and still requires live reach.
-		if target.hp > 0 and f.pos.distance_to(target.pos) <= (174.0 if f.hero else 112.0):
+		var reach := 174.0 if f.hero else INFANTRY_REACH+CONTACT_TOLERANCE
+		if f.support_strike: reach=SUPPORT_REACH
+		if target.hp > 0 and f.pos.distance_squared_to(target.pos) <= reach*reach and (not f.support_strike or _thrust_lane(f,target,false)):
 			_damage(f,target,Catalog.damage(f.attributes,target.attributes,"physical",hit_multiplier),"hit")
 			_resolve_splash(f,target,hit_multiplier)
 			f.normal_hits += 1
@@ -323,10 +509,10 @@ func _resolve_splash(source: Fighter, primary: Fighter, hit_multiplier: float) -
 
 func _damage(source: Fighter, target: Fighter, amount: float, kind: String, damage_type: String = "physical") -> void:
 	if target.hp<=0 or source.side==target.side: return
-	var before:=ceili(target.people*target.hp/target.max_hp) if not target.hero else 0
+	var before:=target.survivors()
 	var actual := minf(target.hp, amount)
 	target.hp = maxf(0, target.hp - amount)
-	var defeated:=before-ceili(target.people*target.hp/target.max_hp) if not target.hero else 0
+	var defeated:=before-target.survivors()
 	kills[source.side]+=defeated
 	morale[source.side]=minf(100,morale[source.side]+defeated*float(Catalog.DATA.morale.per_kill))
 	if kind != "burn_hit":
@@ -334,10 +520,11 @@ func _damage(source: Fighter, target: Fighter, amount: float, kind: String, dama
 		target.velocity = (target.pos - source.pos).normalized() * (24.0 if kind in ["hit","splash_hit"] else 110.0)
 	if damage_type == "magic" and target.magic_hit_age >= .4: target.magic_hit_age = 0
 	if target.hp <= 0:
+		target.walking = false
 		target.action = "fall"
 		target.age = 0
 		target.burns.clear()
-	events.append({"kind": kind, "pos": target.pos, "side": source.side, "source":source.id, "amount": roundi(actual), "target": target.id, "damage_type":damage_type})
+	events.append({"kind": kind, "pos": target.pos, "side": source.side, "source":source.id, "amount": roundi(actual) if target.hero else defeated, "target": target.id, "damage_type":damage_type})
 
 func _resolve_bodies() -> void:
 	# Symmetric circle separation for allies AND enemies, including heroes.
@@ -400,7 +587,7 @@ func _resolve_bodies() -> void:
 					b=next
 			positions[a]=a_pos
 		for id in active:
-			var bounded:=positions[id].clamp(Vector2(55,-25),Vector2(1865,740))
+			var bounded:=positions[id].clamp(GROUND_MIN,GROUND_MAX)
 			if bounded!=positions[id]: clamped=true
 			positions[id]=bounded
 		# With no separation or boundary correction, another pass cannot move
