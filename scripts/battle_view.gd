@@ -8,10 +8,8 @@ const WenzhongArt = preload("res://scripts/wenzhong_art.gd")
 const FONT = preload("res://assets/fonts/ShanheSerif.otf")
 const SANS = preload("res://assets/fonts/ShanheSans.otf")
 const BG = preload("res://assets/battle/fortress_amber.webp")
-const ZHOU = preload("res://assets/battle/halberdiers/zhou.png")
-const SHANG = preload("res://assets/battle/halberdiers/shang.png")
-const GENERAL = preload("res://assets/battle/motion/general_upright_v3.png")
-const TEXTURES = {"zhou":ZHOU,"shang":SHANG,"general":GENERAL}
+const ArmyArt = preload("res://scripts/army_art.gd")
+static var TEXTURES: Dictionary = ArmyArt.TEXTURES
 const CREAM = Color("fff0d2")
 const GOLD = Color("e6b46e")
 const MUTED = Color("c9b49a")
@@ -22,6 +20,7 @@ const BACKDROP := Rect2(-48,-240,2016,1134)
 const FEET_AREA := Rect2(160,500,1600,300)
 const ACTOR_SAFE_AREA := Rect2(20,170,1880,650)
 const SOLDIER_HEIGHT := 108.0
+const CAVALRY_HEIGHT := 137.0
 const HERO_HEIGHT := 180.0
 const WENZHONG_HEIGHT := 194.0
 class SpriteFrame:
@@ -59,7 +58,7 @@ func _init() -> void:
 	WenzhongArt.prepare()
 	for key in frame_catalog:
 		var entry: Dictionary=frame_catalog[key]
-		var height: float=SOLDIER_HEIGHT if key in ["zhou","shang"] else (WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT)
+		var height := sheet_height(key)
 		var ratio: float=height/float(entry.body_height)
 		var frames: Array[SpriteFrame]=[]
 		for frame in entry.frames:
@@ -115,9 +114,9 @@ func advance_effects(dt: float) -> void:
 			f.magic_hit_age += dt
 			if f.hp<=0: f.death_age+=dt
 			else:
-				if f.action in ["attack","cast","finisher"]:
+				if f.action in ["attack","cast","finisher","charge_hit","charge_run"]:
 					f.age += dt
-					if f.age >= f.duration: f.action = "idle"
+					if f.age >= f.duration or f.action == "charge_run": f.action = "idle"
 				f.walking=false
 	sound_cooldown -= dt
 	for effect in effects: effect.age += dt
@@ -130,8 +129,8 @@ func advance_effects(dt: float) -> void:
 		var e := event.duplicate()
 		e.age = 0.0
 		e.life = e.get("life",1.4 if e.kind in ["skill", "finisher"] else 0.7)
-		if e.kind in ["hit","skill_hit","finisher_hit","burn_hit","splash_hit"]:
-			var font_size:=20 if e.kind in ["burn_hit","splash_hit"] else (26 if e.kind=="hit" else 34)
+		if e.kind in ["hit","skill_hit","finisher_hit","burn_hit","splash_hit","arrow_hit","charge_hit"]:
+			var font_size:=20 if e.kind in ["burn_hit","splash_hit"] else (26 if e.kind in ["hit","arrow_hit","charge_hit"] else 34)
 			var key:=Vector2i(int(e.amount),font_size)
 			if not damage_labels.has(key):
 				if damage_labels.size()>=256: damage_labels.clear()
@@ -143,7 +142,7 @@ func advance_effects(dt: float) -> void:
 		if e.kind in ["skill", "finisher"]:
 			var source: Rules.Fighter=sim.fighters[int(e.source)]
 			_audio(3 if source.hero_id=="wenzhong" else (2 if source.hero_id=="nezha" else 2+int(e.side)))
-		elif e.kind == "hit" and sound_cooldown <= 0:
+		elif e.kind in ["hit","charge_hit"] and sound_cooldown <= 0:
 			_audio(1)
 			sound_cooldown = 0.15
 	sim.events.clear()
@@ -215,7 +214,7 @@ func ground(p: Vector2) -> Vector2:
 	return FEET_AREA.position+Vector2(p.x/1920.0,(p.y+25.0)/765.0)*FEET_AREA.size
 
 func sprite_key(f: Rules.Fighter) -> String:
-	if not f.hero: return "shang" if army_faction(f.side)=="shang" else "zhou"
+	if not f.hero: return ArmyArt.troop_key(army_faction(f.side), f.troop_type)
 	var id := f.hero_id
 	if id.is_empty(): id = Rules.Catalog.hero_id(sim.encounter.player if f.side==0 else sim.encounter.enemy)
 	return id if id in ["nezha","wenzhong"] else "general"
@@ -226,6 +225,10 @@ func army_faction(side: int) -> String:
 
 func army_name(side: int) -> String:
 	return "商军" if army_faction(side)=="shang" else "西岐"
+
+static func sheet_height(key: String) -> float:
+	if key == "general": return HERO_HEIGHT
+	return CAVALRY_HEIGHT if key.ends_with("_cavalry") else SOLDIER_HEIGHT
 
 func nezha_pose(f: Rules.Fighter) -> Dictionary:
 	if f.hp <= 0: return {"clip":"defeat","time":f.death_age}
@@ -256,11 +259,11 @@ func sprite_geometry(f: Rules.Fighter, pose: Vector2i) -> Dictionary:
 	var raw: Array=frame.source
 	var source:=Rect2(raw[0],raw[1],raw[2],raw[3])
 	var perspective:=lerpf(0.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
-	var body_height: float=(WENZHONG_HEIGHT if key=="wenzhong" else HERO_HEIGHT) if f.hero else SOLDIER_HEIGHT
+	var body_height := sheet_height(key)
 	var ratio: float=body_height*perspective/float(entry.body_height)
 	var pivot:=Vector2(frame.pivot[0],frame.pivot[1])*ratio
 	var destination:=Rect2(-pivot,source.size*ratio)
-	var flip: bool=f.facing!=(-1 if key in ["shang","wenzhong"] else 1)
+	var flip := f.facing != ArmyArt.native_facing(key)
 	var bounds:=Rect2(ground(f.pos)+Vector2(-destination.end.x if flip else destination.position.x,destination.position.y),destination.size)
 	var pixels: Array=frame.opaque
 	var visible:=Rect2(Vector2(pixels[0],pixels[1])*ratio-pivot,Vector2(pixels[2],pixels[3])*ratio)
@@ -294,6 +297,7 @@ func _draw() -> void:
 		if f.hp>0 or f.death_age<=1.4: ordered.append(Vector2(f.pos.y,f.id))
 	ordered.sort()
 	for entry in ordered: _fighter(sim.fighters[int(entry.y)])
+	_draw_arrows()
 	for effect in effects: _effect(effect)
 	if sim.elapsed < Rules.INTRO: _divider()
 	_draw_header()
@@ -306,6 +310,12 @@ func _draw() -> void:
 
 func animation(f: Rules.Fighter) -> Vector2i:
 	if f.hp <= 0: return Vector2i(mini(3, int(f.death_age / 0.18)), 4 if f.hero else 3)
+	if f.action == "charge_run":
+		var gallop := floori(f.stride * 16.0) % 8
+		return Vector2i(gallop % 4, 8 + gallop / 4)
+	if f.action == "charge_hit":
+		var contact := mini(3, floori(f.age / f.impact * 3.0)) if f.age < f.impact else 3 + mini(4, floori((f.age - f.impact) / (f.duration - f.impact) * 5.0))
+		return Vector2i(contact % 4, 10 + contact / 4)
 	if f.action in ["attack", "cast", "finisher"]:
 		# The first contact drawing starts on the same tick that resolves damage.
 		var half_frames := 2 if f.hero else 8
@@ -353,7 +363,7 @@ func _fighter(f: Rules.Fighter) -> void:
 	else:
 		var pose:=animation(f)
 		var frame: SpriteFrame=draw_frames[key][pose.y*4+pose.x]
-		var flip: bool=f.facing!=(-1 if key in ["shang","wenzhong"] else 1)
+		var flip := f.facing != ArmyArt.native_facing(key)
 		draw_set_transform(at,0,Vector2(-perspective if flip else perspective,perspective))
 		draw_texture_rect_region(TEXTURES[key],frame.rect,frame.source,color)
 		draw_set_transform(Vector2.ZERO)
@@ -378,6 +388,33 @@ func _fighter(f: Rules.Fighter) -> void:
 			bar(Rect2(at.x - 64, label_at.y + 9, 128, 7), f.age / f.impact, GOLD)
 	elif f.hp < f.max_hp and f.hp > 0:
 		bar(Rect2(at + Vector2(-19, 8), Vector2(38, 3)), f.hp / f.max_hp, TEAM[f.side])
+
+func arrow_screen_point(arrow: Rules.Arrow, t: float) -> Vector2:
+	var source_depth := lerpf(.88, 1.03, clampf((arrow.origin.y + 25.0) / 765.0, 0, 1))
+	var bow_x := 50.0 if army_faction(arrow.source.side) == "shang" else 44.0
+	var start := ground(arrow.origin) + Vector2(bow_x * arrow.facing, -78.0) * source_depth
+	var target_height := WENZHONG_HEIGHT if arrow.target.hero_id == "wenzhong" else HERO_HEIGHT
+	if not arrow.target.hero: target_height = CAVALRY_HEIGHT if arrow.target.troop_type == "cavalry" else SOLDIER_HEIGHT
+	var target_depth := lerpf(.88, 1.03, clampf((arrow.destination.y + 25.0) / 765.0, 0, 1))
+	var end := ground(arrow.destination) - Vector2(0, target_height * target_depth * .53)
+	var lift := clampf(arrow.origin.distance_to(arrow.destination) * .14, 12.0, 82.0)
+	return start.lerp(end, t) - Vector2(0, 4.0 * lift * t * (1.0 - t))
+
+func _draw_arrows() -> void:
+	for arrow in sim.arrows:
+		var t := clampf(arrow.age / arrow.duration, 0, 1)
+		var tip := arrow_screen_point(arrow, t)
+		var direction := (arrow_screen_point(arrow, minf(1, t + .01)) - arrow_screen_point(arrow, maxf(0, t - .01))).normalized()
+		draw_set_transform(tip, direction.angle())
+		draw_line(Vector2(-53,0), Vector2(-31,0), Color(1,.92,.73,.46), 2.0, true)
+		draw_line(Vector2(-33,0), Vector2(-3,0), Color("402c27"), 4.0, true)
+		draw_line(Vector2(-32,-.65), Vector2(-4,-.65), Color("efd39e"), 1.5, true)
+		draw_colored_polygon(PackedVector2Array([Vector2(4,0),Vector2(-8,-4),Vector2(-6,0),Vector2(-8,4)]), Color("473241"))
+		draw_colored_polygon(PackedVector2Array([Vector2(2,0),Vector2(-7,-2.5),Vector2(-4,0)]), Color("fff3d9"))
+		var feather := Color("a73826") if army_faction(arrow.source.side) != "shang" else Color("695290")
+		draw_colored_polygon(PackedVector2Array([Vector2(-33,-4),Vector2(-25,-3),Vector2(-20,0),Vector2(-27,0)]), feather)
+		draw_colored_polygon(PackedVector2Array([Vector2(-33,4),Vector2(-25,3),Vector2(-20,0),Vector2(-27,0)]), Color("fbe8c7"))
+	draw_set_transform(Vector2.ZERO)
 
 func _divider() -> void:
 	var alpha := 1.0 - smoothstep(2.3, Rules.INTRO, sim.elapsed)
@@ -442,7 +479,8 @@ func _effect(e: Dictionary) -> void:
 		if e.age < .6:
 			notice(finisher_name(e.side) if e.kind=="finisher" else skill_name(e.side),Rect2(725,117,470,72),32)
 		return
-	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit"]:
+	if e.kind in ["hit", "skill_hit", "finisher_hit", "burn_hit", "splash_hit", "arrow_hit", "charge_hit"]:
+		if e.kind == "charge_hit": color = Color(1,.77,.35,1.0-t)
 		if e.kind == "burn_hit": color = Color(1,.55,.2,1.0-t)
 		if e.kind == "splash_hit": color = Color(1,.83,.35,1.0-t)
 		if e.kind == "skill_hit" and sim.fighters[int(e.source)].hero_id == "nezha" and e.age < .21:

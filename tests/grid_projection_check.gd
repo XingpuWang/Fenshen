@@ -40,7 +40,7 @@ func _initialize() -> void:
 	check(world.economy.build(capital,6,"farm",world.by_poi).is_empty(),"legacy fixture includes paid construction in progress")
 	check(world.save_game(path)==OK,"new grid save succeeds")
 	var current: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(path))
-	check(current.schema==6 and current.grid_revision==3,"new saves identify the enlarged grid and reject loading in old clients")
+	check(current.schema==7 and current.grid_revision==3,"new saves identify the enlarged grid and mixed garrisons")
 	var cells: Array=[]
 	for unit in world.units: cells.append(int(unit.cell))
 	check(world.load_game(path),"new grid save reloads")
@@ -68,6 +68,7 @@ func _initialize() -> void:
 			check(world.economy.settlements[capital.id].jobs==fixture.economy.settlements[capital.id].jobs,"grid migration preserves pending construction")
 	# The immediately preceding release already had tilted cells, with radius 64.
 	var previous:=current.duplicate(true)
+	previous.schema=6
 	previous.grid_revision=2
 	var previous_cells: Array[int]=[7562,10300,6143]
 	var previous_positions: Array[Vector2]=[Vector2(2106.1737820037547,1493.4095218659884),Vector2(1829.0456527927342,3326.2302987015196),Vector2(2327.876285372571,543.0580079512686)]

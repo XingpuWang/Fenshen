@@ -97,7 +97,10 @@ func _initialize() -> void:
 	check(Catalog.effective_stats(unit).physical_attack==base_attack+12,"buff changes shared attributes")
 	var entry:=world.begin_battle(unit,poi)
 	var buff_battle:=Rules.new(entry)
-	check(buff_battle.hero_for(0).attributes.physical_attack==base_attack+12 and buff_battle.sides[0][1].attributes.physical_attack==35,"buff is carried into hero and troop simulation")
+	check(buff_battle.hero_for(0).attributes.physical_attack==base_attack+12,"buff reaches the hero")
+	for soldier: Rules.Fighter in buff_battle.sides[0]:
+		if not soldier.hero:
+			check(soldier.attributes.physical_attack==Catalog.DATA.troops[soldier.troop_type].stats.physical_attack+12,"buff reaches each troop's own physical attack")
 	world.pending_battle.clear()
 	var save_path:="user://fengshen-skills-save.json"
 	check(world.save_game(save_path)==OK,"new skill state saves")

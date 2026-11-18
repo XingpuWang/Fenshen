@@ -87,6 +87,9 @@ func run() -> void:
 		check(game.selected_unit==index,"portrait/nameplate selects hero %d" % index)
 		check(game.camera.position.is_equal_approx(initial_camera),"badge selection does not jump the map")
 	var army: Sprite2D=game.unit_nodes[0].get_node("Soldiers")
+	var uniforms := {}
+	for frame in army.hit_frames: uniforms[frame.art_key]=true
+	check(uniforms.has("zhou") and uniforms.has("zhou_archer") and uniforms.has("zhou_cavalry"),"the overland formation displays each actual troop type")
 	check(not army.contains_formation_point(Vector2(150,-300)),"transparent formation corner does not intercept ground clicks")
 	var opaque_hit:=false
 	for entry in army.hit_frames:

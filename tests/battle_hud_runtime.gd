@@ -67,6 +67,16 @@ func step(battle: Control) -> void:
 	battle.sim.advance()
 	battle.advance_effects(Rules.STEP)
 
+func visible_health_ratio(screen: Image, side: int) -> float:
+	var card: Rect2=Hud.CARDS[side]
+	var left:=roundi(card.position.x+195+61+3)
+	var width:=roundi(card.size.x-28-195-145-6)
+	var green:=0
+	for x in range(left,left+width):
+		var pixel:=screen.get_pixel(x,894)
+		if pixel.g>pixel.r*1.05 and pixel.g>pixel.b*1.1: green+=1
+	return float(green)/width
+
 func leave_battle() -> void:
 	game.queue_free()
 	# Allow the audio mixer and deferred scene deletion to finish before the next encounter.
@@ -115,14 +125,19 @@ func run() -> void:
 	check(battle.sim.result.is_empty(),"earned full morale during an interruptible action")
 	await draw_frame(battle)
 	shot("wen-ready")
+	var current_hero: Rules.Fighter=battle.sim.hero_for(0)
+	var before: Array=[current_hero.action,current_hero.age,battle.sim.morale[0],battle.sim.stats.finishers]
 	click(Hud.ULTIMATE.position+Vector2(3,3))
-	check(battle.sim.stats.finishers==0,"click outside ready ring leaves current action intact")
+	check(before==[current_hero.action,current_hero.age,battle.sim.morale[0],battle.sim.stats.finishers],"click outside ready ring leaves current action and morale intact")
 	click(Hud.R_BADGE.get_center())
 	check(battle.sim.hero_for(0).action=="finisher" and battle.sim.morale[0]==0,"R badge immediately interrupts and spends earned morale")
 	while battle.sim.elapsed<13.9 and battle.sim.result.is_empty(): step(battle)
 	await draw_frame(battle)
 	shot("wen-in-combat")
-	check(battle.sim.hero_for(0).hp<battle.sim.hero_for(0).max_hp and battle.sim.hero_for(1).hp<battle.sim.hero_for(1).max_hp,"both health bars reflect actual combat damage")
+	var screen:=root.get_texture().get_image()
+	for side in 2:
+		var hero: Rules.Fighter=battle.sim.hero_for(side)
+		check(absf(visible_health_ratio(screen,side)-hero.hp/hero.max_hp)<.06,"painted health bar matches actual commander health on each side")
 	await leave_battle()
 	battle=enter_battle(0)
 	await draw_frame(battle)

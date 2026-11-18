@@ -315,6 +315,20 @@
         "max_hp": 100,
         "movement": 6
       }
+    },
+    "archer": {
+      "name": "弓兵",
+      "stats": {
+        "physical_attack": 23, "physical_defense": 15, "magic_attack": 5,
+        "magic_defense": 18, "max_hp": 100, "movement": 6
+      }
+    },
+    "cavalry": {
+      "name": "骑兵",
+      "stats": {
+        "physical_attack": 28, "physical_defense": 32, "magic_attack": 6,
+        "magic_defense": 20, "max_hp": 100, "movement": 8
+      }
     }
   }
 }

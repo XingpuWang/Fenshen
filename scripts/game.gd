@@ -596,8 +596,9 @@ func start_exhibition() -> void:
 		return
 	var player: Dictionary=world.units[selected_unit].duplicate(true)
 	player.soldiers=2400
+	player.troops=world.BattleRules.mixed_roster(2400)
 	player.morale=50
-	open_battle({"exhibition":true,"title":"岐山 · 戟兵演武","player":player,"enemy":{"id":"wenzhong","name":"闻仲","soldiers":2200,"morale":50}})
+	open_battle({"exhibition":true,"title":"岐山 · 三军演武","player":player,"enemy":{"id":"wenzhong","name":"闻仲","soldiers":2200,"troops":world.BattleRules.mixed_roster(2200),"morale":50}})
 
 func unit_at_screen(point: Vector2) -> int:
 	var badge:=int(layer.badge_at_screen(point))

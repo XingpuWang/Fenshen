@@ -128,7 +128,7 @@ func _draw_card(side: int) -> void:
 	var alive := sim.remaining(side)
 	label("兵力",Vector2(x,935),22,GOLD)
 	label("%d / %d" % [alive,sim.initial[side]],Vector2(x+67,935),23,PALE)
-	_draw_formation(unit.get("troops",Rules.roster(sim.initial[side])),alive,Rect2(x-3,946,right-x-5,59))
+	_draw_formation(sim.remaining_roster(side), Rect2(x-3,946,right-x-5,59))
 	label("士气",Vector2(x,1029),21,GOLD)
 	label("%d / %d" % [floori(sim.morale[side]+.00001),Rules.FINISHER_COST],Vector2(x+61,1029),22,PALE)
 	draw_line(Vector2(x+180,1012),Vector2(x+180,1031),RULE,1.5)
@@ -136,9 +136,8 @@ func _draw_card(side: int) -> void:
 	label(str(sim.kills[side]),Vector2(x+260,1029),22,PALE)
 	hits.append({"id":"commander_%d" % side,"rect":card,"enabled":false})
 
-func _draw_formation(roster: Array, alive: int, rect: Rect2) -> void:
+func _draw_formation(roster: Array, rect: Rect2) -> void:
 	var cell := rect.size.x / 3
-	# Only deployed formations carry a symbol and count. The current simulation fields halberdiers.
 	var edge := PackedVector2Array([rect.position+Vector2(6,0),Vector2(rect.end.x-6,rect.position.y),
 		Vector2(rect.end.x,rect.position.y+6),rect.end-Vector2(0,6),rect.end-Vector2(6,0),
 		Vector2(rect.position.x+6,rect.end.y),Vector2(rect.position.x,rect.end.y-6),rect.position+Vector2(0,6)])
@@ -150,10 +149,25 @@ func _draw_formation(roster: Array, alive: int, rect: Rect2) -> void:
 		if i > 0: draw_line(pos+Vector2(0,6),pos+Vector2(0,rect.size.y-6),RULE,1.2)
 		if i >= roster.size() or roster[i].is_empty(): continue
 		var kind: String = roster[i].type
-		if kind != "halberd": continue
-		_halberd(self,pos+Vector2(25,31),1.0)
+		var at := pos + Vector2(25,31)
+		match kind:
+			"halberd": _halberd(self, at, 1.0)
+			"archer":
+				draw_set_transform(at, -.30)
+				draw_polyline(PackedVector2Array([Vector2(-7,-17),Vector2(2,-13),Vector2(7,-5),Vector2(7,4),Vector2(2,13),Vector2(-7,17)]), GOLD, 2.8, true)
+				draw_line(Vector2(-7,-17), Vector2(-7,17), PALE, 1.0, true)
+				draw_line(Vector2(-13,0), Vector2(14,0), PALE, 2, true)
+				draw_colored_polygon(PackedVector2Array([Vector2(16,0),Vector2(9,-3),Vector2(9,3)]), PALE)
+				draw_set_transform(Vector2.ZERO)
+			"cavalry":
+				draw_set_transform(at)
+				var horse := PackedVector2Array([Vector2(-10,15),Vector2(-8,4),Vector2(-11,-4),Vector2(-5,-13),Vector2(1,-17),Vector2(1,-10),Vector2(5,-14),Vector2(8,-5),Vector2(15,3),Vector2(11,7),Vector2(3,4),Vector2(0,8),Vector2(1,15)])
+				draw_colored_polygon(horse,GOLD)
+				draw_line(Vector2(-6,-5), Vector2(-9,4), PALE, 1.6, true)
+				draw_circle(Vector2(4,-5),1.4,SHADOW)
+				draw_set_transform(Vector2.ZERO)
 		label(Rules.TYPES[kind].name,pos+Vector2(48,25),20,GOLD)
-		label(str(alive),pos+Vector2(48,50),22,PALE)
+		label(str(roster[i].count),pos+Vector2(48,50),22,PALE)
 
 func _halberd(canvas: CanvasItem, at: Vector2, scale: float) -> void:
 	canvas.draw_set_transform(at,-.81,Vector2.ONE*scale)

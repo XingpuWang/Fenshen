@@ -22,7 +22,19 @@ const CONTACT_OFFSETS := [
 	Vector2(0, -83), Vector2(0, 83), Vector2(53, -65), Vector2(53, 65),
 ]
 const BYPASS_ANGLES := [PI / 4, PI * 0.40, PI * 0.5]
-const TYPES := {"halberd": {"name": "戟兵", "available": true}, "archer": {"name": "弓兵", "available": false}, "cavalry": {"name": "骑兵", "available": false}}
+const TYPES := {
+	"halberd": {"name":"戟兵", "share":3, "available":true},
+	"archer": {"name":"弓兵", "share":2, "available":true},
+	"cavalry": {"name":"骑兵", "share":1, "available":true},
+}
+const ARCHER_RANGE := 565.0
+const ARCHER_RETREAT := 180.0
+const ARROW_SPEED := 800.0
+const RIDE_SPEED := 205.0
+const CHARGE_SPEED := 340.0
+const CHARGE_REACH := 111.0
+const CHARGE_MULTIPLIER := 1.8
+const CHARGE_LIMIT := 4.0
 
 class Fighter:
 	var id: int
@@ -39,6 +51,10 @@ class Fighter:
 	var burns: Dictionary = {}
 	var magic_hit_age := 99.0
 	var slot := 0
+	var troop_type := "halberd"
+	var charge_ready := false
+	var previous_pos := Vector2.ZERO
+	var ground_velocity := Vector2.ZERO
 	var people := 0
 	var pos := Vector2.ZERO
 	var radius := INFANTRY_RADIUS
@@ -68,6 +84,16 @@ class Fighter:
 	func survivors() -> int:
 		return clampi(ceili(hp), 0, people)
 
+class Arrow:
+	var source: Fighter
+	var target: Fighter
+	var origin: Vector2
+	var destination: Vector2
+	var age := 0.0
+	var duration: float
+	var facing: int
+
+var arrows: Array[Arrow] = []
 var fighters: Array[Fighter] = []
 var sides: Array[Array] = [[],[]]
 var events: Array[Dictionary] = []
@@ -83,21 +109,60 @@ var encounter: Dictionary
 var stats := {"attacks": 0, "skills": 0, "finishers": 0, "collisions": 0}
 
 static func roster(count: int) -> Array:
+	# Encounters and saves predating troop composition fielded only halberdiers.
 	return [{"type": "halberd", "count": count}, {}, {}]
 
-static func valid_roster(slots: Variant, count: int) -> bool:
+static func mixed_roster(count: int) -> Array:
+	return resize_roster([{"type":"halberd","count":0}, {"type":"archer","count":0}, {"type":"cavalry","count":0}], count)
+
+static func resize_roster(slots: Array, count: int, recruit := false) -> Array:
+	var updated := slots.duplicate(true)
+	if recruit:
+		var present: Array = []
+		for slot in updated:
+			if not slot.is_empty(): present.append(slot.type)
+		for kind in TYPES:
+			if not kind in present: updated[updated.find({})] = {"type":kind, "count":0}
+	var old := 0
+	for slot in updated: old += int(slot.get("count", 0))
+	var gain := count >= old
+	var budget := count - old if gain else count
+	var weights: Array[int] = []
+	var total_weight := 0
+	for slot in updated:
+		var weight := 0
+		if not slot.is_empty(): weight = int(TYPES[slot.type].share) if gain else int(slot.count)
+		weights.append(weight)
+		total_weight += weight
+	if total_weight == 0: return updated
+	# Largest remainders preserve the exact total, including the last individual.
+	var residues: Array[int] = []
+	var left := budget
+	for i in updated.size():
+		var product := budget * weights[i]
+		var amount := product / total_weight
+		residues.append(product % total_weight if weights[i] > 0 else -1)
+		if not updated[i].is_empty(): updated[i].count = (int(updated[i].count) if gain else 0) + amount
+		left -= amount
+	for extra in left:
+		var i := residues.find(residues.max())
+		updated[i].count += 1
+		residues[i] = -1
+	return updated
+
+static func valid_roster(slots: Variant, count := -1) -> bool:
 	if not slots is Array or slots.size() != 3: return false
 	var kinds: Array = []
 	var total := 0
 	for slot in slots:
 		if not slot is Dictionary: return false
 		if slot.is_empty(): continue
-		if not TYPES.has(slot.get("type", "")) or not TYPES[slot.type].available or slot.type in kinds: return false
+		if not TYPES.has(slot.get("type", "")) or slot.type in kinds: return false
 		var n: Variant = slot.get("count", -1)
 		if not (n is int or n is float) or not is_finite(float(n)) or float(n) != floor(float(n)) or n < 0 or n > 10000: return false
 		kinds.append(slot.type)
 		total += int(n)
-	return total == count and not kinds.is_empty()
+	return not kinds.is_empty() and (count == -1 or total == count)
 
 func _init(data: Dictionary) -> void:
 	encounter = data.duplicate(true)
@@ -126,34 +191,74 @@ func _spawn(side: int, count: int) -> void:
 	hero.skill_clock = 3.0 + side * 0.8
 	fighters.append(hero)
 	sides[side].append(hero)
-	var models := ceili(count / float(PEOPLE_PER_MODEL))
-	# Stagger successive ranks so the soldiers behind them can see open ground.
+	var slots: Variant = commander.get("troops", roster(count))
+	if not valid_roster(slots, count):
+		slots = resize_roster(slots, count) if valid_roster(slots) else roster(count)
+	commander.troops = slots
+	var troops: Array[Fighter] = []
+	var mounted := 0
+	for slot_index in slots.size():
+		var slot: Dictionary = slots[slot_index]
+		var people := int(slot.get("count", 0))
+		for model in ceili(people / float(PEOPLE_PER_MODEL)):
+			var f := Fighter.new()
+			f.slot = slot_index
+			f.troop_type = slot.type
+			f.people = mini(PEOPLE_PER_MODEL, people - model * PEOPLE_PER_MODEL)
+			f.side = side
+			f.facing = hero.facing
+			f.attributes = Catalog.effective_stats(commander, f.troop_type)
+			f.max_hp = float(f.people)
+			f.attributes.max_hp = f.max_hp
+			f.hp = f.max_hp
+			f.charge_ready = f.troop_type == "cavalry"
+			if f.charge_ready:
+				mounted += 1
+				f.radius = 36.0
+			troops.append(f)
+	var points := _deployment_points(troops.size())
+	var flanks := points.duplicate()
+	flanks.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return a.x + absf(a.y - 350.0) > b.x + absf(b.y - 350.0))
+	flanks.resize(mounted)
+	for flank in flanks: points.erase(flank)
+	# Cavalry have open lanes on the wings. Halberdiers take the forward
+	# positions and archers the rear, independently of the order of roster slots.
+	for kind in ["cavalry", "halberd", "archer"]:
+		for f in troops:
+			if f.troop_type != kind: continue
+			f.pos = flanks.pop_front() if f.charge_ready else points.pop_front()
+			if side == 1: f.pos.x = 1920.0 - f.pos.x
+			var index := sides[side].size() - 1
+			f.id = fighters.size()
+			f.cooldown = (index % 7) * 0.07
+			f.stride = index * 0.053
+			fighters.append(f)
+			sides[side].append(f)
+
+func _deployment_points(models: int) -> Array[Vector2]:
+	var points: Array[Vector2] = []
 	var files := clampi(ceili(sqrt(models * 2.5)), 1, 11)
 	var ranks := ceili(models / float(files))
 	var file_spacing := minf(94.0, 660.0 / maxi(1, files - 1))
 	var rank_spacing := minf(94.0, 625.0 / maxi(1, ranks - 1))
 	for i in models:
-		var f := Fighter.new()
-		f.id = fighters.size()
-		f.side = side
-		f.people = mini(PEOPLE_PER_MODEL, count - i * PEOPLE_PER_MODEL)
 		var rank := i / files
 		var rank_size := mini(files, models - rank * files)
 		var file := i % files + (files - rank_size) / 2
 		var lane := file - (files - 1) * 0.5
-		if ranks > 1:
-			lane += 0.25 if rank % 2 else -0.25
-		f.pos = Vector2(700 - rank * rank_spacing, 350 + lane * file_spacing)
-		if side == 1: f.pos.x = 1920 - f.pos.x
-		f.facing = hero.facing
-		f.attributes=Catalog.effective_stats(commander,"halberd")
-		f.max_hp = float(f.people)
-		f.attributes.max_hp = f.max_hp
-		f.hp = f.max_hp
-		f.cooldown = (i % 7) * 0.07
-		f.stride = i * 0.053
-		fighters.append(f)
-		sides[side].append(f)
+		if ranks > 1: lane += 0.25 if rank % 2 else -0.25
+		points.append(Vector2(700 - rank * rank_spacing, 350 + lane * file_spacing))
+	return points
+
+func remaining_roster(side: int) -> Array:
+	var unit: Dictionary = encounter.player if side == 0 else encounter.enemy
+	var slots: Array = unit.troops.duplicate(true)
+	for slot in slots:
+		if not slot.is_empty(): slot.count = 0
+	for f: Fighter in sides[side]:
+		if not f.hero: slots[f.slot].count += f.survivors()
+	return slots
 
 func hero_for(side: int) -> Fighter:
 	for f in fighters:
@@ -193,6 +298,7 @@ func advance() -> void:
 	elapsed += STEP
 	if elapsed < INTRO: return
 	_advance_burns()
+	_advance_arrows()
 	if elapsed >= next_contact_plan:
 		_assign_contacts(0)
 		_assign_contacts(1)
@@ -200,6 +306,7 @@ func advance() -> void:
 	# Enemy obeys the same kill-earned resource gate; player release stays manual.
 	use_finisher(1)
 	for f in fighters:
+		f.previous_pos = f.pos
 		f.hit_age += STEP
 		f.magic_hit_age += STEP
 		f.walking = false
@@ -211,7 +318,7 @@ func advance() -> void:
 		else: f.steer_in -= STEP
 		f.pos += f.velocity * STEP
 		f.velocity = f.velocity.move_toward(Vector2.ZERO, STEP * 500)
-		if f.action in ["attack", "cast", "finisher"]:
+		if f.action in ["attack", "cast", "finisher", "charge_hit"]:
 			f.age += STEP
 			if f.hero_id == "nezha" and f.action == "cast" and not f.released and f.age >= float(kits[f.side].battle.release):
 				f.released = true
@@ -231,6 +338,12 @@ func advance() -> void:
 		if target == null: continue
 		var delta := target.pos - f.pos
 		f.facing = 1 if delta.x >= 0 else -1
+		if not f.hero and f.troop_type == "archer":
+			_archer_turn(f, target, delta)
+			continue
+		if f.charge_ready or f.action == "charge_run":
+			_charge_turn(f, target, delta)
+			continue
 		var reach := 150.0 if f.hero else INFANTRY_REACH
 		var distance_squared := delta.length_squared()
 		if f.hero and f.skill_clock <= 0 and distance_squared <= 350.0*350.0:
@@ -241,10 +354,12 @@ func advance() -> void:
 			_approach(f, target, delta)
 	_resolve_bodies()
 	for f in fighters:
+		f.ground_velocity = (f.pos - f.previous_pos) / STEP
 		if f.walking and not f.hero:
-			var travel := minf(f.march_origin.distance_to(f.pos), INFANTRY_SPEED * STEP)
+			var speed := CHARGE_SPEED if f.action == "charge_run" else (RIDE_SPEED if f.troop_type == "cavalry" else INFANTRY_SPEED)
+			var travel := minf(f.march_origin.distance_to(f.pos), speed * STEP)
 			f.walking = travel > .2
-			f.stride += travel / INFANTRY_SPEED
+			f.stride += travel / speed
 	if remaining(0) == 0 or remaining(1) == 0 or elapsed >= INTRO + LIMIT:
 		_finish()
 
@@ -270,7 +385,7 @@ func _assign_contacts(side: int) -> void:
 	var taken := PackedByteArray()
 	taken.resize(points.size())
 	for f: Fighter in sides[side]:
-		if f.hero or f.hp <= 0 or f.action == "attack": continue
+		if f.hero or f.hp <= 0 or f.troop_type == "archer" or f.charge_ready or f.action != "idle": continue
 		if f.target >= 0:
 			var target := fighters[f.target]
 			if target.hp > 0 and f.pos.distance_squared_to(target.pos) <= INFANTRY_REACH * INFANTRY_REACH:
@@ -308,7 +423,7 @@ func _approach(f: Fighter, target: Fighter, delta: Vector2) -> void:
 		if f.approach_enemy >= 0 and fighters[f.approach_enemy].hp > 0:
 			direction = f.pos.direction_to(fighters[f.approach_enemy].pos + f.approach_offset)
 		if f.steer_in <= 0 or f.heading.dot(direction) < -.25:
-			if f.cooldown <= 0 and delta.length_squared() <= SUPPORT_REACH*SUPPORT_REACH:
+			if f.troop_type == "halberd" and f.cooldown <= 0 and delta.length_squared() <= SUPPORT_REACH*SUPPORT_REACH:
 				var support_target := _support_target(f, target)
 				if support_target != null:
 					f.facing = 1 if support_target.pos.x >= f.pos.x else -1
@@ -316,8 +431,68 @@ func _approach(f: Fighter, target: Fighter, delta: Vector2) -> void:
 					return
 			f.heading = _infantry_heading(f, direction)
 			f.steer_in = (9 + f.id % 4) * STEP
-		f.pos += f.heading * INFANTRY_SPEED * STEP
+		f.pos += f.heading * (RIDE_SPEED if f.troop_type == "cavalry" else INFANTRY_SPEED) * STEP
 	f.walking = true
+
+func _march(f: Fighter, direction: Vector2, speed: float) -> void:
+	f.march_origin = f.pos
+	if f.steer_in <= 0 or f.heading.dot(direction) < 0.0:
+		f.heading = _infantry_heading(f, direction)
+		f.steer_in = (6 + f.id % 4) * STEP
+	f.pos += f.heading * speed * STEP
+	f.walking = true
+
+func _archer_turn(f: Fighter, target: Fighter, delta: Vector2) -> void:
+	var distance := delta.length()
+	if distance > ARCHER_RANGE:
+		_march(f, delta.normalized(), INFANTRY_SPEED)
+	elif f.cooldown <= 0:
+		_begin(f, target, "attack")
+	elif distance < ARCHER_RETREAT:
+		_march(f, -delta.normalized(), INFANTRY_SPEED * 0.8)
+
+func _charge_turn(f: Fighter, target: Fighter, delta: Vector2) -> void:
+	if f.charge_ready:
+		f.charge_ready = false
+		f.action = "charge_run"
+		f.age = 0
+		f.steer_in = 0
+		stats["charges"] = int(stats.get("charges", 0)) + 1
+	f.age += STEP
+	if delta.length_squared() <= CHARGE_REACH * CHARGE_REACH:
+		_begin(f, target, "charge_hit")
+	elif f.age >= CHARGE_LIMIT:
+		f.action = "idle"
+		f.steer_in = 0
+	else:
+		_march(f, delta.normalized(), CHARGE_SPEED)
+
+func _release_arrow(f: Fighter, target: Fighter) -> void:
+	if target.hp <= 0 or f.pos.distance_to(target.pos) > ARCHER_RANGE + CONTACT_TOLERANCE: return
+	var arrow := Arrow.new()
+	arrow.source = f
+	arrow.target = target
+	arrow.facing = 1 if target.pos.x >= f.pos.x else -1
+	f.facing = arrow.facing
+	arrow.origin = f.pos
+	var flight := f.pos.distance_to(target.pos) / ARROW_SPEED
+	var lead := target.ground_velocity.limit_length(CHARGE_SPEED) * flight * 0.75
+	arrow.destination = (target.pos + lead).clamp(GROUND_MIN, GROUND_MAX)
+	arrow.duration = maxf(0.12, f.pos.distance_to(arrow.destination) / ARROW_SPEED)
+	arrows.append(arrow)
+	stats["arrows"] = int(stats.get("arrows", 0)) + 1
+
+func _advance_arrows() -> void:
+	for i in range(arrows.size() - 1, -1, -1):
+		var arrow := arrows[i]
+		arrow.age += STEP
+		if arrow.age + 0.000001 < arrow.duration: continue
+		arrows.remove_at(i)
+		var target := arrow.target
+		if target.hp <= 0 or target.pos.distance_to(arrow.destination) > target.radius + 15.0: continue
+		_damage(arrow.source, target, Catalog.damage(arrow.source.attributes, target.attributes, "physical"), "arrow_hit")
+		arrow.source.normal_hits += 1
+		stats["arrow_hits"] = int(stats.get("arrow_hits", 0)) + 1
 
 # A second-rank halberd can reach through a gap beside an engaged ally. A
 # friendly torso on the weapon segment blocks the thrust, including at impact.
@@ -411,6 +586,16 @@ func _begin(f: Fighter, target: Fighter, kind: String, support := false) -> void
 	f.target = target.id
 	f.cast_origin = f.pos
 	f.cast_target = target.pos
+	if not f.hero and f.troop_type != "halberd":
+		match kind:
+			"charge_hit":
+				f.impact = 0.14
+				f.duration = 0.46
+			"attack":
+				f.impact = 0.42 if f.troop_type == "archer" else 0.32
+				f.duration = 0.85 if f.troop_type == "archer" else 0.68
+		f.cooldown = f.duration + (0.85 if f.troop_type == "archer" else 0.7)
+		return
 	var ability: Dictionary=kits[f.side].ultimate if kind=="finisher" else kits[f.side].battle
 	f.impact = float(ability.windup) if kind!="attack" else .32
 	f.duration = f.impact + (0.55 if kind != "attack" else 0.36)
@@ -429,8 +614,17 @@ func _begin(f: Fighter, target: Fighter, kind: String, support := false) -> void
 
 func _resolve_attack(f: Fighter, hit_multiplier: float = 1.0) -> void:
 	var target: Fighter = fighters[f.target]
+	if f.action == "charge_hit":
+		if target.hp > 0 and f.pos.distance_to(target.pos) <= CHARGE_REACH + CONTACT_TOLERANCE:
+			var normal := Catalog.damage(f.attributes, target.attributes, "physical")
+			_damage(f, target, normal * CHARGE_MULTIPLIER, "charge_hit")
+			stats["charge_hits"] = int(stats.get("charge_hits", 0)) + 1
+		return
 	if f.action == "attack":
 		stats.attacks += 1
+		if not f.hero and f.troop_type == "archer":
+			_release_arrow(f, target)
+			return
 		# Damage belongs to the contact frame and still requires live reach.
 		var reach := 174.0 if f.hero else INFANTRY_REACH+CONTACT_TOLERANCE
 		if f.support_strike: reach=SUPPORT_REACH
@@ -517,7 +711,7 @@ func _damage(source: Fighter, target: Fighter, amount: float, kind: String, dama
 	morale[source.side]=minf(100,morale[source.side]+defeated*float(Catalog.DATA.morale.per_kill))
 	if kind != "burn_hit":
 		target.hit_age = 0
-		target.velocity = (target.pos - source.pos).normalized() * (24.0 if kind in ["hit","splash_hit"] else 110.0)
+		target.velocity = (target.pos - source.pos).normalized() * (24.0 if kind in ["hit","splash_hit","arrow_hit"] else 110.0)
 	if damage_type == "magic" and target.magic_hit_age >= .4: target.magic_hit_age = 0
 	if target.hp <= 0:
 		target.walking = false
@@ -600,7 +794,9 @@ func _finish() -> void:
 	var left := remaining(0)
 	var right := remaining(1)
 	var won := left > 0 and (right == 0 or float(left) / maxi(1, initial[0]) > float(right) / maxi(1, initial[1]))
+	arrows.clear()
 	result = {"player_won": won, "player_remaining": left, "enemy_remaining": right,
+		"player_troops":remaining_roster(0), "enemy_troops":remaining_roster(1),
 		"morale": floori(morale[0]+.00001),"enemy_morale": floori(morale[1]+.00001),"kills":kills.duplicate(),
 		"reason": "敌阵溃散" if right == 0 else ("我军溃退" if left == 0 else "时限到达 · 按剩余兵力比例判定"),
 		"elapsed": elapsed, "stats": stats.duplicate()}

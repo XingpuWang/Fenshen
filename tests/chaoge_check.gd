@@ -42,7 +42,7 @@ func _initialize() -> void:
 	var before:=int(b.soldiers)
 	var cast:=w.cast_map_skill(a,b.cell)
 	check(cast.ok and b.soldiers<before and a.soldiers==2400,"fire field damages the actual opposing army only")
-	check(b.troops[0].count==b.soldiers and a.action_done and a.ap==0,"map damage updates roster and spends the caster action")
+	check(Rules.valid_roster(b.troops,b.soldiers) and b.troops[1].count<800 and b.troops[2].count<400 and a.action_done and a.ap==0,"map damage updates the mixed roster and spends the caster action")
 	check(w.begin_field_battle(a,b).is_empty(),"spent army cannot start another action")
 	w.next_turn()
 	check(b.soldiers==2400 and a.ap==a.max_ap and not a.action_done,"end turn replenishes test strength and actions")
@@ -70,7 +70,12 @@ func _initialize() -> void:
 	var reversed:=w.begin_field_battle(b,a)
 	var faction_view:=View.new()
 	faction_view.setup(reversed)
-	check(faction_view.sprite_key(faction_view.sim.sides[0][1])=="shang" and faction_view.sprite_key(faction_view.sim.sides[1][1])=="zhou","choosing Wen Zhong preserves each side's actual troop artwork")
+	for side in 2:
+		for soldier: Rules.Fighter in faction_view.sim.sides[side]:
+			if soldier.hero: continue
+			var prefix := "shang" if side == 0 else "zhou"
+			var suffix := "" if soldier.troop_type == "halberd" else "_" + soldier.troop_type
+			check(faction_view.sprite_key(soldier)==prefix+suffix,"choosing Wen Zhong preserves each troop's faction artwork")
 	check(faction_view.army_name(0)=="商军" and faction_view.army_name(1)=="西岐","battle army labels follow faction rather than screen side")
 	faction_view.free()
 	# Ultimate interrupts each lower-priority phase, including an already released ring.

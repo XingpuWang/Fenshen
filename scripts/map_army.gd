@@ -1,11 +1,9 @@
 extends Sprite2D
 ## Ground slots follow the map projection; the soldiers and flag stay upright.
-const SOLDIER=preload("res://assets/battle/halberdiers/zhou.png")
-const ENEMY_SOLDIER=preload("res://assets/battle/halberdiers/shang.png")
+const ArmyArt=preload("res://scripts/army_art.gd")
 const FONT=preload("res://assets/fonts/ShanheSerif.otf")
 const FORMATION_SCALE:=.45
-static var atlas: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json")).zhou
-static var enemy_atlas: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json")).shang
+static var atlases: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json"))
 var game: Node2D
 var unit_index:=0
 var clock:=0.0
@@ -13,8 +11,7 @@ var last_frame:=-1
 var last_selected:=false
 var last_people:=-1
 var hit_frames: Array[Dictionary]=[]
-static var pixels: Image
-static var enemy_pixels: Image
+static var images := {}
 
 func enemy_army() -> bool:
 	return game.world.faction(game.world.units[unit_index])=="shang"
@@ -54,13 +51,13 @@ func contains_formation_point(point: Vector2) -> bool:
 	var boat: bool=get_parent().get_node("Boat").visible
 	var banner: Vector2=point-Vector2(-92,(-32 if boat else -72)*game.world.grid_y_scale)
 	if Rect2(0,-158,68,60).has_point(banner) or Rect2(-4,-158,8,158).has_point(banner): return true
-	if pixels==null: pixels=SOLDIER.get_image()
-	if enemy_army() and enemy_pixels==null: enemy_pixels=ENEMY_SOLDIER.get_image()
-	var image: Image=enemy_pixels if enemy_army() else pixels
 	for frame in hit_frames:
 		var local: Vector2=(point-frame.slot)*Vector2(-1 if flip_h else 1,1)/float(frame.ratio)+frame.pivot
 		var source: Rect2=frame.source
 		if Rect2(Vector2.ZERO,source.size).has_point(local):
+			var key: String = frame.art_key
+			if not images.has(key): images[key] = ArmyArt.TEXTURES[key].get_image()
+			var image: Image = images[key]
 			var texel:=Vector2i(source.position+local)
 			if image.get_pixelv(texel).a>.2: return true
 	return false
@@ -75,8 +72,13 @@ func _draw() -> void:
 	hit_frames.clear()
 	var tilt: float=game.world.grid_y_scale
 	var unit: Dictionary=game.world.units[unit_index]
-	var source_atlas: Dictionary=enemy_atlas if enemy_army() else atlas
-	var source_texture: Texture2D=ENEMY_SOLDIER if enemy_army() else SOLDIER
+	var faction: String=game.world.faction(unit)
+	var strength := {"halberd":0, "archer":0, "cavalry":0}
+	var total := 0
+	for troop in unit.troops:
+		if troop.is_empty(): continue
+		strength[troop.type] = int(troop.count)
+		total += int(troop.count)
 	var marching: bool=game.moving and game.selected_unit==unit_index
 	var boat: bool=get_parent().get_node("Boat").visible
 	var slots: Array[Vector2]=[]
@@ -87,15 +89,21 @@ func _draw() -> void:
 			slots.append(Vector2((col-row-(columns-rows)*.5)*32,(col+row-(columns+rows-2))*24*tilt))
 	slots.sort_custom(func(a: Vector2,b: Vector2)->bool: return a.y<b.y)
 	var count:=clampi(ceili(slots.size()*float(unit.soldiers)/maxf(1,float(unit.max_soldiers))),0,slots.size())
-	var ratio:=88.0/float(source_atlas.body_height)
 	for i in count:
+		# Sample the surviving companies from back to front using their actual numbers.
+		var rank := (i + 0.5) * total / count
+		var kind := "archer" if rank < strength.archer else ("cavalry" if rank < strength.archer + strength.cavalry else "halberd")
+		var key := ArmyArt.troop_key(faction, kind)
+		var source_atlas: Dictionary=atlases[key]
+		var source_texture: Texture2D=ArmyArt.TEXTURES[key]
+		var ratio: float=(105.0 if kind=="cavalry" else 88.0)/float(source_atlas.body_height)
 		var slot:=slots[roundi(i*(slots.size()-1)/float(maxi(1,count-1)))]
 		ellipse(slot+Vector2(0,2),Vector2(13,6),Color(.10,.12,.08,.23))
 		var index: int=(4 if marching else 0)+(int(clock*(10 if marching else 3))+i)%4
 		var frame: Dictionary=source_atlas.frames[index]
 		var src:=Rect2(frame.source[0],frame.source[1],frame.source[2],frame.source[3])
 		var pivot:=Vector2(frame.pivot[0],frame.pivot[1])
-		hit_frames.append({"slot":slot,"ratio":ratio,"source":src,"pivot":pivot})
+		hit_frames.append({"slot":slot,"ratio":ratio,"source":src,"pivot":pivot,"art_key":key})
 		draw_set_transform(slot,0,Vector2(-1 if flip_h else 1,1))
 		draw_texture_rect_region(source_texture,Rect2(-pivot*ratio,src.size*ratio),src)
 		draw_set_transform(Vector2.ZERO)

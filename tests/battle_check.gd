@@ -61,7 +61,8 @@ func _initialize() -> void:
 	check(a.pos.distance_to(contact.fighters[0].pos)>60,"hero and friendly infantry also collide")
 	check(Rules.valid_roster(Rules.roster(1234),1234),"one halberd company and two empty slots form valid MVP roster")
 	check(not Rules.valid_roster([{"type":"halberd","count":500},{"type":"halberd","count":500},{}],1000),"duplicate troop types rejected")
-	check(not Rules.valid_roster([{"type":"archer","count":1000},{},{}],1000),"unimplemented troop types cannot enter MVP")
+	check(Rules.valid_roster([{"type":"archer","count":1000},{},{}],1000),"an army may field archers on their own")
+	check(not Rules.valid_roster([{"type":"unknown","count":1000},{},{}],1000),"unknown troop types are rejected")
 	check(not Rules.valid_roster(Rules.roster(1000),999),"troop total must match campaign soldiers")
 	# Full campaign transaction, loss/retry/win and save roundtrip.
 	var world := World.new()
@@ -90,15 +91,23 @@ func _initialize() -> void:
 	world.next_turn()
 	check(world.turn==turn and world.save_game("user://battle-busy.json")==ERR_BUSY,"campaign mutations and saving blocked in combat")
 	var loss := {"player_won":false,"player_remaining":3400,"enemy_remaining":800,"morale":30,"enemy_morale":55}
+	loss.player_troops=[{"type":"halberd","count":2400},{"type":"archer","count":1000},{"type":"cavalry","count":0}]
+	loss.enemy_troops=[{"type":"halberd","count":500},{"type":"archer","count":250},{"type":"cavalry","count":50}]
 	check(world.finish_battle(loss),"loss result applies")
 	check(u.soldiers==3400 and u.morale==30 and u.ap==before.ap-1 and u.cell==before.cell and poi.owner=="shang","loss keeps origin and spends one AP with real casualties")
-	check(world.garrison(poi).soldiers==800,"enemy survivors persist for next assault")
+	check(world.garrison(poi).soldiers==800 and world.garrison(poi).troops==loss.enemy_troops,"each enemy company's survivors persist for the next assault")
 	check(not world.finish_battle(loss),"result cannot be applied twice")
 	var save_path := "user://fengshen-battle-save.json"
 	check(world.save_game(save_path)==OK,"battle state saves atomically")
 	var loaded := World.new()
-	check(loaded.load_game(save_path) and loaded.units[0].troops==u.troops and loaded.units[0].morale==30 and loaded.garrison(loaded.by_poi[poi.id]).soldiers==800,"save restores morale roster and damaged garrison")
+	check(loaded.load_game(save_path) and loaded.units[0].troops==u.troops and loaded.units[0].morale==30 and loaded.garrison(loaded.by_poi[poi.id]).troops==loss.enemy_troops,"save restores morale and both damaged mixed rosters")
 	var saved: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	var legacy:=saved.duplicate(true)
+	legacy.schema=6
+	for company in legacy.units: company.troops=Rules.roster(int(company.soldiers))
+	legacy.garrisons[poi.id].erase("troops")
+	FileAccess.open(save_path,FileAccess.WRITE).store_string(JSON.stringify(legacy))
+	check(loaded.load_game(save_path) and loaded.garrison(loaded.by_poi[poi.id]).troops==Rules.roster(800) and loaded.units[0].troops==Rules.roster(3400),"pre-mixed schema 6 preserves the original halberdiers in both armies")
 	saved.units[0].troops[0].count+=1
 	FileAccess.open(save_path,FileAccess.WRITE).store_string(JSON.stringify(saved))
 	check(not loaded.load_game(save_path) and loaded.units[0].soldiers==3400,"corrupt troop totals rejected without mutation")

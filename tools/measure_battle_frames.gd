@@ -3,6 +3,10 @@ extends SceneTree
 const SOURCES := {
 	"zhou":{"path":"res://assets/battle/halberdiers/zhou.png","rows":8,"body_height":192.0,"ground_pivot":[200,232]},
 	"shang":{"path":"res://assets/battle/halberdiers/shang.png","rows":8,"body_height":192.0,"ground_pivot":[312,232]},
+	"zhou_archer":{"path":"res://assets/battle/archers/zhou.png","rows":8,"body_height":160.0,"ground_pivot":[196,204]},
+	"shang_archer":{"path":"res://assets/battle/archers/shang.png","rows":8,"body_height":160.0,"ground_pivot":[252,204]},
+	"zhou_cavalry":{"path":"res://assets/battle/cavalry/zhou.png","rows":12,"body_height":160.0,"ground_pivot":[196,204]},
+	"shang_cavalry":{"path":"res://assets/battle/cavalry/shang.png","rows":12,"body_height":160.0,"ground_pivot":[252,204]},
 	"nezha":{"path":"res://assets/battle/motion/nezha_upright_v3.png","rows":6,"body_height":195.0,"anchor_x":0.47},
 	"wenzhong":{"path":"res://assets/battle/motion/wenzhong_upright_v3.png","rows":6,"body_height":217.0,"anchor_x":0.47},
 	"general":{"path":"res://assets/battle/motion/general_upright_v3.png","rows":6,"body_height":192.0,"anchor_x":0.50}}
@@ -45,8 +49,7 @@ func _initialize() -> void:
 				# Generated idle columns can drift horizontally. Register each pair of boots,
 				# rather than their weapon-inclusive bounding box, to the same ground point.
 				if definition.has("ground_pivot"):
-					# The infantry sheets are registered to the ground during packing.
-					# Keep the planted boot fixed through the thrust and preserve airborne strides.
+					# Packed troop sheets retain a shared boot or hoof anchor through every pose.
 					var ground: Array = definition.ground_pivot
 					pivot = Vector2(col * w / 4.0 + ground[0] - x0, row * row_height + ground[1] - y0)
 				elif row==0:

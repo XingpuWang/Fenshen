@@ -70,14 +70,14 @@ func run() -> void:
 		check(Commander.RECT.encloses(Commander.artifact_rect(i)),"all artifact slots fit inside the panel")
 		if i>0: check(not Commander.artifact_rect(i).intersects(Commander.artifact_rect(i-1)),"artifact slots do not overlap")
 	check(Commander.skill_rect(3).end.y<568,"extended skill section clears the formations heading")
-	check(game.hud.commander_formations[0].name=="戟兵" and game.hud.commander_formations[0].count=="5200","first row reads troop type and slot count")
-	for i in [1,2]:
-		check(game.hud.commander_formations[i].name=="" and game.hud.commander_formations[i].count=="","unoccupied formation content is blank")
+	for i in 3:
+		var row: Dictionary=game.hud.commander_formations[i]
+		check(row.name==["戟兵","弓兵","骑兵"][i] and row.count==str(original[i].count),"starting formation displays each troop type and its strength")
 	await shot("01-three-formations-and-skills",true)
 	# Legal rosters may have holes. Do not compact their displayed slot numbers.
 	for occupied in [1,2]:
 		var roster: Array=[{},{},{}]
-		roster[occupied]=original[0].duplicate(true)
+		roster[occupied]={"type":"halberd","count":5200}
 		game.world.units[0].troops=roster
 		game.refresh()
 		await settle()
@@ -86,6 +86,7 @@ func run() -> void:
 			var row: Dictionary=game.hud.commander_formations[i]
 			check(row.label=="编队%d" % (i+1),"formation labels retain their slot positions")
 			check(row.count==("5200" if i==occupied else ""),"occupied formation stays in its original row")
+			if i!=occupied: check(row.name=="","unoccupied formation name stays blank")
 		if occupied==2: await shot("02-sparse-third-formation",true)
 	game.world.units[0].troops=original
 	game.refresh()

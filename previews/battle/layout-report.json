@@ -1,6 +1,6 @@
 {
 	"battlefield_corners": 4,
-	"checks": 4285,
+	"checks": 8337,
 	"facings": 2,
 	"failures": [],
 	"feet_area": [
@@ -9,11 +9,12 @@
 		1600,
 		300
 	],
-	"frames_checked": 88,
+	"frames_checked": 248,
 	"max_actors": 122,
 	"standard_body_heights": {
-		"hero": 180,
-		"soldier": 108,
-		"wenzhong": 194
+		"cavalry": 137.0,
+		"hero": 180.0,
+		"soldier": 108.0,
+		"wenzhong": 194.0
 	}
 }

@@ -5,11 +5,13 @@ var failures: Array[String] = []
 var checks := 0
 var output := "user://art-loading"
 var expect_fallback := false
+var expect_troop_fallback := false
 
 func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--preview-dir="): output = arg.trim_prefix("--preview-dir=")
 		if arg == "--expect-source-fallback": expect_fallback = true
+		if arg == "--expect-troop-fallback": expect_troop_fallback = true
 	call_deferred("run")
 
 func check(ok: bool, label: String) -> void:
@@ -68,6 +70,15 @@ func run() -> void:
 			check(frame.texture != null and frame.texture.get_width() >= frame.source.end.x,"Wen Zhong %s frame %d loads without import cache" % [clip,i])
 	var textures = load("res://scripts/runtime_textures.gd")
 	var fallbacks: Array = textures.source_fallbacks.duplicate()
+	var army_art=load("res://scripts/army_art.gd")
+	for faction in ["zhou","shang"]:
+		for kind in ["archer","cavalry"]:
+			var texture: Texture2D = army_art.TEXTURES[faction+"_"+kind]
+			check(texture!=null and texture.get_width()>0,"both factions load their " + kind + " sheet")
+			var folder: String="archers" if kind=="archer" else "cavalry"
+			var path: String="res://assets/battle/%s/%s.png"%[folder,faction]
+			check(fallbacks.has(path)==expect_troop_fallback,"troop textures use the available source or import")
+			fallbacks.erase(path)
 	if expect_fallback:
 		check(fallbacks.has("res://assets/characters/nezha/v3/portrait.png"), "portrait uses source fallback when its import is absent")
 		check(fallbacks.has("res://assets/ui/skills/hero_icons.png"), "icons use source fallback when their import is absent")
@@ -75,7 +86,7 @@ func run() -> void:
 		check(fallbacks.size() == art.DATA.sheets.size() + wen.DATA.sheets.size() + 3, "both heroes' runtime sheets, portraits and icon atlas load from source")
 	else:
 		check(fallbacks.is_empty(), "normal imported textures retain the standard resource path")
-	var report := {"engine": Engine.get_version_info().string, "checks": checks, "failures": failures, "source_fallbacks": fallbacks}
+	var report := {"engine": Engine.get_version_info().string, "checks": checks, "failures": failures, "source_fallbacks": textures.source_fallbacks}
 	FileAccess.open(output.path_join("report.json"), FileAccess.WRITE).store_string(JSON.stringify(report, "\t") + "\n")
 	print("ART_LOADING_RUNTIME ", JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)
