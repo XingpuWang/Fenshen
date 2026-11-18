@@ -8,8 +8,8 @@ const WenzhongArt = preload("res://scripts/wenzhong_art.gd")
 const FONT = preload("res://assets/fonts/ShanheSerif.otf")
 const SANS = preload("res://assets/fonts/ShanheSans.otf")
 const BG = preload("res://assets/battle/fortress_amber.webp")
-const ZHOU = preload("res://assets/battle/motion/zhou_upright_v3.png")
-const SHANG = preload("res://assets/battle/motion/shang_upright_v3.png")
+const ZHOU = preload("res://assets/battle/halberdiers/zhou.png")
+const SHANG = preload("res://assets/battle/halberdiers/shang.png")
 const GENERAL = preload("res://assets/battle/motion/general_upright_v3.png")
 const TEXTURES = {"zhou":ZHOU,"shang":SHANG,"general":GENERAL}
 const CREAM = Color("fff0d2")
@@ -305,11 +305,17 @@ func _draw() -> void:
 	if profile_enabled: profile_draw_ms=(Time.get_ticks_usec()-profile_start)/1000.0
 
 func animation(f: Rules.Fighter) -> Vector2i:
-	if f.hp <= 0: return Vector2i(mini(3, int(f.death_age / 0.18)), 4)
+	if f.hp <= 0: return Vector2i(mini(3, int(f.death_age / 0.18)), 4 if f.hero else 3)
 	if f.action in ["attack", "cast", "finisher"]:
-		var frame := mini(1, int(f.age / f.impact * 2)) if f.age < f.impact else 2 + mini(1, int((f.age - f.impact) / (f.duration - f.impact) * 2))
+		# The first contact drawing starts on the same tick that resolves damage.
+		var half_frames := 2 if f.hero else 8
+		var after_contact := f.age >= f.impact
+		var phase := (f.age - f.impact) / (f.duration - f.impact) if after_contact else f.age / f.impact
+		var frame := clampi(floori(phase * half_frames), 0, half_frames - 1)
+		if after_contact: frame += half_frames
+		if not f.hero: return Vector2i(frame % 4, 4 + frame / 4)
 		return Vector2i(frame, 2 if f.action == "attack" else 5)
-	if f.hit_age < 0.32: return Vector2i(mini(3, int(f.hit_age / 0.08)), 3)
+	if f.hit_age < 0.32: return Vector2i(mini(3, int(f.hit_age / 0.08)), 3 if f.hero else 2)
 	return Vector2i(int((f.stride if f.walking else sim.elapsed + f.id * 0.13) * (10 if f.walking else 4)) % 4, 1 if f.walking else 0)
 
 func _fighter(f: Rules.Fighter) -> void:

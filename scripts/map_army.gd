@@ -1,7 +1,7 @@
 extends Sprite2D
 ## Ground slots follow the map projection; the soldiers and flag stay upright.
-const SOLDIER=preload("res://assets/battle/motion/zhou_upright_v3.png")
-const ENEMY_SOLDIER=preload("res://assets/battle/motion/shang_upright_v3.png")
+const SOLDIER=preload("res://assets/battle/halberdiers/zhou.png")
+const ENEMY_SOLDIER=preload("res://assets/battle/halberdiers/shang.png")
 const FONT=preload("res://assets/fonts/ShanheSerif.otf")
 const FORMATION_SCALE:=.45
 static var atlas: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/battle_frames.json")).zhou

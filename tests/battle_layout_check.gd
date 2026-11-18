@@ -6,6 +6,32 @@ var failures: Array[String]=[]
 func check(ok: bool,label: String) -> void:
 	checks+=1
 	if not ok and not label in failures: failures.append(label)
+
+func check_infantry_attack(view: View, side: int) -> void:
+	var soldier := Rules.Fighter.new()
+	soldier.side = side
+	var enemy: Rules.Fighter = view.sim.sides[1 - side][1]
+	var key := view.sprite_key(soldier)
+	var image: Image = View.TEXTURES[key].get_image()
+	var drawings := {}
+	var poses := {}
+	view.sim._begin(soldier, enemy, "attack")
+	for step in ceili(soldier.duration / Rules.STEP) + 1:
+		soldier.age = minf(soldier.duration, step * Rules.STEP)
+		var pose := view.animation(soldier)
+		if poses.has(pose): continue
+		poses[pose] = true
+		var frame: View.SpriteFrame = view.draw_frames[key][pose.y * 4 + pose.x]
+		var pixels := image.get_region(Rect2i(frame.source)).get_data()
+		drawings[hash(pixels)] = true
+	check(poses.size() == 16 and drawings.size() == 16, "all sixteen distinct infantry drawings play at 60 Hz for " + key)
+	soldier.age = soldier.impact - 0.001
+	check(view.animation(soldier) == Vector2i(3,5), "frame eight is the last windup for " + key)
+	soldier.age = soldier.impact
+	check(view.animation(soldier) == Vector2i(0,6), "frame nine coincides with real contact for " + key)
+	soldier.age = soldier.duration
+	check(view.animation(soldier) == Vector2i(3,7), "recovery reaches frame sixteen for " + key)
+
 func _initialize() -> void:
 	check(ProjectSettings.get_setting("display/window/size/window_width_override")==1920 and ProjectSettings.get_setting("display/window/size/window_height_override")==1080,"default output is native 1920x1080")
 	check(ProjectSettings.get_setting("application/run/max_fps")==60 and is_equal_approx(Rules.STEP,1.0/60.0),"60fps presentation cap and 60Hz combat simulation")
@@ -22,7 +48,10 @@ func _initialize() -> void:
 			check(visible[0]>0 and visible[1]>0 and visible[0]+visible[2]<src[2] and visible[1]+visible[3]<src[3],"complete silhouettes have transparent gutters: "+key)
 	# Both facings, every animation frame, all four battlefield corners, every character type.
 	# The variable-sized hero atlases are exercised in nezha_check / wenzhong_check.
+	var frames_checked := 0
 	for kind in ["zhou","shang","general"]:
+		var rows := int(view.frame_catalog[kind].rows)
+		frames_checked += rows * 4
 		var f:=Rules.Fighter.new()
 		f.hero=not kind in ["zhou","shang"]
 		f.side=1 if kind in ["shang","wenzhong"] else 0
@@ -31,7 +60,7 @@ func _initialize() -> void:
 			f.pos=point
 			for facing in [-1,1]:
 				f.facing=facing
-				for row in (6 if f.hero else 5):
+				for row in rows:
 					for col in 4:
 						var g:=view.sprite_geometry(f,Vector2i(col,row))
 						check(View.ACTOR_SAFE_AREA.encloses(g.visible_bounds),"body, weapon and cape fit above HUD / within screen: "+kind)
@@ -40,6 +69,7 @@ func _initialize() -> void:
 						var depth:=lerpf(.88,1.03,clampf((f.pos.y+25.0)/765.0,0,1))
 						check(cached.source==g.source and (cached.rect.position*depth).is_equal_approx(g.rect.position) and (cached.rect.size*depth).is_equal_approx(g.rect.size),"compiled draw regions match inspected layout bounds: "+kind)
 	view.sim.encounter.player.id="nezha"
+	for side in 2: check_infantry_attack(view, side)
 	for i in 1000:
 		view.sim.advance()
 		view.sim.events.clear()
@@ -47,7 +77,7 @@ func _initialize() -> void:
 		for f in view.sim.fighters:
 			check(View.FEET_AREA.grow(0.1).has_point(view.ground(f.pos)),"live crowd feet stay on the land rectangle")
 	view.free()
-	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":64,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[160,500,1600,300],"standard_body_heights":{"soldier":108,"hero":180,"wenzhong":194}}
+	var report: Dictionary={"checks":checks,"failures":failures,"frames_checked":frames_checked,"facings":2,"battlefield_corners":4,"max_actors":122,"feet_area":[160,500,1600,300],"standard_body_heights":{"soldier":108,"hero":180,"wenzhong":194}}
 	FileAccess.open("res://previews/battle/layout-report.json",FileAccess.WRITE).store_string(JSON.stringify(report,"\t"))
 	print("BATTLE_LAYOUT "+JSON.stringify(report))
 	quit(0 if failures.is_empty() else 1)

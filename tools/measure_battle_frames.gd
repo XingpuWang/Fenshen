@@ -1,8 +1,8 @@
 extends SceneTree
 ## Measures alpha only. Source art is untouched; runtime samples whole per-pose regions.
 const SOURCES := {
-	"zhou":{"path":"res://assets/battle/motion/zhou_upright_v3.png","rows":5,"body_height":236.0,"anchor_x":0.55},
-	"shang":{"path":"res://assets/battle/motion/shang_upright_v3.png","rows":5,"body_height":247.0,"anchor_x":0.52},
+	"zhou":{"path":"res://assets/battle/halberdiers/zhou.png","rows":8,"body_height":192.0,"ground_pivot":[200,232]},
+	"shang":{"path":"res://assets/battle/halberdiers/shang.png","rows":8,"body_height":192.0,"ground_pivot":[312,232]},
 	"nezha":{"path":"res://assets/battle/motion/nezha_upright_v3.png","rows":6,"body_height":195.0,"anchor_x":0.47},
 	"wenzhong":{"path":"res://assets/battle/motion/wenzhong_upright_v3.png","rows":6,"body_height":217.0,"anchor_x":0.47},
 	"general":{"path":"res://assets/battle/motion/general_upright_v3.png","rows":6,"body_height":192.0,"anchor_x":0.50}}
@@ -10,6 +10,7 @@ const SOURCES := {
 func _initialize() -> void:
 	var catalog := {}
 	var edge_warnings: Array = []
+	var frame_count := 0
 	for key in SOURCES:
 		var definition: Dictionary = SOURCES[key].duplicate()
 		var img := Image.load_from_file(definition.path)
@@ -40,10 +41,15 @@ func _initialize() -> void:
 				if lo.x<=x0 or hi.x>=x1-1 or lo.y<=y0 or hi.y>=y1-1:
 					edge_warnings.append("%s:%d:%d"%[key,row,col])
 				# Measured idle pelvis axis, independent of weapon/cape extent. Uniform scale per actor.
-				var pivot := Vector2((col+float(definition.anchor_x))*w/4.0-x0,hi.y+1-y0)
+				var pivot := Vector2((col+float(definition.get("anchor_x",0.5)))*w/4.0-x0,hi.y+1-y0)
 				# Generated idle columns can drift horizontally. Register each pair of boots,
 				# rather than their weapon-inclusive bounding box, to the same ground point.
-				if row==0:
+				if definition.has("ground_pivot"):
+					# The infantry sheets are registered to the ground during packing.
+					# Keep the planted boot fixed through the thrust and preserve airborne strides.
+					var ground: Array = definition.ground_pivot
+					pivot = Vector2(col * w / 4.0 + ground[0] - x0, row * row_height + ground[1] - y0)
+				elif row==0:
 					var mass:=0.0
 					var moment:=0.0
 					for y in range(hi.y-roundi(float(definition.body_height)*.04),hi.y+1):
@@ -55,9 +61,10 @@ func _initialize() -> void:
 					if mass>0: pivot.x=moment/mass
 				frames.append({"source":[x0,y0,x1-x0,y1-y0],"pivot":[pivot.x,pivot.y],"opaque":[lo.x-x0,lo.y-y0,hi.x-lo.x+1,hi.y-lo.y+1]})
 		definition.frames=frames
+		frame_count += frames.size()
 		catalog[key]=definition
 	FileAccess.open("res://data/battle_frames.json",FileAccess.WRITE).store_string(JSON.stringify(catalog,"\t"))
-	print("BATTLE_FRAME_MEASURE ",JSON.stringify({"sprites":catalog.size(),"frames":112,"edge_warnings":edge_warnings}))
+	print("BATTLE_FRAME_MEASURE ",JSON.stringify({"sprites":catalog.size(),"frames":frame_count,"edge_warnings":edge_warnings}))
 	quit()
 
 func seam(img: Image, around: int, radius: int, start: int, end: int, horizontal: bool) -> int:
