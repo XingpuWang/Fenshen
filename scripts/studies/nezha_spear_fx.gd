@@ -177,9 +177,9 @@ func _record_turn(t: float, foot: Vector2, grip: Vector2, tip: Vector2, high: bo
 		var sample := _tip_at(t,s,tip)
 		travel += last_tip.distance_to(sample)
 		last_tip = sample
-		# Feed the brush by distance, not time. A shaft pivoting briefly toward
-		# camera leaves a fine trace until the point travels across the stage.
-		var p := clampf(travel/(337.0 if high else 324.0),0.0,1.0)
+		# Projected lengths of the two forward cuts, measured at the spear tip.
+		# Each blade travels far enough through its painting to reach the forked end.
+		var p := clampf(travel/(176.0 if high else 220.0),0.0,1.0)
 		var tex_p := lerpf(.015,.986 if high else .82,p)
 		var section := tex_p*(edges.size()-1)
 		var k := floori(section)
@@ -191,17 +191,19 @@ func _record_turn(t: float, foot: Vector2, grip: Vector2, tip: Vector2, high: bo
 		var before := _tip_at(t,maxf(from,s-.026),tip)
 		var after := _tip_at(t,minf(until,s+.026),tip)
 		var cast := smoothstep(.008,.26,age)
-		# The blade can reverse its projected tangent in just two ticks when it
-		# turns through camera. The radial width stays continuous through that turn.
 		var center := sample.lerp((before+2.0*sample+after)*.25,cast)
-		var radial := center-(foot+Vector2(0,-85))
-		var normal := radial.normalized()
-		var air := normal*(75.0 if high else 72.0)+Vector2(0,-26.0 if high else -7.0)
+		# Paint across the travelled path. A radial width would point along a
+		# forward cut and collapse its two edges onto the shaft.
+		var velocity := before.distance_to(after)/maxf(.001,minf(until,s+.026)-maxf(from,s-.026))
+		var side := Vector2.RIGHT if high else Vector2.UP
+		var across := before.direction_to(after).orthogonal()
+		if across.dot(side)<0: across = -across
+		var normal := side.lerp(across,.78*smoothstep(65,500,velocity)).normalized()
+		var air := normal*47.0+Vector2(4,-29) if high else normal*32.0+Vector2(14,12)
 		center += air*cast
 		var tip_taper := lerpf(.045,1.0,smoothstep(0,.052,until-s))
-		var velocity := before.distance_to(after)/maxf(.001,minf(until,s+.026)-maxf(from,s-.026))
 		var pressure := lerpf(.30,1.0,smoothstep(70,800,velocity))*smoothstep(0,.10,until-start)
-		var width := (radii.y-radii.x)*(212.0 if high else 177.0)*tip_taper*pressure
+		var width := (radii.y-radii.x)*(168.0 if high else 148.0)*tip_taper*pressure
 		var row := PackedVector2Array([center-normal*width*.56,center+normal*width*.68])
 		var uv := PackedVector2Array([uv0,uv1])
 		var dry := lerpf(.16,1.0,smoothstep(85,660,velocity))

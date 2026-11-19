@@ -1,7 +1,7 @@
 @tool
 extends Node2D
-## The artist keys the turn of the pelvis, chest, gaze and spear separately.
-## Angles around the standing axis select painted views and project the two arms.
+## A continuous right-facing guard. Separate body, clavicle and spear keys
+## shape the two-handed low cut, rising cut and direct thrust.
 const Footwork = preload("res://scripts/studies/nezha_footwork.gd")
 const LOOP_SECONDS := 6.4
 const STROKE := &"fire_sweep"
@@ -64,94 +64,73 @@ func pose_at(seconds: float, stage_scale := DEFAULT_STAGE_SCALE) -> void:
 	_apply_pose(time)
 
 func _apply_pose(time: float) -> void:
-	_draw_turnaround()
-	_place_spear_and_arms()
 	var feet := Footwork.sole_goals_at(time, _stage_scale)
-	var hips_angle := deg_to_rad(hip_turn)
-	var pelvis_x := 12.0 * cos(hips_angle)
+	var ankles := PackedVector2Array()
+	var minimum_hip_y := -INF
+	var hip_sine := sin(deg_to_rad(hip_turn))
 	for i in 2:
 		var chain: Array = legs[i]
 		var upper: Bone2D = chain[0]
-		upper.position.x = -pelvis_x if i == 0 else pelvis_x
 		var goal: Marker2D = chain[3]
 		var sole: Marker2D = chain[4]
+		# Both sockets stay under the same three-quarter waistband. Turning the
+		# ribs does not reverse the direction a planted knee or toe can travel.
+		upper.position = Vector2(-10.5 + hip_sine * 2, -2.5) if i == 0 else Vector2(10.5 + hip_sine * 2, 1.5)
 		goal.position = feet[i]
 		goal.rotation = Footwork.sole_rotation_at(time, i)
-		# Soles stay on their appointed floor point even as the toe pivots round.
-		var shoe: Sprite2D = chain[2].get_node("Shoe")
-		var forward := cos(hips_angle + (.08 if i == 0 else -.08))
-		var shoe_factor := (1.0 if forward >= 0 else -1.0) * lerpf(.55,1.0,absf(forward))
-		var end_view := absf(forward) < .52
-		shoe.visible = not end_view
-		chain[2].get_node("Heel").visible = end_view and sin(hips_angle) >= 0
-		chain[2].get_node("Toe").visible = end_view and sin(hips_angle) < 0
-		shoe.scale.x = .137 * shoe_factor
-		shoe.position.x = sole.position.x*(1.0-shoe_factor)
 		var ankle := goal.position - sole.position.rotated(goal.rotation)
-		_solve_leg(chain, ankle, goal.rotation, forward)
+		ankles.append(ankle)
+		var lateral := ankle.x - (pelvis.position.x + upper.position.x)
+		var shin: Bone2D = chain[1]
+		var reach := upper.get_length() + shin.get_length() - .9
+		var drop := sqrt(maxf(0, reach * reach - lateral * lateral))
+		minimum_hip_y = maxf(minimum_hip_y, ankle.y - upper.position.y - drop)
+	pelvis.position.y = maxf(pelvis.position.y, minimum_hip_y)
+	_pose_upper_body()
+	_place_spear_and_arms()
+	for i in 2:
+		var chain: Array = legs[i]
+		var goal: Marker2D = chain[3]
+		_solve_leg(chain, ankles[i], goal.rotation)
+		chain[0].get_node("UpperArt").refresh_pose()
 
-# The shoulder, neck and waistband register every cel to the same painted
-# pivot. Using one opaque cel keeps the arena out of hair, skin and silk.
-func _painted_view(angle: float, face: bool, waist := false) -> StringName:
-	var depth := sin(angle)
-	if face and depth > .87: return &"Back"
-	if depth > .55: return &"BackQuarter" if face else &"Back"
-	if depth > .25: return &"Side"
-	if depth < -.78 and not waist: return &"Front"
-	return &"ThreeQuarter"
-
-func _direction_group(group: Node2D, view: StringName, facing: float) -> void:
-	for child: Sprite2D in group.get_children():
-		child.visible = child.name == view
-		var mirror := facing if child.name not in [&"Front", &"Back"] else 1.0
-		child.transform.x = child.transform.x.abs() * mirror
-
-func _draw_turnaround() -> void:
-	var yaw := deg_to_rad(chest_turn)
+func _pose_upper_body() -> void:
+	var chest_yaw := deg_to_rad(chest_turn)
 	var hip_yaw := deg_to_rad(hip_turn)
-	var face_yaw := deg_to_rad(face_turn)
-	_direction_group(costume, _painted_view(yaw, false), signf(cos(yaw)))
-	_direction_group(belt, _painted_view(hip_yaw, false, true), signf(cos(hip_yaw)))
-	var look := _painted_view(face_yaw, true)
-	var face_sign := signf(cos(face_yaw))
-	portrait.visible = look == &"ThreeQuarter"
-	portrait.scale.x = face_sign
-	_direction_group(head_views, look, face_sign)
-	# The shoulder socket follows the painted armhole, including on the back view.
-	var side_offset := 20.0*sin(yaw+.91)
-	var depth := cos(yaw+.91)
-	arms[0][0].position = Vector2(-side_offset,-43.0+1.5*depth) - shoulder_drive * .65
-	arms[1][0].position = Vector2(side_offset,-43.0-1.5*depth) + shoulder_drive
-	head.position.x = 2.5*cos(face_yaw) + 1.5*sin(yaw)
-	$Skeleton/Pelvis/Chest/SilkRoot.position = Vector2(-side_offset, -46)
-	$Skeleton/Pelvis/HemRoot.position.x = -14.0*cos(hip_yaw)+6.0*sin(hip_yaw)
-	$Skeleton/Pelvis/Chest/Head/HairTie.position.x = -14.0*cos(face_yaw)-6.0*sin(face_yaw)
+	var gaze := deg_to_rad(face_turn)
+	# Both armholes belong to the same right-facing painting. The far shoulder
+	# moves out from the ribs to lead each cut, while the rear arm sends the haft.
+	var shoulder_span := 16.0 + 6.0*sin(chest_yaw)
+	var clavicle_lift := 1.8*cos(chest_yaw)
+	arms[0][0].position = Vector2(-shoulder_span,-43.0+clavicle_lift) - shoulder_drive*.57
+	arms[1][0].position = Vector2(shoulder_span,-43.0-clavicle_lift) + shoulder_drive*.82
+	head.position.x = 2.8 + 3.5*sin(gaze) + 1.3*sin(chest_yaw)
+	$Skeleton/Pelvis/Chest/SilkRoot.position = Vector2(-shoulder_span,-45) - shoulder_drive*.43
+	$Skeleton/Pelvis/HemRoot.position.x = -14.0*cos(hip_yaw) + 6.0*sin(hip_yaw)
+	$Skeleton/Pelvis/Chest/Head/HairTie.position.x = -14.0*cos(gaze) - 6.0*sin(gaze)
 
 func _place_spear_and_arms() -> void:
 	var yaw := deg_to_rad(spear_turn)
-	# The shaft describes an ellipse in depth. A spear aimed at the far rank
-	# foreshortens and passes behind the body without collapsing into one pixel.
+	# Project elevation and depth separately so a low cut can cross the
+	# downstage lane and an uppercut can rise on the target side.
 	var pitch := deg_to_rad(spear_pitch)
-	var axis := Vector2(cos(yaw) * cos(pitch), sin(pitch) - .31 * sin(yaw) * cos(pitch))
+	var axis := Vector2(cos(yaw)*cos(pitch), sin(pitch)-.31*sin(yaw)*cos(pitch))
 	var direction := axis.angle()
-	# Rotate the palm around its grip continuously as the tip changes sides.
-	# Mirroring at side-on would teleport the heel of the hand across the shaft.
-	var hand_angle := direction
-	# The grip passes across the front of his ribs. When the camera sees his
-	# back, the tunic must mask the middle of the pole and both palms.
-	var back_to_camera := sin(deg_to_rad(chest_turn)) > .50
-	var outside := sin(yaw) < .46 and not back_to_camera
-	var near_front := cos(deg_to_rad(chest_turn)+.91) >= 0
+	# A power grip at the butt and an underhand guiding grip roll independently.
+	# Each palm still closes around its own exact point on the single handle.
+	var hand_angles := Vector2(
+		direction + .08 + .17*sin(pitch) + .13*sin(deg_to_rad(chest_turn)),
+		direction - .09 - .22*sin(pitch)
+	)
 	var half_span := grip_spacing * .5
 	var center := hand_line
-	# Both palms share one rigid handle. If a view change brings an arm to its
-	# limit, slide the whole handle into the intersection of the two reach arcs.
+	# Keep both palms on the same haft as their distance along it changes.
 	for pass_index in 5:
 		for i in 2:
 			var chain: Array = arms[i]
 			var hold: Marker2D = chain[4]
 			var offset := axis * (-half_span if i == 0 else half_span)
-			offset -= hold.position.rotated(hand_angle)
+			offset -= hold.position.rotated(hand_angles[i])
 			var shoulder := to_local((chain[0] as Bone2D).global_position)
 			var ray := center+offset-shoulder
 			var radius := ray.length()
@@ -162,8 +141,6 @@ func _place_spear_and_arms() -> void:
 	pole.rotation = direction
 	pole.scale = Vector2(axis.length(), 1.0)
 	$Skeleton/Spear/FrontGrip.position.x = grip_spacing
-	var weapon_layer := 10 if outside else -4
-	$Skeleton/Spear/FireTip.z_index = weapon_layer
 	for i in 2:
 		var chain: Array = arms[i]
 		var upper: Bone2D = chain[0]
@@ -171,8 +148,9 @@ func _place_spear_and_arms() -> void:
 		var wrist: Bone2D = chain[2]
 		var target := to_local((chain[3] as Marker2D).global_position)
 		var grip_offset: Vector2 = (chain[4] as Marker2D).position
+		var hand_angle := hand_angles[i]
 		var wrist_at := target - grip_offset.rotated(hand_angle)
-		var is_front: bool = near_front if i==0 else not near_front
+		var is_front := i == 0
 		# The driving elbow drops under the shaft. The leading elbow stays
 		# on the other side of the handle, open towards the outside shoulder.
 		var arm_yaw := deg_to_rad(chest_turn)
@@ -180,14 +158,13 @@ func _place_spear_and_arms() -> void:
 		_solve_arm(chain, wrist_at, hand_angle, bend)
 		var hand_art := wrist.get_node("HandArt") as Node2D
 		upper.get_node("UpperArt").z_index = 6 if is_front else 1
-		joint.get_node("LowerArt").z_index = 7 if is_front else 2
+		joint.get_node("LowerArt").z_index = 7 if is_front else 4
 		var guard := upper.get_node("Guard") as Sprite2D
 		guard.z_index = 8 if is_front else 2
 		# The cap hangs off the shoulder, rolling only slightly as the humerus lifts.
-		guard.rotation = -upper.rotation + .24*sin(upper.rotation)
-		guard.flip_h = cos(deg_to_rad(chest_turn))<0
-		hand_art.get_node("Palm").z_index = weapon_layer-1
-		hand_art.get_node("Fingers").z_index = weapon_layer+1
+		guard.rotation = -upper.rotation + .24*sin(upper.rotation) + shoulder_drive.y*.012
+		hand_art.get_node("Palm").z_index = 9
+		hand_art.get_node("Fingers").z_index = 11
 		hand_art.modulate = Color.WHITE if is_front else Color(.96,.93,.92,1)
 
 func _solve_arm(chain: Array, target: Vector2, hand_angle: float, bend: float) -> void:
@@ -210,27 +187,18 @@ func _solve_arm(chain: Array, target: Vector2, hand_angle: float, bend: float) -
 	lower.get_node("LowerArt").scale.y = lower_length/FORE_LENGTH
 	_orient_chain(upper,lower,end,start,elbow,target,hand_angle)
 
-func _solve_leg(chain: Array,target: Vector2,foot_angle: float,forward: float) -> void:
-	var upper: Bone2D=chain[0]
-	var lower: Bone2D=chain[1]
-	var end: Bone2D=chain[2]
-	var start:=to_local(upper.global_position)
-	var ray:=target-start
-	var a:=48.0
-	var b:=45.0
-	var distance:=maxf(.001, ray.length())
-	var axis:=ray/distance
-	var along:=(a*a+distance*distance-b*b)/(2.0*distance)
-	# Project the bent knee into and out of depth as the hips pivot. Changing
-	# just the elbow sign would pop the kneecap across the body in one frame.
-	var elbow:=start+axis*along-Vector2(-axis.y,axis.x)*sqrt(maxf(0.0,a*a-along*along))*forward
-	var upper_length:=start.distance_to(elbow)
-	var lower_length:=elbow.distance_to(target)
-	lower.position.y=upper_length
-	end.position.y=lower_length
-	upper.get_node("UpperArt").scale.y=upper_length/a
-	lower.get_node("LowerArt").scale.y=lower_length/b
-	_orient_chain(upper,lower,end,start,elbow,target,foot_angle)
+func _solve_leg(chain: Array, target: Vector2, foot_angle: float) -> void:
+	var upper: Bone2D = chain[0]
+	var shin: Bone2D = chain[1]
+	var boot: Bone2D = chain[2]
+	var hip := to_local(upper.global_position)
+	var ray := target - hip
+	var distance := maxf(.001, ray.length())
+	var axis := ray / distance
+	var along := (upper.get_length() * upper.get_length() + distance * distance - shin.get_length() * shin.get_length()) / (2.0 * distance)
+	var across := sqrt(maxf(0, upper.get_length() * upper.get_length() - along * along))
+	var knee := hip + axis * along + Vector2(axis.y, -axis.x) * across
+	_orient_chain(upper, shin, boot, hip, knee, target, foot_angle)
 
 func _orient_chain(upper: Bone2D,lower: Bone2D,end: Bone2D,start: Vector2,elbow: Vector2,target: Vector2,end_angle: float) -> void:
 	var parent_bone := upper.get_parent() as Node2D

@@ -45,15 +45,16 @@ func check_grips(scene: Node2D) -> void:
 			var lower := wrist.global_position - elbow.global_position
 			var bend := absf(rad_to_deg(upper.angle_to(lower)))
 			check(bend > 30.0 and bend < 165.0,"%s elbow retains a readable bend at %.2fs" % [pair[0],t])
-	var coat: Sprite2D = chest.get_node("RobeViews/Back")
-	var blade: Sprite2D = spear.get_node("FireTip")
-	var back_frames := 0
-	for frame in range(66,179):
-		scene.rig.pose_at(frame/60.0)
-		if coat.visible and coat.modulate.a > .98:
-			back_frames += 1
-			check(blade.z_index < coat.z_index,"back armour occludes the grip at frame %d" % frame)
-	check(back_frames > 0,"a turned shoulder exposes the back of the coat")
+	# Check the painted cels too. A rightward weapon alone doesn't tell us
+	# whether the animation shows the back of the head or a flipped face.
+	var faces_target := true
+	var body_forward := true
+	for frame in range(769):
+		scene.rig.pose_at(frame/120.0)
+		faces_target = faces_target and scene.rig.portrait.visible and scene.rig.portrait.global_transform.x.x > 0
+		body_forward = body_forward and not scene.rig.costume.get_node("Back").visible and not scene.rig.belt.get_node("Back").visible
+	check(faces_target,"Nezha keeps his gaze on the right throughout the entire action")
+	check(body_forward,"the hips and chest never turn their back to the target")
 	# A cross-fade between two translucent views let sand show through the hair and sash.
 	for t in [1.24,1.34,1.66,2.72,3.11]:
 		scene.rig.pose_at(t)
@@ -68,8 +69,8 @@ func check_grips(scene: Node2D) -> void:
 		check(face_opacity >= .99,"opaque head at %.2fs" % t)
 
 func check_weight_transfer(scene: Node2D) -> void:
-	# The left and right sweeps reverse at the waist, with the spear travelling
-	# farther than the pelvis. A continuous full-body spin used to look mechanical.
+	# Both attacks play into the same forward sector. The hips can wind up
+	# inside that stance while the two-handed spear travels a wider arc.
 	scene.rig.pose_at(.8)
 	var hip: float = scene.rig.hip_turn
 	var spear: float = scene.rig.spear_turn
@@ -88,17 +89,43 @@ func check_weight_transfer(scene: Node2D) -> void:
 	scene.rig.pose_at(2.94)
 	check(absf(scene.rig.face_turn-sight) + 12 < absf(scene.rig.chest_turn-shoulders),"gaze steadies while the shoulder winds up")
 
-func check_pivots(scene: Node2D) -> void:
+func check_leg_motion(scene: Node2D) -> void:
 	for leg in ["RearLeg","FrontLeg"]:
-		var knee: Bone2D = scene.rig.get_node("Skeleton/Pelvis/" + leg + "/Shin")
+		var hip: Bone2D = scene.rig.get_node("Skeleton/Pelvis/" + leg)
+		var knee: Bone2D = hip.get_node("Shin")
+		var ankle: Bone2D = knee.get_node("Boot")
 		var largest_step := 0.0
-		scene.seek(1.15)
-		var previous := knee.global_position
-		for frame in range(139,309):
-			scene.seek(frame / 120.0)
-			largest_step = maxf(largest_step,previous.distance_to(knee.global_position))
-			previous = knee.global_position
-		check(largest_step < 10.0,"%s follows a continuous arc during both turns" % leg)
+		var lowest_angle := 180.0
+		var highest_angle := 0.0
+		var span_error := 0.0
+		var right_bend := true
+		scene.rig.pose_at(0)
+		var thigh_span := hip.global_position.distance_to(knee.global_position)
+		var shin_span := knee.global_position.distance_to(ankle.global_position)
+		var previous: Vector2 = scene.rig.to_local(knee.global_position)
+		for frame in range(1,769):
+			scene.rig.pose_at(frame/120.0)
+			var thigh := knee.global_position - hip.global_position
+			var shin := ankle.global_position - knee.global_position
+			span_error = maxf(span_error,maxf(absf(thigh.length()-thigh_span),absf(shin.length()-shin_span)))
+			right_bend = right_bend and thigh.cross(shin) > 0.0
+			var angle := absf(rad_to_deg((-thigh).angle_to(shin)))
+			lowest_angle = minf(lowest_angle,angle)
+			highest_angle = maxf(highest_angle,angle)
+			var current: Vector2 = scene.rig.to_local(knee.global_position)
+			largest_step = maxf(largest_step,previous.distance_to(current))
+			previous = current
+		check(span_error < .05,"%s thigh and shin retain their bone lengths" % leg)
+		check(right_bend and lowest_angle > 90 and highest_angle < 177,"%s knee bends towards its toe without collapsing or locking" % leg)
+		check(largest_step < 10.0,"%s knee follows a continuous arc" % leg)
+	scene.seek(scene.CONTACT)
+	var heel: Bone2D = scene.rig.legs[0][2]
+	var plant: Bone2D = scene.rig.legs[1][2]
+	check(heel.global_rotation > deg_to_rad(8) and absf(plant.global_rotation) < deg_to_rad(3),"rear heel drives up while the front foot bears the finishing stroke")
+	var rear_bend: float = absf(scene.rig.legs[0][1].rotation)
+	check(rear_bend + deg_to_rad(18) < absf(scene.rig.legs[1][1].rotation),"the front knee receives the lunge while the rear leg extends")
+	scene.seek(3.62)
+	check(rear_bend + deg_to_rad(12) < absf(scene.rig.legs[0][1].rotation),"the driving knee releases after the hit")
 
 func _run() -> void:
 	var scene = Study.instantiate()
@@ -112,12 +139,12 @@ func _run() -> void:
 	check(not scene.rig.find_children("*","AnimationPlayer",true,false).is_empty(),"editable pose animation")
 	check_grips(scene)
 	check_weight_transfer(scene)
-	check_pivots(scene)
+	check_leg_motion(scene)
 	scene.seek(1.52)
 	var first_sweep: Vector2 = Vector2(scene.rig.weapon_tip()) - Vector2(scene.rig.weapon_grip())
 	scene.seek(2.12)
 	var second_sweep: Vector2 = Vector2(scene.rig.weapon_tip()) - Vector2(scene.rig.weapon_grip())
-	check(first_sweep.x < 0 and second_sweep.x > 0 and second_sweep.y < 0,"low sweep reverses into a rising sweep")
+	check(first_sweep.x > 0 and first_sweep.y > 0 and second_sweep.x > 0 and second_sweep.y < 0,"low sweep and rising sweep both strike to the right")
 	scene.seek(2.94)
 	var loaded_tip: Vector2 = scene.rig.weapon_tip()
 	scene.seek(scene.CONTACT)
@@ -165,8 +192,8 @@ func _run() -> void:
 	scene.seek(scene.CYCLE+scene.CONTACT)
 	check(before.is_equal_approx(scene.rig.weapon_tip()) and not scene.fire_audio.playing,"the clean reel repeats the exact hit in silence")
 	# The delayed hem samples straddle zero on a 60 Hz clock accumulated in floats.
-	var hip: Vector3 = scene.skirt._hip_at(0)
-	check(hip.is_equal_approx(scene.skirt._hip_at(-1e-15)), "delayed hem samples wrap across the start of the reel")
+	var hip: Vector3 = scene.costume._hip_at(0)
+	check(hip.is_equal_approx(scene.costume._hip_at(-1e-15)), "delayed hem samples wrap across the start of the reel")
 	scene.queue_free()
 	# The headless audio thread needs time to retire its last stopped WAV playback.
 	await create_timer(.55).timeout

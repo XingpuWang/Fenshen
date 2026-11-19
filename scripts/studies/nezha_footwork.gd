@@ -2,8 +2,8 @@ extends RefCounted
 ## Stage-space weight transfer and footfalls. The rig closes its legs to the two sole goals.
 const LOOP_SECONDS := 6.40
 const GROUND_SLOPE := -.0615
-const REAR_REST := -27.0
-const FRONT_REST := 33.0
+const REAR_REST := -23.0
+const FRONT_REST := 29.0
 const SOLE_LEVER := 8.0
 
 # Time, horizontal displacement in stage pixels, velocity in pixels/second.
@@ -13,11 +13,11 @@ const WEIGHT: Array[Vector3] = [
 	Vector3(1.28, -9, 62), Vector3(1.52, 14, 98), Vector3(1.72, 30, 49),
 	Vector3(1.85, 34, 0), Vector3(2.13, 24, -53), Vector3(2.35, 18, 0),
 	Vector3(2.63, 24, 5), Vector3(2.83, 22, 0), Vector3(2.94, 24, 43),
-	Vector3(3.07, 38, 160), Vector3(3.19, 64, 199), Vector3(3.30, 78, 0),
-	Vector3(3.41, 78, 0), Vector3(3.63, 81, 0), Vector3(3.84, 78, -30),
-	Vector3(4.05, 66, -65), Vector3(4.22, 55, -32), Vector3(4.29, 54, 0),
-	Vector3(4.40, 58, 0), Vector3(4.50, 54, -86), Vector3(4.64, 30, -155),
-	Vector3(4.76, 13, -113), Vector3(4.89, 1, -38), Vector3(4.95, 0, 0),
+	Vector3(3.07, 42, 186), Vector3(3.19, 62, 125), Vector3(3.30, 70, 0),
+	Vector3(3.41, 70, 0), Vector3(3.53, 71, 0), Vector3(3.84, 66, -24),
+	Vector3(4.05, 60, -40), Vector3(4.22, 55, -32), Vector3(4.29, 54, 0),
+	Vector3(4.37, 56, 0), Vector3(4.49, 46, -131), Vector3(4.64, 24, -135),
+	Vector3(4.76, 11, -96), Vector3(4.89, 1, -38), Vector3(4.95, 0, 0),
 ]
 # Small changes in height let the supporting knee take the load under the body.
 # Positive values sink toward the floor; both soles remain independently planted.
@@ -34,15 +34,15 @@ const COMPRESSION: Array[Vector3] = [
 # Liftoff, touchdown, displacement from this boot's original footprint, maximum lift.
 # Between these windows a boot stays at the same world position as the pelvis shifts.
 const REAR_STEPS: Array[Vector4] = [
-	Vector4(1.55, 1.97, 30.7, 8.3),
-	Vector4(3.15, 3.29, 67.7, 4.6),
-	Vector4(4.30, 4.67, 0.0, 9.2),
+	Vector4(1.55, 1.97, 33.0, 7.0),
+	Vector4(3.15, 3.29, 45.0, 3.0),
+	Vector4(4.30, 4.67, 0.0, 6.6),
 ]
 const FRONT_STEPS: Array[Vector4] = [
-	Vector4(1.10, 1.45, 23.3, 6.0),
-	Vector4(2.15, 2.52, 34.3, 3.7),
-	Vector4(2.94, 3.15, 64.3, 7.2),
-	Vector4(4.05, 4.30, 38.3, 4.2),
+	Vector4(1.10, 1.45, 24.0, 5.0),
+	Vector4(2.15, 2.52, 31.0, 3.8),
+	Vector4(2.94, 3.15, 77.0, 6.0),
+	Vector4(4.05, 4.30, 47.0, 4.4),
 	Vector4(4.68, 4.95, 0.0, 5.3),
 ]
 static var shadow_mask: Texture2D
@@ -77,7 +77,7 @@ static func _step_at(steps: Array[Vector4], time: float) -> Vector3:
 		var stride := step.z - previous
 		var long_step := smoothstep(12, 66, absf(stride))
 		var pass_time := lerpf(.39, .48, long_step) if stride>0 else lerpf(.53, .44, long_step)
-		var fly := clampf(inverse_lerp(.08, .89, u), 0, 1)
+		var fly := clampf(inverse_lerp(.15, .95, u) if stride < -32 else inverse_lerp(.08, .89, u), 0, 1)
 		var travel := fly*fly*fly * (10.0 - 15.0*fly + 6.0*fly*fly)
 		var clearance := step.w * smoothstep(.08, pass_time, u) * (1.0 - smoothstep(pass_time, .88, u))
 		var departure := smoothstep(0, .18, u) * (1.0 - smoothstep(.18, .44, u))
@@ -87,7 +87,16 @@ static func _step_at(steps: Array[Vector4], time: float) -> Vector3:
 	return Vector3(previous, 0, 0)
 
 static func sole_rotation_at(t: float, foot: int) -> float:
-	return _step_at(REAR_STEPS if foot==0 else FRONT_STEPS, fposmod(t, LOOP_SECONDS)).z
+	var time := fposmod(t, LOOP_SECONDS)
+	var roll := _step_at(REAR_STEPS if foot == 0 else FRONT_STEPS, time).z
+	if foot == 0:
+		# The rear heel comes off the ground while the ball of the foot pushes
+		# into the strike. Keep that purchase until weight moves back onto it.
+		roll += deg_to_rad(21) * smoothstep(3.10, 3.27, time) * (1.0 - smoothstep(3.58, 3.91, time))
+	return roll
+
+static func _ground_depth(foot: int) -> float:
+	return -3.0 if foot == 0 else 1.5
 
 static func _pivot_arc(foot: int, time: float) -> float:
 	# In the first turn the near shoe opens downstage, and the rear shoe circles upstage.
@@ -113,10 +122,11 @@ static func sole_goals_at(t: float, actor_scale: float = .84) -> PackedVector2Ar
 	for i in 2:
 		var step := _step_at(REAR_STEPS if i == 0 else FRONT_STEPS, time)
 		var rest := REAR_REST if i == 0 else FRONT_REST
-		var footprint := Vector2(rest * actor_scale + step.x, step.x * GROUND_SLOPE + _pivot_arc(i,time))
+		var footprint := Vector2(rest * actor_scale + step.x, step.x * GROUND_SLOPE + _ground_depth(i) * actor_scale + _pivot_arc(i,time))
 		# Rotate the sole marker around the toe or heel that is on the floor.
-		var to_centre := Vector2(-signf(step.z) * SOLE_LEVER, 0)
-		var roll_offset := to_centre.rotated(step.z) - to_centre
+		var roll := sole_rotation_at(time, i)
+		var to_centre := Vector2(-signf(roll) * SOLE_LEVER, 0)
+		var roll_offset := to_centre.rotated(roll) - to_centre
 		goals.append((footprint - Vector2(0, step.y) - root) / actor_scale + roll_offset)
 	return goals
 
@@ -134,7 +144,7 @@ static func draw_shadow(canvas: CanvasItem, neutral_ground: Vector2, t: float, a
 		var sole := neutral_ground + motion + feet[i] * actor_scale
 		var rest := REAR_REST if i == 0 else FRONT_REST
 		var travel := motion.x + (feet[i].x - rest) * actor_scale
-		var shoe_at := Vector2(sole.x, neutral_ground.y + travel * GROUND_SLOPE + _pivot_arc(i,time))
+		var shoe_at := Vector2(sole.x, neutral_ground.y + travel * GROUND_SLOPE + _ground_depth(i) * actor_scale + _pivot_arc(i,time))
 		var gap := maxf(0, shoe_at.y - sole.y)
 		var pressure := 1.0 - smoothstep(0, 21 * actor_scale, gap)
 		var penumbra := Vector2(26, 7).lerp(Vector2(34, 10), 1.0 - pressure) * actor_scale

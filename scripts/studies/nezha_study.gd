@@ -2,7 +2,7 @@ extends Node2D
 ## One clock drives the editable pose, grounded travel and world-space paint.
 const Footwork = preload("res://scripts/studies/nezha_footwork.gd")
 const BronzeReflection = preload("res://shaders/nezha_bronze_reflection.gdshader")
-const Skirt = preload("res://scripts/studies/nezha_skirt.gd")
+const Costume = preload("res://scripts/studies/nezha_costume.gd")
 const DESIGN_SIZE := Vector2(1280,720)
 const HOME_FOOT := Vector2(505,510)
 const CYCLE := 6.40
@@ -31,7 +31,7 @@ var tip_path := PackedVector2Array()
 var soles := PackedVector2Array()
 var pose_time := 0.0
 var bronze := ShaderMaterial.new()
-var skirt := Skirt.new()
+var costume := Costume.new()
 
 func _ready() -> void:
 	reel = "--nezha-study-reel" in OS.get_cmdline_user_args()
@@ -48,7 +48,7 @@ func _ready() -> void:
 	for part in rig.find_children("Guard","Sprite2D",true,false) + rig.find_children("Vambrace","Sprite2D",true,false):
 		part.material = bronze
 	rig.get_node("Skeleton/Spear/FireTip").material = bronze
-	skirt.bind(rig.belt)
+	costume.bind(rig)
 	_bake_motion()
 	seek(0)
 
@@ -74,7 +74,7 @@ func _bake_motion() -> void:
 		_apply_body(t)
 		ribbons.record_anchor_sample(frame, rig)
 		var waist: Vector2 = rig.to_local(rig.pelvis.global_position) + (actor.position-HOME_FOOT)/actor.scale.x
-		skirt.record_hip(waist, deg_to_rad(rig.hip_turn))
+		costume.record_hip(waist, deg_to_rad(rig.hip_turn))
 		if frame <= roundi(CONTACT / TRAIL_STEP):
 			tip_path.append(actor.transform * Vector2(rig.weapon_tip()))
 
@@ -90,7 +90,7 @@ func seek(t: float, resync_audio: bool = true) -> void:
 	seconds = fposmod(t,CYCLE*2.0 if reel else CYCLE)
 	pose_time = fposmod(seconds,CYCLE)
 	_apply_body(pose_time)
-	skirt.pose_at(pose_time,rig)
+	costume.pose_at(pose_time,rig)
 	ribbons.pose_at(pose_time,rig)
 	soles = PackedVector2Array([rig.rear_sole(),rig.front_sole()])
 	shadow.queue_redraw()
