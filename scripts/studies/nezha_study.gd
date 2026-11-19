@@ -2,6 +2,7 @@ extends Node2D
 ## One clock drives the editable pose, grounded travel and world-space paint.
 const Footwork = preload("res://scripts/studies/nezha_footwork.gd")
 const BronzeReflection = preload("res://shaders/nezha_bronze_reflection.gdshader")
+const Skirt = preload("res://scripts/studies/nezha_skirt.gd")
 const DESIGN_SIZE := Vector2(1280,720)
 const HOME_FOOT := Vector2(505,510)
 const CYCLE := 6.40
@@ -30,6 +31,7 @@ var tip_path := PackedVector2Array()
 var soles := PackedVector2Array()
 var pose_time := 0.0
 var bronze := ShaderMaterial.new()
+var skirt := Skirt.new()
 
 func _ready() -> void:
 	reel = "--nezha-study-reel" in OS.get_cmdline_user_args()
@@ -46,7 +48,8 @@ func _ready() -> void:
 	for part in rig.find_children("Guard","Sprite2D",true,false) + rig.find_children("Vambrace","Sprite2D",true,false):
 		part.material = bronze
 	rig.get_node("Skeleton/Spear/FireTip").material = bronze
-	_bake_weapon_path()
+	skirt.bind(rig.belt)
+	_bake_motion()
 	seek(0)
 
 func _fit_stage() -> void:
@@ -63,19 +66,22 @@ func _apply_body(t: float) -> void:
 	actor.position = HOME_FOOT + Footwork.displacement_at(t)
 	rig.pose_at(t, absf(actor.scale.x))
 
-func _bake_weapon_path() -> void:
-	# Sample the painted spear tip through both turns and the finishing stroke.
-	for step in range(ceili((CONTACT - TRAIL_START) / TRAIL_STEP) + 1):
-		_apply_body(minf(TRAIL_START + step * TRAIL_STEP, CONTACT))
-		tip_path.append(actor.transform * Vector2(rig.weapon_tip()))
+func _bake_motion() -> void:
+	# A single walk through the authored poses gives the cloth its inertia and
+	# records the blade in stage space. Scrubbing, replays and playback share it.
+	for frame in roundi(CYCLE / TRAIL_STEP):
+		var t := frame * TRAIL_STEP
+		_apply_body(t)
+		ribbons.record_anchor_sample(frame, rig)
+		var waist: Vector2 = rig.to_local(rig.pelvis.global_position) + (actor.position-HOME_FOOT)/actor.scale.x
+		skirt.record_hip(waist, deg_to_rad(rig.hip_turn))
+		if frame <= roundi(CONTACT / TRAIL_STEP):
+			tip_path.append(actor.transform * Vector2(rig.weapon_tip()))
 
 func _tip_on_path(t: float) -> Vector2:
-	var elapsed := clampf(t, TRAIL_START, CONTACT) - TRAIL_START
-	var index := mini(floori(elapsed / TRAIL_STEP), tip_path.size() - 2)
-	# The contact drawing falls between fixed ticks. Interpolate the last, shorter interval.
-	var start := index * TRAIL_STEP
-	var stop := minf(start + TRAIL_STEP, CONTACT - TRAIL_START)
-	return tip_path[index].lerp(tip_path[index + 1], clampf((elapsed-start)/(stop-start),0,1))
+	var frame := clampf(t / TRAIL_STEP,0,tip_path.size()-1)
+	var first := floori(frame)
+	return tip_path[first].lerp(tip_path[mini(first+1,tip_path.size()-1)],frame-first)
 
 func seek(t: float, resync_audio: bool = true) -> void:
 	# A 60 Hz accumulator can arrive a few picoseconds before the loop boundary.
@@ -84,6 +90,7 @@ func seek(t: float, resync_audio: bool = true) -> void:
 	seconds = fposmod(t,CYCLE*2.0 if reel else CYCLE)
 	pose_time = fposmod(seconds,CYCLE)
 	_apply_body(pose_time)
+	skirt.pose_at(pose_time,rig)
 	ribbons.pose_at(pose_time,rig)
 	soles = PackedVector2Array([rig.rear_sole(),rig.front_sole()])
 	shadow.queue_redraw()
@@ -94,7 +101,7 @@ func seek(t: float, resync_audio: bool = true) -> void:
 	var history := PackedVector2Array()
 	if pose_time > TRAIL_START and pose_time < CONTACT + .25:
 		var end := minf(pose_time,CONTACT)
-		for i in range(6,-1,-1):
+		for i in range(39,-1,-1):
 			history.append(_tip_on_path(end - i*TRAIL_STEP))
 	var grip: Vector2 = actor.transform * Vector2(rig.weapon_grip())
 	var tip: Vector2 = actor.transform * Vector2(rig.weapon_tip())

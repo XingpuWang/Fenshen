@@ -5,7 +5,8 @@ Godot 4.7.2 可运行原型 / v0.4 暖色城邑
 在 Godot 中打开 scenes/studies/nezha_study.tscn，按 F6 运行。空格暂停或继续，R 重播，F 开关莲火、场景映光和音效，可在同一姿势上对照握枪细节。
 在 scenes/studies/nezha_rig.tscn 中可编辑角色分件、Skeleton2D 骨架与动作关键帧。场景根位移独立于人物动作。
 实录 previews/nezha/study/nezha-study.mp4 使用固定镜头连续播放两遍。前 6.4 秒是哪吒凝聚枪影、转胯低扫、换脚回扫、反身收枪引落莲火的完整演出。后 6.4 秒关闭特效，方便对照手臂、枪杆与支撑脚。关键姿势见 previews/nezha/study/poses.jpg。
-previews/nezha/study/grip-comparison.jpg 在相同显示比例下对照了旧版和新版的持枪、蓄势、出枪三个姿势。
+在 previews/nezha/study/motion-comparison.mp4 中，左右两栏同步播放调整前后的素体动作。可以对照后脚承重时髋和胸肩的先后、回扫时的视线，以及送枪后重心如何回到脚下。
+previews/nezha/study/grip-comparison.jpg 保留了上一轮双手握枪修正时的姿势对照。
 
 朝歌测试场（当前默认入口）
 只保留哪吒与闻仲，在朝歌南侧相邻陆地测试战斗和地图技能。人物面板加长并收紧立绘边界；技能为无文字的满幅方形插画，法宝为空槽纹样；地图只保留人物面板、小地图与结束回合。

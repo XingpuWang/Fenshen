@@ -30,25 +30,40 @@ var _marks: Array[Sprite2D] = []
 var _used := 0
 var _trail := PackedVector2Array()
 var _trail_power := 0.0
+var _turn_quads: Array[PackedVector2Array] = []
+var _turn_uvs: Array[PackedVector2Array] = []
+var _turn_inks: Array[PackedColorArray] = []
+var _turn_layers: Array[Node2D] = []
 
 func _ready() -> void:
 	_textures.assign([Textures.get_texture(BRUSHES), Textures.get_texture(ARMORY)])
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	for depth: int in [REAR,FRONT]:
+		var layer := Node2D.new()
+		layer.z_as_relative = false
+		layer.z_index = depth
+		add_child(layer)
+		layer.draw.connect(_draw_turns.bind(layer,depth==FRONT))
+		_turn_layers.append(layer)
 
 func set_choreography(t: float, foot: Vector2, grip: Vector2, tip: Vector2,
 		contact: Vector2, trail: PackedVector2Array = PackedVector2Array()) -> void:
 	_used = 0
 	_trail = trail
 	_trail_power = 0.0
+	_turn_quads.clear()
+	_turn_uvs.clear()
+	_turn_inks.clear()
 	if t >= .55 and t < 4.05:
 		_gather(t,foot)
-		_first_turn(t,foot)
-		_second_turn(t,foot)
+		_record_turn(t,foot,grip,tip,false)
+		_record_turn(t,foot,grip,tip,true)
 		_arsenal(t,contact)
 		_finisher(t,grip,tip,contact)
 		_local_edge(t,grip,tip)
 	for i in range(_used,_marks.size()):
 		_marks[i].hide()
+	for layer in _turn_layers: layer.queue_redraw()
 	queue_redraw()
 
 # Pool in draw order; every visual parameter is replaced on each use. Absolute
@@ -116,39 +131,121 @@ func _gather(t: float, foot: Vector2) -> void:
 		_paint(SPEAR,spear_tip,Vector2(length,length*.205),ray.angle(),
 			opacity*(.58+.09*i),REAR,1.23*rise-.09,settle-.15,FORWARD,SPEAR_TIP)
 
-func _first_turn(t: float, foot: Vector2) -> void:
-	if t < 1.14 or t >= 1.85: return
-	var phase := smoothstep(1.15,1.69,t)
-	var center := foot + Vector2(lerpf(27,43,phase),lerpf(-113,-104,phase))
-	# His first cross-body sweep cuts to screen left. Mirror the entire painted
-	# rim so its white leading edge and the real spear travel on that same side.
-	var span := Vector2(-lerpf(426,627,phase),lerpf(123,190,phase))
-	var angle := lerpf(.20,-.072,phase)
-	var head := 1.18*smoothstep(1.16,1.53,t)-.02
-	var tail := 1.20*smoothstep(1.51,1.83,t)-.14
-	var strength := _beat(t,1.14,1.33,1.64,1.84)
-	_paint(LOW_ARC,center,span,angle,.93*strength,REAR,head,tail,AROUND,Vector2(.5,.5),FAR_LIP)
-	_paint(LOW_ARC,center,span,angle,.89*strength,FRONT,head,tail,AROUND,Vector2(.5,.5),NEAR_LIP)
-	# A second dry stroke follows the leading outer edge, with a shorter life.
-	var glint := _beat(t,1.34,1.51,1.54,1.71)
-	_paint(LOW_ARC,center+Vector2(19,-9),span*Vector2(1.06,1.03),angle-.024,
-		.44*glint,REAR,head-.04,tail+.43,AROUND)
+# The inner and outer edges of the two curved brush paintings, measured along
+# 13 radial cuts. Sampling across each cut preserves the hand-painted variations
+# in width, the dark brush edge and the white core as the weapon bends the paint.
+const LOW_EDGES := [Vector2(.334,.428),Vector2(.251,.393),Vector2(.236,.426),
+	Vector2(.212,.500),Vector2(.212,.528),Vector2(.222,.543),Vector2(.232,.548),
+	Vector2(.297,.533),Vector2(.247,.526),Vector2(.193,.493),Vector2(.208,.441),
+	Vector2(.256,.411),Vector2(.350,.443)]
+const HIGH_EDGES := [Vector2(.319,.387),Vector2(.323,.442),Vector2(.381,.525),
+	Vector2(.293,.669),Vector2(.398,.842),Vector2(.422,.828),Vector2(.438,.764),
+	Vector2(.398,.697),Vector2(.363,.637),Vector2(.343,.614),Vector2(.336,.568),
+	Vector2(.349,.602),Vector2(.427,.590)]
 
-func _second_turn(t: float, foot: Vector2) -> void:
-	if t < 1.74 or t >= 2.60: return
-	var rise := smoothstep(1.77,2.29,t)
-	var strength := _beat(t,1.75,1.98,2.24,2.58)
-	var head := 1.18*smoothstep(1.78,2.12,t)-.03
-	var tail := 1.20*smoothstep(2.12,2.58,t)-.14
-	# A steep rising cut crosses the plane of the previous low sweep. The small
-	# counterstroke only lives on its far side. Both keep open space round the head.
-	var center := foot + Vector2(46+34*rise,-139-21*rise)
-	var size_xy := Vector2(330+180*rise,236+90*rise)
-	var angle := lerpf(.36,-.13,rise)
-	_paint(LOW_ARC,center-Vector2(22,-13),Vector2(410+103*rise,150+40*rise),-.49,
-		.65*strength,REAR,head-.12,tail+.13,AROUND)
-	_paint(RISING_ARC,center,size_xy,angle,strength,REAR,head,tail,UP,Vector2(.5,.5),FAR_LIP)
-	_paint(RISING_ARC,center,size_xy,angle,.94*strength,FRONT,head,tail,UP,Vector2(.5,.5),NEAR_LIP)
+func _tip_at(t: float, sample_time: float, tip: Vector2) -> Vector2:
+	if sample_time >= t-.00001: return tip
+	var tick := clampf(_trail.size()-1-(t-sample_time)*60.0,0.0,_trail.size()-1)
+	var i := floori(tick)
+	return _trail[i].cubic_interpolate(_trail[mini(i+1,_trail.size()-1)],
+		_trail[maxi(i-1,0)],_trail[mini(i+2,_trail.size()-1)],tick-i)
+
+func _record_turn(t: float, foot: Vector2, grip: Vector2, tip: Vector2, high: bool) -> void:
+	var start := 1.78 if high else 1.16
+	var peak := 2.12 if high else 1.52
+	var spent := 2.58 if high else 1.84
+	if t <= start or t >= spent or _trail.size()<2: return
+	var from := maxf(start,t-(_trail.size()-1)/60.0)
+	var until := minf(t,peak)
+	if until-from < .004: return
+	var count := ceili((until-from)*90.0)
+	var strength := _beat(t,start,start+.11,peak+.055,spent)
+	var rect: Rect2 = REGIONS[RISING_ARC if high else LOW_ARC]
+	var source_centre := Vector2(.83,.61) if high else Vector2(.47,.51)
+	var edges: Array = HIGH_EDGES if high else LOW_EDGES
+	var previous := PackedVector2Array()
+	var previous_fork := PackedVector2Array()
+	var last_uv := PackedVector2Array()
+	var last_ink := PackedColorArray()
+	var last_fork_ink := PackedColorArray()
+	var sheet_size := _textures[0].get_size()
+	var last_tip := _tip_at(t,from,tip)
+	var travel := (from-start)*240.0
+	for i in range(count+1):
+		var s := lerpf(from,until,float(i)/count)
+		var age := t-s
+		var sample := _tip_at(t,s,tip)
+		travel += last_tip.distance_to(sample)
+		last_tip = sample
+		# Feed the brush by distance, not time. A shaft pivoting briefly toward
+		# camera leaves a fine trace until the point travels across the stage.
+		var p := clampf(travel/(337.0 if high else 324.0),0.0,1.0)
+		var tex_p := lerpf(.015,.986 if high else .82,p)
+		var section := tex_p*(edges.size()-1)
+		var k := floori(section)
+		var radii: Vector2 = edges[k].lerp(edges[mini(k+1,edges.size()-1)],section-k)
+		var angle := lerpf(103,279,tex_p) if high else lerpf(-155,120,tex_p)
+		var ray := Vector2.from_angle(deg_to_rad(angle))
+		var uv0 := (rect.position+(source_centre+ray*radii.x).clamp(Vector2.ZERO,Vector2.ONE)*rect.size)/sheet_size
+		var uv1 := (rect.position+(source_centre+ray*radii.y).clamp(Vector2.ZERO,Vector2.ONE)*rect.size)/sheet_size
+		var before := _tip_at(t,maxf(from,s-.026),tip)
+		var after := _tip_at(t,minf(until,s+.026),tip)
+		var cast := smoothstep(.008,.26,age)
+		# The blade can reverse its projected tangent in just two ticks when it
+		# turns through camera. The radial width stays continuous through that turn.
+		var center := sample.lerp((before+2.0*sample+after)*.25,cast)
+		var radial := center-(foot+Vector2(0,-85))
+		var normal := radial.normalized()
+		var air := normal*(75.0 if high else 72.0)+Vector2(0,-26.0 if high else -7.0)
+		center += air*cast
+		var tip_taper := lerpf(.045,1.0,smoothstep(0,.052,until-s))
+		var velocity := before.distance_to(after)/maxf(.001,minf(until,s+.026)-maxf(from,s-.026))
+		var pressure := lerpf(.30,1.0,smoothstep(70,800,velocity))*smoothstep(0,.10,until-start)
+		var width := (radii.y-radii.x)*(212.0 if high else 177.0)*tip_taper*pressure
+		var row := PackedVector2Array([center-normal*width*.56,center+normal*width*.68])
+		var uv := PackedVector2Array([uv0,uv1])
+		var dry := lerpf(.16,1.0,smoothstep(85,660,velocity))
+		var opacity := strength*dry*smoothstep(0,.067,s-start)*(1.0-smoothstep(.35,.70,age))
+		var ink := PackedColorArray()
+		for point in row:
+			# Only the low lip may pass in front. Face and grip retain their shape.
+			var front := smoothstep(foot.y-83,foot.y-43,point.y)*smoothstep(23,65,absf(point.x-grip.x))
+			ink.append(Color(opacity,front,0,1))
+		# One narrow, later branch peels from the hot spine toward the actual
+		# travelled path. Its ends rejoin the stroke. Keep it behind the actor.
+		var fork_phase := smoothstep(.024,.090,age)*smoothstep(.13,.39,p)
+		var fork_curve := sin(p*PI)*fork_phase
+		var fork_center := center-air*fork_curve*(.84 if high else .66)
+		var fork_width := width*(.26+.11*fork_curve)*fork_phase
+		var fork := PackedVector2Array([fork_center-normal*fork_width*.56,fork_center+normal*fork_width*.68])
+		var fork_alpha := opacity*fork_phase*(.80 if high else .67)
+		var fork_ink := PackedColorArray([Color(fork_alpha,0,0),Color(fork_alpha,0,0)])
+		if i>0:
+			_append_quad(previous_fork,fork,last_uv,uv,last_fork_ink,fork_ink)
+			_append_quad(previous,row,last_uv,uv,last_ink,ink)
+		previous=row
+		previous_fork=fork
+		last_uv=uv
+		last_ink=ink
+		last_fork_ink=fork_ink
+
+func _append_quad(a: PackedVector2Array, b: PackedVector2Array,
+		uv_a: PackedVector2Array, uv_b: PackedVector2Array,
+		ink_a: PackedColorArray, ink_b: PackedColorArray) -> void:
+	_turn_quads.append(PackedVector2Array([a[0],b[0],b[1],a[1]]))
+	_turn_uvs.append(PackedVector2Array([uv_a[0],uv_b[0],uv_b[1],uv_a[1]]))
+	_turn_inks.append(PackedColorArray([ink_a[0],ink_b[0],ink_b[1],ink_a[1]]))
+
+func _draw_turns(layer: Node2D, in_front: bool) -> void:
+	for i in _turn_quads.size():
+		var colors := PackedColorArray()
+		var visible_ink := 0.0
+		for ink in _turn_inks[i]:
+			var alpha := ink.r*(ink.g if in_front else 1.0-ink.g)
+			visible_ink = maxf(visible_ink,alpha)
+			colors.append(Color(1,1,1,alpha))
+		if visible_ink>.006:
+			layer.draw_primitive(_turn_quads[i],colors,_turn_uvs[i],_textures[0])
 
 func _arsenal(t: float, contact: Vector2) -> void:
 	if t < 2.32 or t >= 3.47: return
@@ -245,7 +342,9 @@ func _draw() -> void:
 	var travelled := 0.0
 	var newer := _trail[-1]
 	var join := newer
-	for i in range(_trail.size()-2,-1,-1):
+	# The painted sweeps use a longer history. The little metal wake still
+	# spans at most six physics steps and 170 stage pixels.
+	for i in range(_trail.size()-2,maxi(-1,_trail.size()-8),-1):
 		var older := _trail[i]
 		var delta := older-newer
 		var length := delta.length()

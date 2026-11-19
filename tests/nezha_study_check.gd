@@ -45,11 +45,48 @@ func check_grips(scene: Node2D) -> void:
 			var lower := wrist.global_position - elbow.global_position
 			var bend := absf(rad_to_deg(upper.angle_to(lower)))
 			check(bend > 30.0 and bend < 165.0,"%s elbow retains a readable bend at %.2fs" % [pair[0],t])
-	for t in [1.34, 2.94]:
+	var coat: Sprite2D = chest.get_node("RobeViews/Back")
+	var blade: Sprite2D = spear.get_node("FireTip")
+	var back_frames := 0
+	for frame in range(66,179):
+		scene.rig.pose_at(frame/60.0)
+		if coat.visible and coat.modulate.a > .98:
+			back_frames += 1
+			check(blade.z_index < coat.z_index,"back armour occludes the grip at frame %d" % frame)
+	check(back_frames > 0,"a turned shoulder exposes the back of the coat")
+	# A cross-fade between two translucent views let sand show through the hair and sash.
+	for t in [1.24,1.34,1.66,2.72,3.11]:
 		scene.rig.pose_at(t)
-		var coat: Sprite2D = chest.get_node("RobeViews/Back")
-		var blade: Sprite2D = spear.get_node("FireTip")
-		check(coat.visible and blade.z_index < coat.z_index,"back armour occludes the shaft at %.2fs" % t)
+		for group in [scene.rig.belt, scene.rig.costume]:
+			var coverage := 0.0
+			for art: Sprite2D in group.get_children():
+				if art.visible: coverage = maxf(coverage,art.modulate.a)
+			check(coverage >= .99,"opaque costume at %.2fs" % t)
+		var face_opacity: float = scene.rig.portrait.modulate.a if scene.rig.portrait.visible else 0.0
+		for view: Sprite2D in scene.rig.head_views.get_children():
+			if view.visible: face_opacity = maxf(face_opacity,view.modulate.a)
+		check(face_opacity >= .99,"opaque head at %.2fs" % t)
+
+func check_weight_transfer(scene: Node2D) -> void:
+	# The left and right sweeps reverse at the waist, with the spear travelling
+	# farther than the pelvis. A continuous full-body spin used to look mechanical.
+	scene.rig.pose_at(.8)
+	var hip: float = scene.rig.hip_turn
+	var spear: float = scene.rig.spear_turn
+	var hip_travel := 0.0
+	var spear_travel := 0.0
+	for frame in range(49,140):
+		scene.rig.pose_at(frame/60.0)
+		hip_travel += absf(wrapf(scene.rig.hip_turn - hip,-180,180))
+		spear_travel += absf(wrapf(scene.rig.spear_turn - spear,-180,180))
+		hip = scene.rig.hip_turn
+		spear = scene.rig.spear_turn
+	check(hip_travel < 300 and spear_travel > hip_travel * 1.45,"the hips transfer weight under both sweeps")
+	scene.rig.pose_at(2.52)
+	var sight: float = scene.rig.face_turn
+	var shoulders: float = scene.rig.chest_turn
+	scene.rig.pose_at(2.94)
+	check(absf(scene.rig.face_turn-sight) + 12 < absf(scene.rig.chest_turn-shoulders),"gaze steadies while the shoulder winds up")
 
 func check_pivots(scene: Node2D) -> void:
 	for leg in ["RearLeg","FrontLeg"]:
@@ -74,6 +111,7 @@ func _run() -> void:
 	check(scene.rig.find_children("*","Bone2D",true,false).size() >= 4,"editable bones")
 	check(not scene.rig.find_children("*","AnimationPlayer",true,false).is_empty(),"editable pose animation")
 	check_grips(scene)
+	check_weight_transfer(scene)
 	check_pivots(scene)
 	scene.seek(1.52)
 	var first_sweep: Vector2 = Vector2(scene.rig.weapon_tip()) - Vector2(scene.rig.weapon_grip())
@@ -126,6 +164,9 @@ func _run() -> void:
 	check(not scene.spear_fx.visible and scene.pose_time==0.0,"second pass starts clean at the first pose at a fixed-step seam")
 	scene.seek(scene.CYCLE+scene.CONTACT)
 	check(before.is_equal_approx(scene.rig.weapon_tip()) and not scene.fire_audio.playing,"the clean reel repeats the exact hit in silence")
+	# The delayed hem samples straddle zero on a 60 Hz clock accumulated in floats.
+	var hip: Vector3 = scene.skirt._hip_at(0)
+	check(hip.is_equal_approx(scene.skirt._hip_at(-1e-15)), "delayed hem samples wrap across the start of the reel")
 	scene.queue_free()
 	# The headless audio thread needs time to retire its last stopped WAV playback.
 	await create_timer(.55).timeout
