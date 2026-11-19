@@ -6,6 +6,12 @@
 [ext_resource type="PackedScene" path="res://scenes/studies/nezha_rig.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/studies/nezha_spear_fx.gd" id="5"]
 [ext_resource type="FontFile" path="res://assets/fonts/ShanheSans.otf" id="6"]
+[ext_resource type="Shader" path="res://shaders/nezha_firelight.gdshader" id="7"]
+[ext_resource type="AudioStream" path="res://assets/nezha_study/fire_sweep.wav" id="8"]
+
+[sub_resource type="ShaderMaterial" id="Firelight"]
+resource_local_to_scene = true
+shader = ExtResource("7")
 
 [sub_resource type="StyleBoxFlat" id="Panel"]
 content_margin_left = 6.0
@@ -49,6 +55,7 @@ script = ExtResource("1")
 
 [node name="PaintedArena" type="Sprite2D" parent="Stage"]
 z_index = -100
+material = SubResource("Firelight")
 texture = ExtResource("2")
 centered = false
 
@@ -65,8 +72,11 @@ z_index = -20
 [node name="Rig" parent="Stage/Actor" instance=ExtResource("4")]
 
 [node name="SpearFX" type="Node2D" parent="Stage"]
-z_index = 25
 script = ExtResource("5")
+
+[node name="FireAudio" type="AudioStreamPlayer" parent="Stage"]
+stream = ExtResource("8")
+volume_db = -3.0
 
 [node name="Controls" type="PanelContainer" parent="Stage"]
 z_index = 40

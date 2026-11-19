@@ -1,12 +1,14 @@
 extends Node2D
 ## One clock drives the editable pose, grounded travel and world-space paint.
 const Footwork = preload("res://scripts/studies/nezha_footwork.gd")
+const BronzeReflection = preload("res://shaders/nezha_bronze_reflection.gdshader")
 const DESIGN_SIZE := Vector2(1280,720)
 const HOME_FOOT := Vector2(505,510)
-const CYCLE := 4.80
-const CONTACT := 1.84
-const TRAIL_START := 1.50
+const CYCLE := 6.40
+const CONTACT := 3.30
+const TRAIL_START := 1.08
 const TRAIL_STEP := 1.0 / 60.0
+const AUDIO_START := .52
 
 @onready var stage: Node2D = $Stage
 @onready var actor: Node2D = $Stage/Actor
@@ -14,6 +16,8 @@ const TRAIL_STEP := 1.0 / 60.0
 @onready var ribbons = $Stage/Actor/Ribbons
 @onready var spear_fx = $Stage/SpearFX
 @onready var shadow: Node2D = $Stage/Shadow
+@onready var arena_light: ShaderMaterial = $Stage/PaintedArena.material
+@onready var fire_audio: AudioStreamPlayer = $Stage/FireAudio
 @onready var controls: Control = $Stage/Controls
 @onready var pause_button: Button = $Stage/Controls/Buttons/Pause
 @onready var effects_button: Button = $Stage/Controls/Buttons/Effects
@@ -25,9 +29,11 @@ var reel := false
 var tip_path := PackedVector2Array()
 var soles := PackedVector2Array()
 var pose_time := 0.0
+var bronze := ShaderMaterial.new()
 
 func _ready() -> void:
 	reel = "--nezha-study-reel" in OS.get_cmdline_user_args()
+	rig.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	controls.visible = not reel
 	effects_button.button_pressed = effects_enabled
 	effects_button.toggled.connect(_set_effects)
@@ -36,7 +42,11 @@ func _ready() -> void:
 	shadow.draw.connect(_paint_shadow)
 	get_viewport().size_changed.connect(_fit_stage)
 	_fit_stage()
-	_bake_thrust_path()
+	bronze.shader = BronzeReflection
+	for part in rig.find_children("Guard","Sprite2D",true,false) + rig.find_children("Vambrace","Sprite2D",true,false):
+		part.material = bronze
+	rig.get_node("Skeleton/Spear/FireTip").material = bronze
+	_bake_weapon_path()
 	seek(0)
 
 func _fit_stage() -> void:
@@ -47,14 +57,14 @@ func _fit_stage() -> void:
 
 func _process(delta: float) -> void:
 	if playing:
-		seek(seconds + delta)
+		seek(seconds + delta, false)
 
 func _apply_body(t: float) -> void:
 	actor.position = HOME_FOOT + Footwork.displacement_at(t)
-	rig.pose_at(t)
+	rig.pose_at(t, absf(actor.scale.x))
 
-func _bake_thrust_path() -> void:
-	# Sample the actual articulated weapon in stage space, including the root's lunge.
+func _bake_weapon_path() -> void:
+	# Sample the painted spear tip through both turns and the finishing stroke.
 	for step in range(ceili((CONTACT - TRAIL_START) / TRAIL_STEP) + 1):
 		_apply_body(minf(TRAIL_START + step * TRAIL_STEP, CONTACT))
 		tip_path.append(actor.transform * Vector2(rig.weapon_tip()))
@@ -67,7 +77,7 @@ func _tip_on_path(t: float) -> Vector2:
 	var stop := minf(start + TRAIL_STEP, CONTACT - TRAIL_START)
 	return tip_path[index].lerp(tip_path[index + 1], clampf((elapsed-start)/(stop-start),0,1))
 
-func seek(t: float) -> void:
+func seek(t: float, resync_audio: bool = true) -> void:
 	# A 60 Hz accumulator can arrive a few picoseconds before the loop boundary.
 	var seam := snappedf(t,CYCLE)
 	if absf(t-seam) < .00000001: t = seam
@@ -77,17 +87,41 @@ func seek(t: float) -> void:
 	ribbons.pose_at(pose_time,rig)
 	soles = PackedVector2Array([rig.rear_sole(),rig.front_sole()])
 	shadow.queue_redraw()
-	spear_fx.visible = seconds >= CYCLE if reel else effects_enabled
+	spear_fx.visible = seconds < CYCLE if reel else effects_enabled
+	_sound_at(pose_time, resync_audio)
+	_light_stage(pose_time if spear_fx.visible else 0.0)
 	if not spear_fx.visible: return
-	var intensity := smoothstep(1.46,1.80,pose_time) * (1.0-smoothstep(1.90,2.09,pose_time))
 	var history := PackedVector2Array()
-	if intensity > 0:
+	if pose_time > TRAIL_START and pose_time < CONTACT + .25:
 		var end := minf(pose_time,CONTACT)
-		for i in range(4,-1,-1):
+		for i in range(6,-1,-1):
 			history.append(_tip_on_path(end - i*TRAIL_STEP))
 	var grip: Vector2 = actor.transform * Vector2(rig.weapon_grip())
 	var tip: Vector2 = actor.transform * Vector2(rig.weapon_tip())
-	spear_fx.set_sample(grip,tip,history,intensity,tip_path[-1],pose_time-CONTACT)
+	spear_fx.set_choreography(pose_time,actor.position,grip,tip,tip_path[-1],history)
+
+func _sound_at(t: float, resync: bool) -> void:
+	var offset := t - AUDIO_START
+	if not playing or not spear_fx.visible or offset < 0 or offset >= fire_audio.stream.get_length():
+		if fire_audio.playing:
+			fire_audio.stop()
+	elif not fire_audio.playing:
+		fire_audio.play(offset)
+	elif resync:
+		fire_audio.seek(offset)
+
+func _light_stage(t: float) -> void:
+	var dusk := (.43*smoothstep(.49,1.16,t) + .47*smoothstep(2.24,2.98,t)) * (1.0-smoothstep(3.44,4.22,t))
+	var first := smoothstep(1.17,1.51,t) * (1.0-smoothstep(1.53,1.81,t))
+	var second := smoothstep(1.80,2.11,t) * (1.0-smoothstep(2.13,2.49,t))
+	var landing := smoothstep(3.18,CONTACT,t) * (1.0-smoothstep(3.37,3.92,t))
+	bronze.set_shader_parameter("strength",maxf(.62*first,maxf(.75*second,landing)))
+	bronze.set_shader_parameter("light_side",1.0-2.0*first)
+	arena_light.set_shader_parameter("dusk",dusk)
+	arena_light.set_shader_parameter("sweep_glow",.68*first + second)
+	arena_light.set_shader_parameter("strike_glow",landing)
+	arena_light.set_shader_parameter("caster_ground",actor.position)
+	arena_light.set_shader_parameter("strike_ground",Vector2(tip_path[-1].x, HOME_FOOT.y + Footwork.displacement_at(CONTACT).y))
 
 func _paint_shadow() -> void:
 	Footwork.draw_shadow(shadow,HOME_FOOT,pose_time,actor.scale.x,soles)
@@ -101,6 +135,7 @@ func _set_effects(enabled: bool) -> void:
 func _toggle_pause() -> void:
 	playing = not playing
 	pause_button.text = "暂停" if playing else "继续"
+	_sound_at(pose_time, true)
 
 func _replay() -> void:
 	playing = true
