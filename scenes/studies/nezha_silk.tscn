@@ -1,0 +1,82 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/studies/nezha_silk.gd" id="1"]
+
+[sub_resource type="Curve" id="ShoulderTravel"]
+min_value = -30.0
+max_value = 65.0
+_data = [Vector2(0.0000000, 0), 0.0, 0.0, 0, 0, Vector2(0.2395833, 0), 0.0, 0.0, 0, 0, Vector2(0.3375000, -13), 0.0, 0.0, 0, 0, Vector2(0.3833333, 46), 0.0, 0.0, 0, 0, Vector2(0.3979167, 46), 0.0, 0.0, 0, 0, Vector2(0.4583333, 49), 0.0, 0.0, 0, 0, Vector2(0.5437500, 16), 0.0, 0.0, 0, 0, Vector2(0.6125000, 0), 0.0, 0.0, 0, 0, Vector2(1.0000000, 0), 0.0, 0.0, 0, 0]
+point_count = 9
+
+[sub_resource type="Curve" id="ShoulderDrop"]
+min_value = -12.0
+max_value = 20.0
+_data = [Vector2(0.0000000, 0), 0.0, 0.0, 0, 0, Vector2(0.2395833, 0), 0.0, 0.0, 0, 0, Vector2(0.3375000, 12), 0.0, 0.0, 0, 0, Vector2(0.3833333, 4), 0.0, 0.0, 0, 0, Vector2(0.3979167, 4), 0.0, 0.0, 0, 0, Vector2(0.4583333, 6), 0.0, 0.0, 0, 0, Vector2(0.6125000, 0), 0.0, 0.0, 0, 0, Vector2(1.0000000, 0), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[sub_resource type="Curve" id="SashTurns"]
+min_value = -1.0
+max_value = 1.0
+_data = [Vector2(0, 0.55), 0.0, 0.0, 0, 0, Vector2(0.13, 0.98), 0.0, 0.0, 0, 0, Vector2(0.28, 0.95), 0.0, 0.0, 0, 0, Vector2(0.39, 0.77), 0.0, 0.0, 0, 0, Vector2(0.46, 0.04), 0.0, 0.0, 0, 0, Vector2(0.515, -0.84), 0.0, 0.0, 0, 0, Vector2(0.55, -0.92), 0.0, 0.0, 0, 0, Vector2(0.63, -0.21), 0.0, 0.0, 0, 0, Vector2(0.68, 0.35), 0.0, 0.0, 0, 0, Vector2(0.745, 0.96), 0.0, 0.0, 0, 0, Vector2(0.81, 0.76), 0.0, 0.0, 0, 0, Vector2(0.865, 0.05), 0.0, 0.0, 0, 0, Vector2(0.925, -0.74), 0.0, 0.0, 0, 0, Vector2(1, -0.3), 0.0, 0.0, 0, 0]
+point_count = 14
+
+[sub_resource type="Curve2D" id="Hang"]
+bake_interval = 2.0
+_data = {
+"points": PackedVector2Array(0, 0, -4.5, -1.08, 0, 0, 8.82, 2.88, -8.82, -2.88, -25, -6, 7.74, 1.26, -7.74, -1.26, -49, -16, 5.4, -2.52, -5.4, 2.52, -68, -13, 1.08, -3.96, -1.08, 3.96, -79, -2, -3.6, -4.14, 3.6, 4.14, -74, 9, -3.6, -4.14, 3.6, 4.14, -59, 21, -0, -3.96, 0, 3.96, -54, 32, 3.24, -3.78, -3.24, 3.78, -59, 43, 2.34, -3.96, -2.34, 3.96, -72, 53, -1.26, -3.06, 1.26, 3.06, -72, 65, -1.26, -0.9, 0, 0, -65, 70)
+}
+point_count = 12
+
+[sub_resource type="Curve2D" id="HairUnder"]
+bake_interval = 2.0
+_data = {
+"points": PackedVector2Array(0, 0, -1.26, 0.72, 0, 0, 2.7, -1.26, -2.7, 1.26, -7, 4, 3.06, -0.18, -3.06, 0.18, -15, 7, 3.24, -0.36, -3.24, 0.36, -24, 5, 2.7, -1.8, -2.7, 1.8, -33, 9, 1.08, -1.08, 0, 0, -39, 15)
+}
+point_count = 6
+
+[sub_resource type="Curve2D" id="HairOver"]
+bake_interval = 2.0
+_data = {
+"points": PackedVector2Array(0, 0, -1.44, -0.54, 0, 0, 3.06, 0.72, -3.06, -0.72, -8, -3, 2.7, -0.36, -2.7, 0.36, -17, -4, 2.34, -1.08, -2.34, 1.08, -23, -1, 2.7, -0.36, -2.7, 0.36, -30, 2, 1.98, -0.36, -1.98, 0.36, -38, 1, 0.54, -0.54, 0, 0, -41, 4)
+}
+point_count = 7
+
+[sub_resource type="Curve2D" id="PaleTab"]
+bake_interval = 2.0
+_data = {
+"points": PackedVector2Array(0, 0, -1.26, 2.16, 0, 0, 3.24, -4.32, -3.24, 4.32, -7, 12, 3.6, -3.78, -3.6, 3.78, -18, 24, 2.52, -3.78, -2.52, 3.78, -27, 33, 2.88, -2.88, -2.88, 2.88, -32, 45, 1.98, -0.72, 0, 0, -43, 49)
+}
+point_count = 6
+
+[sub_resource type="Curve2D" id="RedTab"]
+bake_interval = 2.0
+_data = {
+"points": PackedVector2Array(0, 0, -1.08, 2.52, 0, 0, 2.52, -4.86, -2.52, 4.86, -6, 14, 3.06, -4.5, -3.06, 4.5, -14, 27, 2.52, -4.14, -2.52, 4.14, -23, 39, 1.98, -3.42, -1.98, 3.42, -28, 50, 1.08, -1.44, 0, 0, -34, 58)
+}
+point_count = 6
+
+[node name="Ribbons" type="Node2D"]
+script = ExtResource("1")
+shoulder_travel = SubResource("ShoulderTravel")
+shoulder_drop = SubResource("ShoulderDrop")
+sash_turns = SubResource("SashTurns")
+
+[node name="Sash" type="Path2D" parent="."]
+position = Vector2(-12, -158)
+curve = SubResource("Hang")
+
+[node name="HairLow" type="Path2D" parent="."]
+position = Vector2(-20, -201)
+curve = SubResource("HairUnder")
+
+[node name="HairHigh" type="Path2D" parent="."]
+position = Vector2(-20, -201)
+curve = SubResource("HairOver")
+
+[node name="WaistSilk" type="Path2D" parent="."]
+position = Vector2(-12, -96)
+curve = SubResource("PaleTab")
+
+[node name="CoatTail" type="Path2D" parent="."]
+position = Vector2(-12, -96)
+curve = SubResource("RedTab")

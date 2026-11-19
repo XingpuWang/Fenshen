@@ -1,0 +1,108 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/studies/nezha_study.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/nezha_study/arena/golden_plain.png" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/studies/nezha_silk.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/studies/nezha_rig.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/studies/nezha_spear_fx.gd" id="5"]
+[ext_resource type="FontFile" path="res://assets/fonts/ShanheSans.otf" id="6"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(0.134, 0.097, 0.091, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.87, 0.70, 0.44, 0.66)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxEmpty" id="Quiet"]
+
+[sub_resource type="StyleBoxFlat" id="Selected"]
+bg_color = Color(0.44, 0.30, 0.18, 0.84)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+
+[sub_resource type="Theme" id="Buttons"]
+default_font = ExtResource("6")
+default_font_size = 16
+Button/colors/font_color = Color(0.97, 0.90, 0.78, 1)
+Button/colors/font_pressed_color = Color(1, 0.95, 0.80, 1)
+Button/styles/normal = SubResource("Quiet")
+Button/styles/hover = SubResource("Selected")
+Button/styles/pressed = SubResource("Selected")
+Button/styles/hover_pressed = SubResource("Selected")
+
+[node name="NezhaStudy" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Stage" type="Node2D" parent="."]
+
+[node name="PaintedArena" type="Sprite2D" parent="Stage"]
+z_index = -100
+texture = ExtResource("2")
+centered = false
+
+[node name="Shadow" type="Node2D" parent="Stage"]
+z_index = -70
+
+[node name="Actor" type="Node2D" parent="Stage"]
+position = Vector2(505, 510)
+scale = Vector2(0.84, 0.84)
+
+[node name="Ribbons" parent="Stage/Actor" instance=ExtResource("3")]
+z_index = -20
+
+[node name="Rig" parent="Stage/Actor" instance=ExtResource("4")]
+
+[node name="SpearFX" type="Node2D" parent="Stage"]
+z_index = 25
+script = ExtResource("5")
+
+[node name="Controls" type="PanelContainer" parent="Stage"]
+z_index = 40
+offset_left = 496.0
+offset_top = 650.0
+offset_right = 784.0
+offset_bottom = 694.0
+theme = SubResource("Buttons")
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Buttons" type="HBoxContainer" parent="Stage/Controls"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Replay" type="Button" parent="Stage/Controls/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "重新起势（R）"
+text = "重播"
+
+[node name="Pause" type="Button" parent="Stage/Controls/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "暂停或继续（空格）"
+text = "暂停"
+
+[node name="Effects" type="Button" parent="Stage/Controls/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "开关火尖枪特效（F）"
+toggle_mode = true
+button_pressed = true
+text = "特效 开"
