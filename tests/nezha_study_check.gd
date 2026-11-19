@@ -127,6 +127,89 @@ func check_leg_motion(scene: Node2D) -> void:
 	scene.seek(3.62)
 	check(rear_bend + deg_to_rad(12) < absf(scene.rig.legs[0][1].rotation),"the driving knee releases after the hit")
 
+# Read the character art itself: the last half-opaque column is the metal
+# point. Its pixel centre is independent of the rig marker and the effect.
+func painted_tip_pixel(blade: Sprite2D) -> Vector2:
+	var source := blade.texture.get_image()
+	if source == null:
+		check(false, "physical spear source image is available")
+		return Vector2.ZERO
+	for x in range(source.get_width()-1, -1, -1):
+		var total_y := 0.0
+		var count := 0
+		for y in source.get_height():
+			if source.get_pixel(x,y).a >= .5:
+				total_y += y + .5
+				count += 1
+		if count > 0:
+			return Vector2(x+.5, total_y/count)
+	check(false, "physical spear contains a painted point")
+	return Vector2.ZERO
+
+func check_weapon_effects() -> void:
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(1280,720)
+	root.add_child(viewport)
+	var scene = Study.instantiate()
+	# Keep FX and weapon in independent local frames. The real scene normally
+	# places FX at zero, which by itself cannot catch a stage/FX coordinate mixup.
+	var fx: Node2D = scene.get_node("Stage/SpearFX")
+	fx.position = Vector2(26,-13)
+	var actor: Node2D = scene.get_node("Stage/Actor")
+	actor.scale *= 1.18
+	var rig: Node2D = actor.get_node("Rig")
+	rig.position += Vector2(7,-2)
+	viewport.add_child(scene)
+	scene.set_process(false)
+	scene.playing = false
+	var blade: Sprite2D = scene.rig.get_node("Skeleton/Spear/FireTip")
+	var pixel := blade.get_rect().position + painted_tip_pixel(blade)
+	var ignition := fx.get_node_or_null("BladeIgnition") as Sprite2D
+	var point := fx.get_node_or_null("LotusImpact/Point") as Sprite2D
+	var heart := fx.get_node_or_null("LotusImpact/Heart") as Sprite2D
+	var corolla := fx.get_node_or_null("LotusImpact/Corolla") as Sprite2D
+	if ignition == null or point == null or heart == null or corolla == null:
+		check(false, "the drawn spear ignition and lotus impact sprites are available")
+		viewport.queue_free()
+		return
+	# Jump across phase boundaries, revisit a frame, and cover both a letterbox
+	# and a large viewport. All comparisons are in the viewport's canvas space.
+	for size: Vector2i in [Vector2i(640,360),Vector2i(1024,768),Vector2i(1920,1080)]:
+		viewport.size = size
+		scene._fit_stage()
+		scene.seek(scene.CONTACT)
+		var struck_at := blade.to_global(pixel)
+		for millis: int in [3810, 1420, 3180, 2070, 3470, 1380, 3130, 3300, 3350, 1420]:
+			var t := millis*.001
+			var label := "at %dms in %s" % [millis,size]
+			scene.seek(t)
+			var gold := blade.to_global(pixel)
+			var marker: Vector2 = scene.rig.to_global(scene.rig.weapon_tip())
+			check(marker.distance_to(gold)<.01, "marker follows the actual painting " + label)
+			if millis < 3000:
+				check(ignition.is_visible_in_tree() and ignition.global_position.distance_to(gold)<.04,
+						"ignition follows the painted spear " + label)
+				var quads: Array = fx.get("_turn_quads")
+				if quads.is_empty():
+					check(false, "the active sweep draws its hot edge " + label)
+				else:
+					var edge: PackedVector2Array = quads[-1]
+					check(fx.to_global(edge[1]).distance_to(gold)<.04 and fx.to_global(edge[2]).distance_to(gold)<.04,
+							"both painted edges meet the current metal point " + label)
+			elif millis < 3300:
+				check(point.is_visible_in_tree() and point.global_position.distance_to(gold)<.04,
+						"finisher light follows the moving point before contact " + label)
+			else:
+				if millis <= 3470:
+					check(heart.is_visible_in_tree() and heart.global_position.distance_to(struck_at)<.04,
+							"impact light stays where the metal made contact " + label)
+				if millis == 3810:
+					check(gold.distance_to(struck_at)>4.0, "the spear has pulled away from the flowering hit " + label)
+				if millis > 3300:
+					check(corolla.is_visible_in_tree() and corolla.global_position.distance_to(struck_at)<.04,
+							"the opening lotus stays on the original hit " + label)
+	viewport.queue_free()
+
 func _run() -> void:
 	var scene = Study.instantiate()
 	root.add_child(scene)
@@ -140,6 +223,7 @@ func _run() -> void:
 	check_grips(scene)
 	check_weight_transfer(scene)
 	check_leg_motion(scene)
+	check_weapon_effects()
 	scene.seek(1.52)
 	var first_sweep: Vector2 = Vector2(scene.rig.weapon_tip()) - Vector2(scene.rig.weapon_grip())
 	scene.seek(2.12)

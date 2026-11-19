@@ -17,7 +17,8 @@ const AUDIO_START := .52
 @onready var ribbons = $Stage/Actor/Ribbons
 @onready var spear_fx = $Stage/SpearFX
 @onready var shadow: Node2D = $Stage/Shadow
-@onready var arena_light: ShaderMaterial = $Stage/PaintedArena.material
+@onready var arena: Sprite2D = $Stage/PaintedArena
+@onready var arena_light: ShaderMaterial = arena.material
 @onready var fire_audio: AudioStreamPlayer = $Stage/FireAudio
 @onready var controls: Control = $Stage/Controls
 @onready var pause_button: Button = $Stage/Controls/Buttons/Pause
@@ -28,6 +29,8 @@ var effects_enabled := true
 var seconds := 0.0
 var reel := false
 var tip_path := PackedVector2Array()
+var contact_axis := Vector2.RIGHT
+var contact_floor := Vector2.ZERO
 var soles := PackedVector2Array()
 var pose_time := 0.0
 var bronze := ShaderMaterial.new()
@@ -76,7 +79,11 @@ func _bake_motion() -> void:
 		var waist: Vector2 = rig.to_local(rig.pelvis.global_position) + (actor.position-HOME_FOOT)/actor.scale.x
 		costume.record_hip(waist, deg_to_rad(rig.hip_turn))
 		if frame <= roundi(CONTACT / TRAIL_STEP):
-			tip_path.append(actor.transform * Vector2(rig.weapon_tip()))
+			tip_path.append(stage.to_local(rig.to_global(rig.weapon_tip())))
+			if frame == roundi(CONTACT / TRAIL_STEP):
+				var grip := stage.to_local(rig.to_global(rig.weapon_grip()))
+				contact_axis = grip.direction_to(tip_path[-1])
+				contact_floor = Vector2(tip_path[-1].x, actor.position.y)
 
 func _tip_on_path(t: float) -> Vector2:
 	var frame := clampf(t / TRAIL_STEP,0,tip_path.size()-1)
@@ -96,16 +103,18 @@ func seek(t: float, resync_audio: bool = true) -> void:
 	shadow.queue_redraw()
 	spear_fx.visible = seconds < CYCLE if reel else effects_enabled
 	_sound_at(pose_time, resync_audio)
-	_light_stage(pose_time if spear_fx.visible else 0.0)
+	var tip := stage.to_local(rig.to_global(rig.weapon_tip()))
+	_light_stage(pose_time if spear_fx.visible else 0.0, tip)
 	if not spear_fx.visible: return
+	var stage_to_fx: Transform2D = spear_fx.global_transform.affine_inverse() * stage.global_transform
 	var history := PackedVector2Array()
 	if pose_time > TRAIL_START and pose_time < CONTACT + .25:
 		var end := minf(pose_time,CONTACT)
 		for i in range(39,-1,-1):
-			history.append(_tip_on_path(end - i*TRAIL_STEP))
-	var grip: Vector2 = actor.transform * Vector2(rig.weapon_grip())
-	var tip: Vector2 = actor.transform * Vector2(rig.weapon_tip())
-	spear_fx.set_choreography(pose_time,actor.position,grip,tip,tip_path[-1],history)
+			history.append(stage_to_fx * _tip_on_path(end - i*TRAIL_STEP))
+	var grip := stage.to_local(rig.to_global(rig.weapon_grip()))
+	spear_fx.set_choreography(pose_time, stage_to_fx * actor.position, stage_to_fx * grip,
+		stage_to_fx * tip, stage_to_fx * tip_path[-1], history, stage_to_fx.basis_xform(contact_axis).normalized())
 
 func _sound_at(t: float, resync: bool) -> void:
 	var offset := t - AUDIO_START
@@ -117,18 +126,34 @@ func _sound_at(t: float, resync: bool) -> void:
 	elif resync:
 		fire_audio.seek(offset)
 
-func _light_stage(t: float) -> void:
-	var dusk := (.43*smoothstep(.49,1.16,t) + .47*smoothstep(2.24,2.98,t)) * (1.0-smoothstep(3.44,4.22,t))
+func _light_stage(t: float, tip: Vector2) -> void:
+	var dusk := (.31*smoothstep(.49,1.16,t) + .42*smoothstep(2.24,2.98,t)) * (1.0-smoothstep(3.44,4.22,t))
+	var kindling := smoothstep(.55,.96,t) * (1.0-smoothstep(1.09,1.36,t))
 	var first := smoothstep(1.17,1.51,t) * (1.0-smoothstep(1.53,1.81,t))
 	var second := smoothstep(1.80,2.11,t) * (1.0-smoothstep(2.13,2.49,t))
-	var landing := smoothstep(3.18,CONTACT,t) * (1.0-smoothstep(3.37,3.92,t))
-	bronze.set_shader_parameter("strength",maxf(.62*first,maxf(.75*second,landing)))
-	bronze.set_shader_parameter("light_side",1.0-2.0*first)
-	arena_light.set_shader_parameter("dusk",dusk)
-	arena_light.set_shader_parameter("sweep_glow",.68*first + second)
-	arena_light.set_shader_parameter("strike_glow",landing)
-	arena_light.set_shader_parameter("caster_ground",actor.position)
-	arena_light.set_shader_parameter("strike_ground",Vector2(tip_path[-1].x, HOME_FOOT.y + Footwork.displacement_at(CONTACT).y))
+	var gathering := smoothstep(2.38,2.82,t) * (1.0-smoothstep(3.25,CONTACT,t))
+	var blade := maxf(maxf(.47*kindling,.91*first), maxf(second,.76*gathering))
+	# The contact flash has a fast attack and a softer afterglow. It can only
+	# light the target once the live point actually reaches it.
+	var hit_age := t-CONTACT
+	var landing := 0.0
+	if hit_age >= 0.0:
+		landing = .54*(1.0-smoothstep(0.0,.075,hit_age)) + .46*(1.0-smoothstep(.09,.52,hit_age))
+	var contact := tip_path[-1]
+	var emitter := contact if hit_age >= 0.0 else tip
+	var source_floor := Vector2(tip.x,actor.position.y)
+	var stage_to_arena := arena.global_transform.affine_inverse() * stage.global_transform
+	var height := maxf(0.0,source_floor.y-tip.y)
+	arena_light.set_shader_parameter("dusk", dusk)
+	arena_light.set_shader_parameter("sweep_glow", blade)
+	arena_light.set_shader_parameter("strike_glow", landing)
+	arena_light.set_shader_parameter("flame_center", stage_to_arena * emitter)
+	arena_light.set_shader_parameter("caster_ground", stage_to_arena * source_floor)
+	arena_light.set_shader_parameter("strike_ground", stage_to_arena * contact_floor)
+	arena_light.set_shader_parameter("blade_height", height)
+	bronze.set_shader_parameter("light_origin", stage.to_global(emitter))
+	bronze.set_shader_parameter("light_range", stage.global_transform.x.length() * 215.0)
+	bronze.set_shader_parameter("strength", maxf(blade,landing))
 
 func _paint_shadow() -> void:
 	Footwork.draw_shadow(shadow,HOME_FOOT,pose_time,actor.scale.x,soles)

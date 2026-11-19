@@ -732,8 +732,8 @@ texture = ExtResource("spear")
 centered = false
 offset = Vector2(-670, -96)
 
-[node name="Tip" type="Marker2D" parent="Skeleton/Spear"]
-position = Vector2(179.75, 0)
+[node name="Tip" type="Marker2D" parent="Skeleton/Spear/FireTip"]
+position = Vector2(1438.5, 2.5)
 
 [node name="RearGrip" type="Marker2D" parent="Skeleton/Spear"]
 position = Vector2(0, 0)

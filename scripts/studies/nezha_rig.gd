@@ -210,7 +210,8 @@ func _orient_chain(upper: Bone2D,lower: Bone2D,end: Bone2D,start: Vector2,elbow:
 	end.rotation=wrapf(end_angle-lower_angle,-PI,PI)
 
 func weapon_tip() -> Vector2:
-	return to_local($Skeleton/Spear/Tip.global_position)
+	# The socket sits at the painted tip, in the sprite's own pixel space.
+	return to_local($Skeleton/Spear/FireTip/Tip.global_position)
 
 func weapon_grip() -> Vector2:
 	return to_local($Skeleton/Spear/RearGrip.global_position)

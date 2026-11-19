@@ -5,7 +5,8 @@ Godot 4.7.2 可运行原型 / v0.4 暖色城邑
 在 Godot 中打开 scenes/studies/nezha_study.tscn，按 F6 运行。空格暂停或继续，R 重播，F 开关莲火、场景映光和音效，可在同一姿势上对照握枪细节。
 在 scenes/studies/nezha_rig.tscn 中可编辑角色分件、Skeleton2D 骨架与动作关键帧。场景根位移独立于人物动作。
 实录 previews/nezha/study/nezha-study.mp4 使用固定镜头连续播放两遍。前 6.4 秒是哪吒向右前低扫、上挑，再踏步贯枪引落莲火的完整演出。后 6.4 秒关闭特效，可以看清握枪、蹬地和卸力。关键姿势见 previews/nezha/study/poses.jpg。
-在 previews/nezha/study/motion-comparison.mp4 中，左栏是上一版，右栏是新版。两栏同步，适合对照送枪时的视线、后跟何时抬起，以及前膝怎样接住重心。
+在 previews/nezha/study/effects-comparison.mp4 中，左栏是原来的火效，右栏是本次重绘。两栏同帧播放，可以看到火从枪头点起、火痕沿两次挥枪展开，以及莲火在枪尖命中处绽开。四个特效近景见 previews/nezha/study/fire-poses.jpg。
+previews/nezha/study/motion-comparison.mp4 保留了前一次调整步法的新旧对照。两栏同步，可以看清贯枪时后脚蹬地、前膝接重的动作。
 previews/nezha/study/grip-comparison.jpg 保留了上一轮双手握枪修正时的姿势对照。
 
 朝歌测试场（当前默认入口）
